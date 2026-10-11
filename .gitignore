@@ -1,0 +1,44 @@
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+
+# Java / Maven
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Pruebas e informes
+playwright-report/
+test-results/
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Registros y temporales
+*.log
+*.tmp
+*.swp
+
+# Datos locales de contenedores
+.data/
