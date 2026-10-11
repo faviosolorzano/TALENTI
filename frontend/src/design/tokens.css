@@ -1,0 +1,168 @@
+/*
+ * Design tokens for Talenti. Single source of truth for CSS.
+ * Components must not hard-code colors, fonts, spacing, radii, shadows or timings:
+ * they read these variables. The same values are mirrored in tokens.ts
+ * (a test checks that both files stay in sync).
+ *
+ * Brand colors are exactly three (docs/diseno.md, section 4):
+ *   navy #0B132B, blue #2563EB, white #FFFFFF.
+ * Neutrals are blue-grays. Green, amber and red are ONLY for states.
+ * Soft tints and hovers come from the same blue (mix or transparency), never from new hues.
+ *
+ * Review widths (media queries cannot read CSS variables, so these are documented here
+ * and exported from tokens.ts as `reviewWidths`). Styles are written mobile first:
+ *   - phone:   360 px  (base styles, no media query)
+ *   - tablet:  768 px  (@media (min-width: 48rem))
+ *   - desktop: 1280 px (@media (min-width: 80rem))
+ */
+
+:root {
+  /* ---- Brand ---- */
+  --color-brand-navy: #0b132b;
+  --color-brand-blue: #2563eb;
+  --color-brand-white: #ffffff;
+
+  /* Tints and hovers derived from the brand blue (no new hues) */
+  --color-brand-blue-hover: color-mix(
+    in srgb,
+    var(--color-brand-blue) 82%,
+    var(--color-brand-navy)
+  );
+  --color-brand-blue-soft: color-mix(in srgb, var(--color-brand-blue) 10%, transparent);
+
+  /* ---- Neutrals (blue-grays) ---- */
+  --color-neutral-50: #f6f8fb;
+  --color-neutral-100: #edf1f7;
+  --color-neutral-200: #dde3ee;
+  --color-neutral-300: #c3ccdb;
+  --color-neutral-400: #8d99b0;
+  --color-neutral-500: #5f6b85;
+  --color-neutral-600: #475269;
+  --color-neutral-700: #343d52;
+
+  /* ---- States (only for success, warning, error) ---- */
+  --color-success: #15803d;
+  --color-success-soft: #dcfce7;
+  --color-warning: #b45309;
+  --color-warning-soft: #fef3c7;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fee2e2;
+
+  /* ---- Semantic aliases (components use these) ---- */
+  --color-bg: var(--color-brand-white);
+  --color-bg-subtle: var(--color-neutral-50);
+  --color-bg-inverse: var(--color-brand-navy);
+  --color-text: var(--color-brand-navy);
+  --color-text-muted: var(--color-neutral-600);
+  --color-text-inverse: var(--color-brand-white);
+  --color-border: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-300);
+  --color-action: var(--color-brand-blue);
+  --color-action-hover: var(--color-brand-blue-hover);
+  --color-action-text: var(--color-brand-white);
+  --color-link: var(--color-brand-blue);
+  --color-focus: var(--color-brand-blue);
+  --color-focus-inverse: var(--color-brand-white);
+
+  /* ---- Typography ---- */
+  /* TODO: system font stack for now. The final families (a title face with character
+     and a sober text face) will be chosen together with the visual design. */
+  --font-family-base:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-heading: var(--font-family-base);
+  --font-family-mono: ui-monospace, 'SFMono-Regular', menlo, consolas, monospace;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.65;
+
+  /* ---- Spacing (4 px base) ---- */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+
+  /* ---- Radii ---- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-full: 9999px;
+
+  /* ---- Shadows (tinted with the brand navy) ---- */
+  --shadow-sm: 0 1px 2px rgb(11 19 43 / 0.08);
+  --shadow-md: 0 4px 12px rgb(11 19 43 / 0.1);
+  --shadow-lg: 0 12px 32px rgb(11 19 43 / 0.14);
+
+  /* ---- Layout ---- */
+  --content-max-width: 70rem;
+  --page-gutter: var(--space-4);
+  --touch-target-min: 2.75rem; /* 44 px */
+  --header-min-height: 3.5rem;
+  --z-skip-link: 100;
+
+  /* ---- Focus ring ---- */
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /* ---- Motion ---- */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --page-gutter: var(--space-8);
+  }
+}
+
+@media (min-width: 80rem) {
+  :root {
+    --page-gutter: var(--space-12);
+  }
+}
+
+/* Respect the system "reduce motion" setting: collapse all durations. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-base: 0.01ms;
+    --duration-slow: 0.01ms;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
