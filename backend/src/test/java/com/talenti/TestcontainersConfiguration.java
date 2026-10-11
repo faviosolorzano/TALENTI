@@ -9,10 +9,14 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 class TestcontainersConfiguration {
 
+	/** La misma imagen que usa docker-compose.yml: PostgreSQL 18 con pgvector. */
+	static final DockerImageName PGVECTOR_IMAGE = DockerImageName.parse("pgvector/pgvector:pg18")
+			.asCompatibleSubstituteFor("postgres");
+
 	@Bean
 	@ServiceConnection
 	PostgreSQLContainer postgresContainer() {
-		return new PostgreSQLContainer(DockerImageName.parse("postgres:latest"));
+		return new PostgreSQLContainer(PGVECTOR_IMAGE);
 	}
 
 }
