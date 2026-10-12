@@ -22,7 +22,8 @@ describe('Page /oportunidades/:id (004-21)', () => {
     expect(screen.getByText(/Descripción de Practicante Backend Java/)).toBeInTheDocument()
     expect(screen.getByText(es.vacancies.sampleData)).toBeInTheDocument()
     expect(screen.getByText(es.vacancies.sampleFootnote)).toBeInTheDocument()
-    expect(document.title).toBe(`Practicante Backend Java · ${es.app.name}`)
+    // The tab title is set in an effect after the heading is drawn: wait for it, do not race it.
+    await waitFor(() => expect(document.title).toBe(`Practicante Backend Java · ${es.app.name}`))
   })
 
   it('separates "Obligatorios" and "Deseables", each with a badge and the minimum level in words', async () => {

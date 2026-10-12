@@ -170,7 +170,7 @@ test.describe('Main journey (004-17 to 004-22)', () => {
     // Nothing breaks: either results or the useful empty message.
     const articles = await page.getByRole('article').count()
     if (articles === 0) {
-      await expect(page.getByText('No encontramos vacantes con estos filtros')).toBeVisible()
+      await expect(page.getByText('No encontramos vacantes para «programacion»')).toBeVisible()
     }
 
     await page.goto('/oportunidades?q=react&modalidad=remoto&orden=empresa')
@@ -209,13 +209,21 @@ test.describe('Main journey (004-17 to 004-22)', () => {
     expect(await loadedCount(page)).toBe(remote)
   })
 
-  test('empty search offers to clear the filters', async ({ page }) => {
-    await page.goto('/oportunidades?q=cobol')
+  test('empty filters without text offer to clear them and ask for no recent vacancies', async ({
+    page,
+  }) => {
+    const recentRequests: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes('size=3')) recentRequests.push(request.url())
+    })
+    await page.goto('/oportunidades?modalidad=presencial&tecnologia=laravel')
     await expect(resultsTitle(page)).toHaveText('0 vacantes')
     await expect(page.getByText('No encontramos vacantes con estos filtros')).toBeVisible()
+    await expect(page.getByText('Vacantes recientes que pueden interesarte')).toHaveCount(0)
     await page.getByRole('button', { name: 'Limpiar filtros' }).last().click()
     expect(await loadedCount(page)).toBe(12)
     await expect(page).toHaveURL(/\/oportunidades$/)
+    expect(recentRequests).toEqual([])
   })
 
   test('a missing vacancy says it does not exist and links back to the list', async ({ page }) => {
@@ -263,6 +271,188 @@ test.describe('Main journey (004-17 to 004-22)', () => {
     )
     expect(stored).not.toContain('textoultrasecreto')
   })
+})
+
+test.describe('Order of the results (004-30)', () => {
+  const sortBox = (page: Page) => page.getByRole('combobox', { name: 'Ordenar por' })
+  const options = (page: Page) => sortBox(page).getByRole('option').allTextContents()
+
+  test('"Más relevantes" exists only with text, is the default and writing "se usar java" puts the Java vacancy first', async ({
+    page,
+  }) => {
+    await page.goto('/oportunidades')
+    await loadedCount(page)
+    expect(await options(page)).toEqual(['Más recientes', 'Empresa (A-Z)'])
+
+    const sorts: string[] = []
+    page.on('request', (request) => {
+      const url = new URL(request.url())
+      if (url.pathname.endsWith('/vacancies') && url.searchParams.has('sort')) {
+        sorts.push(url.search)
+      }
+    })
+    await page.getByRole('textbox', { name: '¿Qué sabes hacer?' }).fill('se usar java')
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\?q=se\+usar\+java$/)
+    await loadedCount(page)
+    expect(await options(page)).toEqual(['Más relevantes', 'Más recientes', 'Empresa (A-Z)'])
+    await expect(sortBox(page)).toHaveValue('relevance')
+    await expect(page.getByRole('article').first()).toContainText('Practicante Backend Java')
+    expect(sorts).toEqual([]) // the server decides: no `sort` is sent by default
+  })
+
+  test('an explicit order goes to the address and to the API, and the shared link reproduces it', async ({
+    page,
+  }) => {
+    await page.goto('/oportunidades?q=practicante')
+    await loadedCount(page)
+
+    const request = page.waitForRequest((r) => r.url().includes('sort=company'))
+    await sortBox(page).selectOption({ label: 'Empresa (A-Z)' })
+    await request
+    await expect(page).toHaveURL(/\?q=practicante&orden=empresa$/)
+    await loadedCount(page)
+    await expect(page.getByRole('article').first()).toContainText('Andes Tech')
+
+    await page.reload()
+    await loadedCount(page)
+    await expect(sortBox(page)).toHaveValue('company')
+
+    await sortBox(page).selectOption({ label: 'Más relevantes' })
+    await expect(page).toHaveURL(/\?q=practicante&orden=relevancia$/)
+    await loadedCount(page)
+  })
+
+  test('"orden=relevancia" without text is ignored and the address is corrected', async ({
+    page,
+  }) => {
+    await page.goto('/oportunidades?orden=relevancia&modalidad=remoto')
+    await loadedCount(page)
+    await expect(page).toHaveURL(/\/oportunidades\?modalidad=remoto$/)
+    await expect(sortBox(page)).toHaveValue('recent')
+    expect(await options(page)).toEqual(['Más recientes', 'Empresa (A-Z)'])
+  })
+
+  test('changing the text goes back to the first page', async ({ page }) => {
+    await page.goto('/oportunidades?q=practicante&pagina=2')
+    await loadedCount(page)
+    const field = page.getByRole('textbox', { name: '¿Qué sabes hacer?' })
+    await field.fill('python')
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\?q=python$/)
+  })
+})
+
+test.describe('Search without results (004-33)', () => {
+  const noMatches = (page: Page, text: string) =>
+    page.getByRole('heading', { level: 3, name: `No encontramos vacantes para «${text}»` })
+  const recentTitle = (page: Page) =>
+    page.getByRole('heading', { level: 3, name: 'Vacantes recientes que pueden interesarte' })
+
+  test('a text with no match says so, suggests what to do and offers 3 recent vacancies', async ({
+    page,
+  }) => {
+    await page.goto('/oportunidades')
+    await loadedCount(page)
+    await page.getByRole('textbox', { name: '¿Qué sabes hacer?' }).fill('cobol')
+    await page.keyboard.press('Enter')
+
+    await expect(resultsTitle(page)).toHaveText('0 vacantes')
+    await expect(noMatches(page, 'cobol')).toBeVisible()
+    const hints = page.getByRole('list', { name: 'Sugerencias' })
+    await expect(hints).toContainText('Revisa cómo lo escribiste.')
+    await expect(hints).toContainText('Prueba con una tecnología, como Java o React.')
+    await expect(page.getByRole('button', { name: 'Quitar filtros' })).toHaveCount(0)
+
+    await expect(recentTitle(page)).toBeVisible()
+    const recent = page.getByRole('list', { name: 'Vacantes recientes' })
+    await expect(recent.getByRole('article')).toHaveCount(3)
+    await expect(recent.getByText(/\d\s?%/)).toHaveCount(0)
+
+    // The recent vacancies are real ones: one opens its detail.
+    await recent.getByRole('article').first().getByRole('link').click()
+    await expect(page).toHaveURL(/\/oportunidades\/[0-9a-f-]{36}$/)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  })
+
+  test('with filters it suggests removing them and "Quitar filtros" keeps the text', async ({
+    page,
+  }) => {
+    await page.goto('/oportunidades?q=cobol&modalidad=remoto&tecnologia=git')
+    await expect(noMatches(page, 'cobol')).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Sugerencias' })).toContainText(
+      'Quita algún filtro para ampliar la búsqueda.',
+    )
+    await page.getByRole('button', { name: 'Quitar filtros' }).click()
+    await expect(page).toHaveURL(/\?q=cobol$/)
+    await expect(noMatches(page, 'cobol')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Quitar filtros' })).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: '¿Qué sabes hacer?' })).toHaveValue('cobol')
+  })
+
+  test('the text is shown as plain text and cut when long, with no horizontal scroll', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 900 })
+    const long = 'x'.repeat(70)
+    await page.goto(`/oportunidades?q=${encodeURIComponent(`<b>${long}</b>`)}`)
+    const title = page.getByRole('heading', { level: 3, name: /^No encontramos vacantes para/ })
+    await expect(title).toBeVisible()
+    await expect(title.locator('b')).toHaveCount(0)
+    expect(await title.textContent()).toContain('<b>')
+    expect(await title.textContent()).toContain('…')
+    expect(await title.textContent()).not.toContain(long)
+    const size = await horizontalScroll(page)
+    expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth)
+  })
+
+  test('when the recent vacancies fail the screen keeps working without that section', async ({
+    page,
+  }) => {
+    await page.route('**/api/v1/vacancies?sort=recent&size=3', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
+    )
+    await page.goto('/oportunidades?q=cobol')
+    await expect(noMatches(page, 'cobol')).toBeVisible()
+    await expect(recentTitle(page)).toHaveCount(0)
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: '¿Qué sabes hacer?' })).toHaveValue('cobol')
+  })
+
+  test('with results it does not ask for recent vacancies', async ({ page }) => {
+    const recentRequests: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes('size=3')) recentRequests.push(request.url())
+    })
+    await page.goto('/oportunidades?q=java')
+    expect(await loadedCount(page)).toBeGreaterThanOrEqual(1)
+    await expect(recentTitle(page)).toHaveCount(0)
+    expect(recentRequests).toEqual([])
+  })
+
+  for (const width of WIDTHS) {
+    test(`at ${width} px the empty state with text and recent vacancies does not scroll sideways, has no serious axe violations and 44 px targets`, async ({
+      page,
+    }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/oportunidades?q=cobol')
+      await expect(page.getByRole('list', { name: 'Vacantes recientes' })).toBeVisible()
+      await page.evaluate(() => document.fonts.ready)
+      await page.waitForTimeout(500)
+      let size = await horizontalScroll(page)
+      expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth)
+      expect(await seriousViolations(page)).toEqual([])
+
+      await page.goto('/oportunidades?q=cobol&modalidad=remoto')
+      const remove = page.getByRole('button', { name: 'Quitar filtros' })
+      await expect(remove).toBeVisible()
+      expect((await remove.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43.9)
+      size = await horizontalScroll(page)
+      expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth)
+      expect(await seriousViolations(page)).toEqual([])
+    })
+  }
 })
 
 test.describe('Keyboard only (004-17, 004-25)', () => {
@@ -378,7 +568,7 @@ test.describe('Responsive and accessibility (004-25)', () => {
   }
 
   test('the empty and the not-found states have no serious axe violations', async ({ page }) => {
-    await page.goto('/oportunidades?q=cobol')
+    await page.goto('/oportunidades?modalidad=presencial&tecnologia=laravel')
     await expect(page.getByText('No encontramos vacantes con estos filtros')).toBeVisible()
     expect(await seriousViolations(page)).toEqual([])
 

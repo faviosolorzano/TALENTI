@@ -5,8 +5,11 @@ import { publishedLabel } from './format'
 import { pageItems } from './pageItems'
 import {
   clearFilters,
+  clearNarrowing,
+  effectiveSort,
   EMPTY_SEARCH,
   hasActiveFilters,
+  hasNarrowingFilters,
   needsCorrection,
   parseSearchParams,
   serializeSearch,
@@ -95,7 +98,7 @@ describe('Search state in the URL (004-18)', () => {
     )
     expect(state.modality).toEqual(['REMOTE'])
     expect(state.skill).toEqual(['ok-1'])
-    expect(state.sort).toBe('recent')
+    expect(state.sort).toBeNull()
     expect(state.page).toBe(1)
     expect(parse('?pagina=abc').page).toBe(1)
     expect(parse('?pagina=-3').page).toBe(1)
@@ -115,7 +118,7 @@ describe('Search state in the URL (004-18)', () => {
   })
 
   it('writes a canonical address without defaults, so correcting it cannot loop', () => {
-    const state = parse('?pagina=1&orden=recientes&q=%20js&modalidad=remoto&zzz=1')
+    const state = parse('?pagina=1&q=%20js&modalidad=remoto&zzz=1')
     const canonical = serializeSearch(state)
     expect(canonical).toBe('?q=js&modalidad=remoto')
     expect(serializeSearch(parse(canonical))).toBe(canonical)
@@ -128,6 +131,42 @@ describe('Search state in the URL (004-18)', () => {
     const canonical = serializeSearch(parse('?q=java%20sql'))
     expect(needsCorrection('?q=java%20sql', canonical)).toBe(false)
     expect(needsCorrection('?q=java+sql', canonical)).toBe(false)
+  })
+
+  it('reads "orden=relevancia" only when there is text, and corrects it otherwise (004-30)', () => {
+    expect(parse('?q=java&orden=relevancia').sort).toBe('relevance')
+    expect(parse('?orden=relevancia').sort).toBeNull()
+    expect(parse('?q=%20&orden=relevancia').sort).toBeNull()
+
+    const canonical = serializeSearch(parse('?orden=relevancia&modalidad=remoto'))
+    expect(canonical).toBe('?modalidad=remoto')
+    expect(needsCorrection('?orden=relevancia&modalidad=remoto', canonical)).toBe(true)
+    expect(serializeSearch(parse(canonical))).toBe(canonical)
+    expect(serializeSearch(parse('?q=java&orden=relevancia'))).toBe('?q=java&orden=relevancia')
+  })
+
+  it('keeps "orden=recientes" with text (where relevance is the default) and drops it without text', () => {
+    expect(serializeSearch(parse('?q=java&orden=recientes'))).toBe('?q=java&orden=recientes')
+    expect(serializeSearch(parse('?orden=recientes'))).toBe('')
+    expect(serializeSearch(parse('?q=java&orden=empresa'))).toBe('?q=java&orden=empresa')
+    expect(serializeSearch(parse('?orden=empresa'))).toBe('?orden=empresa')
+  })
+
+  it('shows the default order of the search when none was chosen (004-30)', () => {
+    expect(effectiveSort(parse('?q=java'))).toBe('relevance')
+    expect(effectiveSort(parse(''))).toBe('recent')
+    expect(effectiveSort(parse('?q=java&orden=recientes'))).toBe('recent')
+    expect(effectiveSort(parse('?orden=empresa'))).toBe('company')
+    expect(effectiveSort(parse('?q=java&orden=relevancia'))).toBe('relevance')
+  })
+
+  it('removes place, modality and technology but keeps the text and the sort', () => {
+    const state = parse(
+      '?q=java&modalidad=remoto&ubicacion=Lima&tecnologia=sql&orden=empresa&pagina=3',
+    )
+    expect(hasNarrowingFilters(state)).toBe(true)
+    expect(clearNarrowing(state)).toEqual({ ...EMPTY_SEARCH, q: 'java', sort: 'company' })
+    expect(hasNarrowingFilters(parse('?q=java'))).toBe(false)
   })
 
   it('clears every filter but keeps the sort', () => {
@@ -150,6 +189,37 @@ describe('Query sent to the API', () => {
     )
     expect(buildVacancyQueryString(toApiQuery(EMPTY_SEARCH))).toBe('')
     expect(buildVacancyQueryString(toApiQuery(parse('?orden=empresa')))).toBe('?sort=company')
+  })
+
+  it('does not send "sort" when the person has not chosen one, with or without text (004-30)', () => {
+    expect(buildVacancyQueryString(toApiQuery(parse('?q=java')))).toBe('?q=java')
+    expect(buildVacancyQueryString(toApiQuery(parse('?q=java&orden=relevancia')))).toBe(
+      '?q=java&sort=relevance',
+    )
+  })
+
+  it('sends "recent" with text (relevance is the server default there) and nothing without it', () => {
+    expect(buildVacancyQueryString(toApiQuery(parse('?q=java&orden=recientes')))).toBe(
+      '?q=java&sort=recent',
+    )
+    expect(buildVacancyQueryString(toApiQuery(parse('?orden=recientes')))).toBe('')
+    expect(buildVacancyQueryString(toApiQuery(parse('?q=java&orden=empresa')))).toBe(
+      '?q=java&sort=company',
+    )
+  })
+
+  it('asks for the 3 newest vacancies with the existing call, with no text or filters (004-33)', () => {
+    expect(
+      buildVacancyQueryString({
+        q: '',
+        modality: [],
+        location: [],
+        skill: [],
+        sort: 'recent',
+        page: 1,
+        size: 3,
+      }),
+    ).toBe('?sort=recent&size=3')
   })
 
   it('encodes special characters instead of sending them raw', () => {

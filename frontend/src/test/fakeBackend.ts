@@ -212,6 +212,9 @@ function json(status: number, body: unknown): Response {
 
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
+/** A few filler words the real server drops (spec 004-26); the full list lives in the backend. */
+const FILLER = new Set(['se', 'usar', 'con', 'de', 'en', 'para', 'manejo', 'quiero', 'busco'])
+
 /** Replaces `fetch` with the fake backend and returns handles to inspect it. */
 export function mockBackend(options: FakeBackendOptions = {}): FakeBackend {
   const seeds = options.vacancies ?? SEED
@@ -225,7 +228,14 @@ export function mockBackend(options: FakeBackendOptions = {}): FakeBackend {
   function list(params: URLSearchParams): VacancyPage {
     const terms = normalize(params.get('q') ?? '')
       .split(/\s+/)
-      .filter(Boolean)
+      .filter((term) => term && !FILLER.has(term))
+    const score = (card: VacancyCardData) =>
+      terms.reduce((total, term) => {
+        const inTitle = normalize(card.title).includes(term) ? 3 : 0
+        const inSkills = card.skills.some((s) => normalize(s.name).includes(term)) ? 3 : 0
+        const inRest = normalize(`${card.summary} ${card.company.name}`).includes(term) ? 1 : 0
+        return total + inTitle + inSkills + inRest
+      }, 0)
     const modalities = params.getAll('modality')
     const locations = params.getAll('location')
     const skills = params.getAll('skill')
@@ -234,16 +244,23 @@ export function mockBackend(options: FakeBackendOptions = {}): FakeBackend {
         [card.title, card.summary, card.company.name, ...card.skills.map((s) => s.name)].join(' '),
       )
       return (
-        terms.every((term) => haystack.includes(term)) &&
+        (terms.length === 0 || terms.some((term) => haystack.includes(term))) &&
         (modalities.length === 0 || modalities.includes(card.modality)) &&
         (locations.length === 0 || (card.location !== null && locations.includes(card.location))) &&
         (skills.length === 0 || card.skills.some((skill) => skills.includes(skill.slug)))
       )
     })
-    items =
-      params.get('sort') === 'company'
-        ? [...items].sort((a, b) => a.company.name.localeCompare(b.company.name, 'es'))
-        : [...items].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+    // Like the server: without `sort`, relevance when there are useful words, else recent.
+    const sort = params.get('sort') ?? (terms.length > 0 ? 'relevance' : 'recent')
+    const byRecent = (a: VacancyCardData, b: VacancyCardData) =>
+      b.publishedAt.localeCompare(a.publishedAt)
+    if (sort === 'company') {
+      items = [...items].sort((a, b) => a.company.name.localeCompare(b.company.name, 'es'))
+    } else if (sort === 'relevance' && terms.length > 0) {
+      items = [...items].sort((a, b) => score(b) - score(a) || byRecent(a, b))
+    } else {
+      items = [...items].sort(byRecent)
+    }
     const size = Number(params.get('size') ?? options.pageSize ?? 9)
     const page = Number(params.get('page') ?? 1)
     return {
