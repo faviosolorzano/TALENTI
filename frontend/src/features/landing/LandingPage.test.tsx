@@ -50,11 +50,17 @@ describe('Landing page (003-14)', () => {
     )
   })
 
-  it('shows no vacancy counter and no featured vacancies', () => {
+  // Amendment 004-15: the home page now has the counter and the featured vacancies, but it
+  // still has no "prácticas abiertas" dot and no "Para empresas" area.
+  it('has no "prácticas abiertas" dot and no "Para empresas" area, and survives a dead API', async () => {
     renderApp('/')
     expect(screen.queryByText(/prácticas abiertas/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/vacantes destacadas/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/para empresas/i)).not.toBeInTheDocument()
+    // fetch is not mocked here: every section of vacancies fails by itself, the rest stays.
+    expect(await screen.findAllByRole('alert')).not.toHaveLength(0)
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: es.how.title })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: es.dora.title })).toBeInTheDocument()
   })
 
   it('keeps the skip link and the main area', () => {

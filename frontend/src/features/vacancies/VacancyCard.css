@@ -1,0 +1,126 @@
+.card.vacancy-card {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow var(--duration-slow) var(--easing-standard),
+    border-color var(--duration-base),
+    transform var(--duration-slow) var(--easing-standard);
+}
+
+@media (min-width: 32.5rem) {
+  .card.vacancy-card {
+    gap: var(--space-5);
+    padding: var(--space-6);
+  }
+}
+
+.card.vacancy-card:hover {
+  border-color: var(--color-border-accent);
+  box-shadow: var(--shadow-md);
+  transform: translateY(calc(-1 * var(--space-1)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.vacancy-card:hover {
+    transform: none;
+  }
+}
+
+.vacancy-card__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.vacancy-card__title {
+  /* Two lines at most; the whole title stays in the link for assistive technology. */
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+.vacancy-card__link {
+  text-decoration: none;
+}
+
+/* The link covers the whole card. */
+.vacancy-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+}
+
+.vacancy-card__link:focus-visible {
+  outline: none;
+}
+
+.vacancy-card__link:focus-visible::after {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.vacancy-card__company {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+  overflow-wrap: anywhere;
+}
+
+.vacancy-card__facts,
+.vacancy-card__skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vacancy-card__facts {
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.vacancy-card__fact {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vacancy-card__fact + .vacancy-card__fact::before {
+  content: '·' / '';
+  margin-right: var(--space-2);
+}
+
+.vacancy-card__fact--modality {
+  color: var(--color-text-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.vacancy-card__skills {
+  margin-top: var(--space-4);
+}
+
+.vacancy-card__skill {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.vacancy-card__skill--more {
+  color: var(--color-text-muted);
+}

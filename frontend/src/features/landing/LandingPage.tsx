@@ -1,16 +1,20 @@
+import { CompaniesStrip } from '../vacancies/CompaniesStrip'
+import { FeaturedVacancies } from '../vacancies/FeaturedVacancies'
 import { DoraSection } from './DoraSection'
 import { Hero } from './Hero'
 import { HowItWorks } from './HowItWorks'
 
 /**
- * Informative home page (`/`): hero with the compatibility card, "Cómo funciona" and DORA.
- * The order is fixed by the approved sample.
+ * Home page (`/`): hero with the compatibility card, featured vacancies (with the real count of
+ * open ones), the strip of companies, "Cómo funciona" and DORA. The order comes from the
+ * approved sample and from spec 004-15.
  */
 export function LandingPage() {
   return (
     <>
       <Hero />
-      {/* S2: aquí van las vacantes destacadas de empresas (después de la portada principal y antes de "Cómo funciona"). */}
+      <FeaturedVacancies />
+      <CompaniesStrip />
       <HowItWorks />
       <DoraSection />
     </>

@@ -84,6 +84,18 @@
   --color-overlay-inverse-line: color-mix(in srgb, var(--color-brand-white) 28%, transparent);
   --color-mark-watermark: var(--color-brand-blue);
 
+  /* Company avatars: three tones of the brand (no logos). Text on each reaches 4.5:1. */
+  --color-avatar-1-bg: var(--color-brand-navy);
+  --color-avatar-1-text: var(--color-brand-white);
+  --color-avatar-2-bg: var(--color-brand-blue);
+  --color-avatar-2-text: var(--color-brand-white);
+  --color-avatar-3-bg: color-mix(in srgb, var(--color-brand-blue) 14%, var(--color-brand-white));
+  --color-avatar-3-text: var(--color-brand-navy);
+
+  /* Loading skeletons */
+  --color-skeleton: var(--color-neutral-100);
+  --color-skeleton-shine: var(--color-neutral-50);
+
   /* ---- Typography ---- */
   /* Families are self-hosted (@fontsource-variable, imported in main.tsx). The fallbacks keep
      the layout readable while the font loads or if it fails. */
@@ -195,6 +207,12 @@
   --ring-size: 8.25rem; /* 132 px on phones */
   --orb-max-size: 27.5rem; /* 440 px */
   --stage-min-height: 21.25rem; /* 340 px */
+  --avatar-size: 3rem; /* 48 px */
+  --avatar-size-sm: 2.5rem; /* 40 px */
+  --filters-width: 16.25rem; /* 260 px: side column of /oportunidades */
+  --detail-aside-width: 22rem; /* 352 px: apply and side column of a vacancy */
+  --notice-message-basis: 14rem; /* 224 px: width at which an error message wraps its button */
+  --company-item-min-width: 14rem; /* 224 px: narrowest company tile of the strip */
   --chip-bar-width: 0.375rem; /* 6 px */
   --chip-bar-height: 0.875rem; /* 14 px */
 
@@ -209,6 +227,8 @@
   --duration-enter: 450ms;
   --duration-panel: 500ms;
   --duration-ring: 1000ms;
+  --opacity-stale: 0.6; /* results kept on screen while a new answer arrives */
+  --duration-shimmer: 1400ms; /* loading skeletons; reduced motion stops the animation */
   --easing-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

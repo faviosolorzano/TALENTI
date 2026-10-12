@@ -1,0 +1,60 @@
+.search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: end;
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.search-form__field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.search-form__field label {
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-bold);
+}
+
+.search-form input,
+.search-form select {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+}
+
+.search-form input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.search-form input:hover,
+.search-form select:hover {
+  border-color: var(--color-text-muted);
+}
+
+.search-form__submit {
+  width: 100%;
+}
+
+@media (min-width: 48rem) {
+  .search-form {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+    padding: var(--space-6);
+  }
+
+  .search-form__submit {
+    width: auto;
+  }
+}

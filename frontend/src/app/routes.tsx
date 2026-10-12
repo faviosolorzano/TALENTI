@@ -1,9 +1,11 @@
 import type { RouteObject } from 'react-router'
 import { DashboardPage } from '../pages/DashboardPage'
 import { HomePage } from '../pages/HomePage'
+import { OpportunitiesPage } from '../pages/OpportunitiesPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { RegisterPage } from '../pages/RegisterPage'
+import { VacancyPage } from '../pages/VacancyPage'
 import { es } from '../i18n/es'
 import type { RouteHandle } from './routeHandle'
 import { Layout } from './Layout'
@@ -16,6 +18,16 @@ export const routes: RouteObject[] = [
         path: '/',
         element: <HomePage />,
         handle: { title: es.pages.home.title } satisfies RouteHandle,
+      },
+      {
+        path: '/oportunidades',
+        element: <OpportunitiesPage />,
+        handle: { title: es.pages.opportunities.title } satisfies RouteHandle,
+      },
+      {
+        path: '/oportunidades/:id',
+        element: <VacancyPage />,
+        handle: { title: es.pages.vacancy.title } satisfies RouteHandle,
       },
       {
         path: '/registro',

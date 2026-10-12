@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  avatarTones,
   blueTones,
   brandColors,
   breakpoints,
@@ -62,6 +63,16 @@ describe('Design tokens', () => {
     for (const [step, hex] of Object.entries(neutralColors)) {
       expect(cssValue(`--color-neutral-${step}`)).toBe(hex)
     }
+  })
+
+  it('keep the company avatar tones in sync (004-16)', () => {
+    const [first, second] = avatarTones.tones
+    expect(cssValue('--color-avatar-1-bg')).toBe('VAR(--COLOR-BRAND-NAVY)')
+    expect(cssValue('--color-avatar-2-bg')).toBe('VAR(--COLOR-BRAND-BLUE)')
+    expect(cssValue('--color-avatar-3-bg')).toContain('VAR(--COLOR-BRAND-BLUE) 14%')
+    expect(first.background).toBe(brandColors.navy)
+    expect(second.background).toBe(brandColors.blue)
+    expect(avatarTones.tones).toHaveLength(3)
   })
 
   it('keep the light grays used on navy in sync', () => {
