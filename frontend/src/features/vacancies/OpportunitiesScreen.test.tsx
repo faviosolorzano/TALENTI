@@ -173,7 +173,8 @@ describe('Page /oportunidades: state in the URL (004-18)', () => {
     const { router } = renderApp('/oportunidades?pagina=99')
     await waitFor(() => expect(searchOf(router)).toBe('?pagina=2'))
     expect(await countHeading('12 vacantes')).toBeInTheDocument()
-    expect(screen.getAllByRole('article')).toHaveLength(3)
+    // The title is the same while page 1 is kept on screen: wait for the cards of the last page.
+    await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(3))
   })
 
   it('leads to the first page when there are no results but the page is not the first', async () => {
@@ -276,17 +277,21 @@ describe('Page /oportunidades: states (004-19)', () => {
   })
 
   it('says "No encontramos vacantes con estos filtros" and "Limpiar filtros" clears everything', async () => {
-    mockBackend()
-    const { router } = renderApp('/oportunidades?q=cobol&modalidad=remoto&orden=empresa')
+    const api = mockBackend()
+    const { router } = renderApp(
+      '/oportunidades?modalidad=presencial&tecnologia=laravel&orden=empresa',
+    )
     await countHeading('0 vacantes')
 
     expect(screen.getByText(es.opportunities.results.emptyTitle)).toBeInTheDocument()
+    // Without text the old behavior stays: no suggestions section and no request for recents.
+    expect(screen.queryByText(es.opportunities.results.recentTitle)).not.toBeInTheDocument()
+    expect(api.requested().some((path) => path.includes('size=3'))).toBe(false)
     await userEvent.click(
       screen.getAllByRole('button', { name: es.opportunities.filters.clear }).at(-1) as HTMLElement,
     )
     await waitFor(() => expect(searchOf(router)).toBe('?orden=empresa'))
     expect(await countHeading('12 vacantes')).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: es.opportunities.queryLabel })).toHaveValue('')
   })
 
   it('says "Aún no hay vacantes publicadas" without "Limpiar" when there are none and no filters', async () => {
@@ -351,6 +356,258 @@ describe('Page /oportunidades: states (004-19)', () => {
       '3 vacantes',
     )
     expect(screen.getAllByRole('article')).toHaveLength(3)
+  })
+})
+
+const recentPath = '/vacancies?sort=recent&size=3'
+
+describe('Page /oportunidades: order (004-30)', () => {
+  const sortSelect = () => screen.getByRole('combobox', { name: es.opportunities.sort.label })
+  const optionNames = () =>
+    within(sortSelect())
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+
+  it('offers only "Más recientes" and "Empresa (A-Z)" when there is no text (004-30)', async () => {
+    mockBackend()
+    renderApp('/oportunidades')
+    await countHeading('12 vacantes')
+    expect(optionNames()).toEqual([es.opportunities.sort.recent, es.opportunities.sort.company])
+    expect(sortSelect()).toHaveValue('recent')
+  })
+
+  it('offers "Más relevantes" first and selected when there is text, without sending "sort" (004-30)', async () => {
+    const api = mockBackend()
+    renderApp('/oportunidades?q=java')
+    await countHeading(/vacantes?$/)
+    expect(optionNames()).toEqual([
+      es.opportunities.sort.relevance,
+      es.opportunities.sort.recent,
+      es.opportunities.sort.company,
+    ])
+    expect(sortSelect()).toHaveValue('relevance')
+    expect(api.requested()).toContain('/vacancies?q=java')
+    expect(api.requested().some((path) => path.includes('sort='))).toBe(false)
+  })
+
+  it('puts the Java vacancy first when writing "se usar java" (004-30)', async () => {
+    const api = mockBackend()
+    const { router } = renderApp('/oportunidades')
+    await countHeading('12 vacantes')
+    await userEvent.type(
+      screen.getByRole('textbox', { name: es.opportunities.queryLabel }),
+      'se usar java{Enter}',
+    )
+    await waitFor(() => expect(searchOf(router)).toBe('?q=se+usar+java'))
+    await waitFor(() =>
+      expect(screen.getAllByRole('article')[0]).toHaveTextContent('Practicante Backend Java'),
+    )
+    expect(api.requested().some((path) => path.includes('sort='))).toBe(false)
+  })
+
+  it('sends and keeps in the address an order chosen explicitly (004-30)', async () => {
+    const api = mockBackend()
+    const { router } = renderApp('/oportunidades?q=java')
+    await countHeading(/vacantes?$/)
+
+    await userEvent.selectOptions(sortSelect(), es.opportunities.sort.recent)
+    await waitFor(() => expect(searchOf(router)).toBe('?q=java&orden=recientes'))
+    await waitFor(() => expect(api.requested()).toContain('/vacancies?q=java&sort=recent'))
+    expect(sortSelect()).toHaveValue('recent')
+
+    await userEvent.selectOptions(sortSelect(), es.opportunities.sort.relevance)
+    await waitFor(() => expect(searchOf(router)).toBe('?q=java&orden=relevancia'))
+    await waitFor(() => expect(api.requested()).toContain('/vacancies?q=java&sort=relevance'))
+  })
+
+  it('reproduces a shared link with "orden=relevancia" and text (004-30, 004-18)', async () => {
+    const api = mockBackend()
+    const { router } = renderApp('/oportunidades?q=java&orden=relevancia')
+    await countHeading(/vacantes?$/)
+    expect(searchOf(router)).toBe('?q=java&orden=relevancia')
+    expect(sortSelect()).toHaveValue('relevance')
+    expect(api.requested()).toContain('/vacancies?q=java&sort=relevance')
+  })
+
+  it('ignores "orden=relevancia" without text and corrects the address once (004-18, 004-30)', async () => {
+    const api = mockBackend()
+    const { router } = renderApp('/oportunidades?orden=relevancia&modalidad=remoto')
+    await countHeading('4 vacantes')
+    expect(searchOf(router)).toBe('?modalidad=remoto')
+    expect(sortSelect()).toHaveValue('recent')
+    expect(api.requested().some((path) => path.includes('sort='))).toBe(false)
+  })
+
+  it('goes back to the first page when the searched text changes (004-30)', async () => {
+    mockBackend()
+    const { router } = renderApp('/oportunidades?q=practicante&pagina=2')
+    await countHeading('12 vacantes')
+    expect(searchOf(router)).toBe('?q=practicante&pagina=2')
+
+    const field = screen.getByRole('textbox', { name: es.opportunities.queryLabel })
+    await userEvent.clear(field)
+    await userEvent.type(field, 'python{Enter}')
+    await waitFor(() => expect(searchOf(router)).toBe('?q=python'))
+  })
+
+  it('drops "Más relevantes" from the selector when the text is cleared (004-30)', async () => {
+    mockBackend()
+    const { router } = renderApp('/oportunidades?q=java&orden=relevancia')
+    await countHeading(/vacantes?$/)
+    await userEvent.clear(screen.getByRole('textbox', { name: es.opportunities.queryLabel }))
+    await userEvent.click(screen.getByRole('button', { name: es.opportunities.submit }))
+    await waitFor(() => expect(searchOf(router)).toBe(''))
+    await countHeading('12 vacantes')
+    expect(optionNames()).toEqual([es.opportunities.sort.recent, es.opportunities.sort.company])
+  })
+})
+
+describe('Page /oportunidades: search without results (004-33)', () => {
+  const noMatchesHeading = () =>
+    screen.findByRole('heading', { level: 3, name: /^No encontramos vacantes para/ })
+
+  it('says "No encontramos vacantes para «…»" with suggestions and the 3 recent vacancies (004-33)', async () => {
+    const api = mockBackend()
+    renderApp('/oportunidades?q=cobol')
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 3,
+        name: es.opportunities.results.noMatchesTitle('cobol'),
+      }),
+    ).toBeInTheDocument()
+    const hints = screen.getByRole('list', { name: es.opportunities.results.suggestionsLabel })
+    expect(hints).toHaveTextContent(es.opportunities.results.suggestionSpelling)
+    expect(hints).toHaveTextContent(es.opportunities.results.suggestionTechnology)
+    // Without filters there is nothing to remove.
+    expect(hints).not.toHaveTextContent(es.opportunities.results.suggestionFilters)
+    expect(
+      screen.queryByRole('button', { name: es.opportunities.results.removeFilters }),
+    ).not.toBeInTheDocument()
+
+    expect(
+      await screen.findByRole('heading', { level: 3, name: es.opportunities.results.recentTitle }),
+    ).toBeInTheDocument()
+    const recent = await screen.findByRole('list', {
+      name: es.opportunities.results.recentListLabel,
+    })
+    const cards = within(recent).getAllByRole('article')
+    expect(cards).toHaveLength(3)
+    expect(cards[0]).toHaveTextContent('Practicante Backend Java') // the newest
+    expect(recent).not.toHaveTextContent('%')
+    expect(api.requested().filter((path) => path === recentPath)).toHaveLength(1)
+  })
+
+  it('suggests removing filters and "Quitar filtros" keeps the text (004-33)', async () => {
+    mockBackend()
+    const { router } = renderApp('/oportunidades?q=cobol&modalidad=remoto&ubicacion=Lima')
+    await noMatchesHeading()
+
+    expect(
+      screen.getByRole('list', { name: es.opportunities.results.suggestionsLabel }),
+    ).toHaveTextContent(es.opportunities.results.suggestionFilters)
+    await userEvent.click(
+      screen.getByRole('button', { name: es.opportunities.results.removeFilters }),
+    )
+    await waitFor(() => expect(searchOf(router)).toBe('?q=cobol'))
+    expect(screen.getByRole('textbox', { name: es.opportunities.queryLabel })).toHaveValue('cobol')
+    expect(
+      screen.queryByRole('button', { name: es.opportunities.results.removeFilters }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows the searched text as plain text and cuts it when it is long (004-33)', async () => {
+    mockBackend()
+    const long = 'x'.repeat(70)
+    renderApp(`/oportunidades?q=${encodeURIComponent(`<b>${long}</b>`)}`)
+    const title = await noMatchesHeading()
+
+    expect(title.querySelector('b')).toBeNull()
+    expect(title.textContent).toContain('<b>')
+    expect(title.textContent).toContain('…')
+    expect(title.textContent).not.toContain(long)
+  })
+
+  it('does not break the screen nor show the section when the recent vacancies fail (004-33)', async () => {
+    const api = mockBackend()
+    const real = api.fetch.getMockImplementation() as (
+      input: RequestInfo | URL,
+    ) => Promise<Response>
+    api.fetch.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes('size=3')
+        ? new Response('{}', { status: 500, headers: { 'Content-Type': 'application/json' } })
+        : real(input),
+    )
+    renderApp('/oportunidades?q=cobol')
+
+    await noMatchesHeading()
+    await waitFor(() =>
+      expect(api.fetch.mock.calls.some(([input]) => String(input).includes('size=3'))).toBe(true),
+    )
+    await waitFor(() =>
+      expect(screen.queryByText(es.opportunities.results.recentTitle)).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: es.opportunities.queryLabel })).toHaveValue('cobol')
+    expect(screen.getByRole('checkbox', { name: 'Remoto (4)' })).toBeInTheDocument()
+  })
+
+  it('does not ask for recent vacancies when there are results (004-33)', async () => {
+    const api = mockBackend()
+    renderApp('/oportunidades?q=java')
+    await countHeading(/vacantes?$/)
+    expect(screen.getAllByRole('article').length).toBeGreaterThan(0)
+    expect(screen.queryByText(es.opportunities.results.recentTitle)).not.toBeInTheDocument()
+    expect(api.requested().some((path) => path.includes('size=3'))).toBe(false)
+  })
+
+  it('does not ask for recent vacancies while a refresh keeps the empty answer on screen (004-33)', async () => {
+    const api = mockBackend()
+    const real = api.fetch.getMockImplementation() as (
+      input: RequestInfo | URL,
+    ) => Promise<Response>
+    let release: () => void = () => {}
+    api.fetch.mockImplementation(async (input: RequestInfo | URL) => {
+      if (String(input).includes('q=java')) {
+        await new Promise<void>((resolve) => (release = resolve))
+      }
+      return real(input)
+    })
+    const { router } = renderApp('/oportunidades?q=cobol')
+    await screen.findByText(es.opportunities.results.recentTitle)
+    expect(api.requested().filter((path) => path === recentPath)).toHaveLength(1)
+
+    await act(() => router.navigate('/oportunidades?q=java'))
+    expect(screen.getByRole('region', { name: '0 vacantes' })).toHaveAttribute(
+      'data-refreshing',
+      'true',
+    )
+    // The old answer keeps its own text, and the recent vacancies are not asked for again.
+    expect(
+      screen.getByRole('heading', {
+        level: 3,
+        name: es.opportunities.results.noMatchesTitle('cobol'),
+      }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(es.opportunities.results.recentTitle)).not.toBeInTheDocument()
+
+    await act(async () => release())
+    expect(await countHeading(/vacantes?$/)).not.toHaveTextContent('0 vacantes')
+    expect(screen.queryByText(es.opportunities.results.recentTitle)).not.toBeInTheDocument()
+    expect(api.requested().filter((path) => path === recentPath)).toHaveLength(1)
+  })
+
+  it('announces the empty state in the live region and does not steal the focus (004-33)', async () => {
+    mockBackend()
+    renderApp('/oportunidades')
+    await countHeading('12 vacantes')
+    const field = screen.getByRole('textbox', { name: es.opportunities.queryLabel })
+    await userEvent.type(field, 'cobol{Enter}')
+
+    const title = await countHeading('0 vacantes')
+    expect(title.closest('[aria-live="polite"]')).not.toBeNull()
+    await screen.findByText(es.opportunities.results.recentTitle)
+    expect(field).toHaveFocus()
   })
 })
 

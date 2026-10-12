@@ -9,7 +9,8 @@ import { apiFetch } from './client'
 export type Modality = 'REMOTE' | 'HYBRID' | 'ONSITE'
 export const MODALITIES: readonly Modality[] = ['REMOTE', 'HYBRID', 'ONSITE']
 
-export type VacancySort = 'recent' | 'company'
+/** `relevance` only makes sense with searched text; the server picks it by itself in that case. */
+export type VacancySort = 'relevance' | 'recent' | 'company'
 
 export interface CompanyRef {
   id: string
@@ -80,7 +81,8 @@ export interface VacancyQuery {
   modality: Modality[]
   location: string[]
   skill: string[]
-  sort: VacancySort
+  /** Left out when the person has not chosen one: the server decides (relevance with text). */
+  sort?: VacancySort
   page: number
   size?: number
 }
@@ -92,7 +94,7 @@ export function buildVacancyQueryString(query: VacancyQuery): string {
   for (const value of query.modality) params.append('modality', value)
   for (const value of query.location) params.append('location', value)
   for (const value of query.skill) params.append('skill', value)
-  if (query.sort !== 'recent') params.set('sort', query.sort)
+  if (query.sort) params.set('sort', query.sort)
   if (query.page > 1) params.set('page', String(query.page))
   if (query.size !== undefined) params.set('size', String(query.size))
   const text = params.toString()
@@ -101,6 +103,14 @@ export function buildVacancyQueryString(query: VacancyQuery): string {
 
 export function fetchVacancies(query: VacancyQuery, signal?: AbortSignal): Promise<VacancyPage> {
   return apiFetch<VacancyPage>(`/vacancies${buildVacancyQueryString(query)}`, { signal })
+}
+
+/** The newest open vacancies, without text or filters (suggestions when a search finds nothing). */
+export function fetchRecentVacancies(limit: number, signal?: AbortSignal): Promise<VacancyPage> {
+  return fetchVacancies(
+    { q: '', modality: [], location: [], skill: [], sort: 'recent', page: 1, size: limit },
+    signal,
+  )
 }
 
 export function fetchVacancy(id: string, signal?: AbortSignal): Promise<VacancyDetail> {
