@@ -1,0 +1,14 @@
+.card {
+  position: relative;
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+@media (min-width: 32.5rem) {
+  .card {
+    padding: var(--space-7);
+  }
+}

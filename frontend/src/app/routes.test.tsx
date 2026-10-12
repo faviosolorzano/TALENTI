@@ -4,8 +4,15 @@ import { es } from '../i18n/es'
 import { renderApp } from '../test/renderApp'
 
 describe('Provisional routes', () => {
+  it('route / renders the informative landing page instead of the notice', () => {
+    renderApp('/')
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/lo que ya sabes hacer/)
+    expect(screen.queryByText(es.placeholder.underConstruction)).not.toBeInTheDocument()
+    expect(document.title).toBe(`${es.pages.home.title} · ${es.app.name}`)
+  })
+
   it.each([
-    ['/', es.pages.home.title],
     ['/registro', es.pages.register.title],
     ['/ingresar', es.pages.login.title],
     ['/panel', es.pages.dashboard.title],

@@ -9,6 +9,14 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Anchors land below the fixed header. */
+  scroll-padding-top: var(--scroll-offset);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
@@ -17,17 +25,20 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-family-base);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
 }
 
 h1,
 h2,
-h3 {
+h3,
+h4 {
   margin: 0;
   font-family: var(--font-family-heading);
-  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-heading);
+  letter-spacing: var(--tracking-heading);
+  line-height: var(--line-height-heading);
 }
 
 p {
@@ -40,16 +51,40 @@ img {
 }
 
 a {
-  color: var(--color-link);
+  color: inherit;
 }
 
 /* Visible keyboard focus everywhere */
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--color-focus);
   outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-xs);
 }
 
-/* The main area receives programmatic focus after the skip link: no ring needed there. */
-main:focus {
+/* Content that receives programmatic focus (main after the skip link, sections after an
+   anchor link) shows no ring: it is not a control. */
+[tabindex='-1']:focus {
   outline: none;
+}
+
+/* Text only for assistive technology */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Centered content column used by every section */
+.container {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
 }

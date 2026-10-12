@@ -1,6 +1,5 @@
-import { PlaceholderPage } from '../components/PlaceholderPage'
-import { es } from '../i18n/es'
+import { LandingPage } from '../features/landing/LandingPage'
 
 export function HomePage() {
-  return <PlaceholderPage title={es.pages.home.title} />
+  return <LandingPage />
 }

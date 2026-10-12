@@ -7,13 +7,15 @@
  * Brand colors are exactly three (docs/diseno.md, section 4):
  *   navy #0B132B, blue #2563EB, white #FFFFFF.
  * Neutrals are blue-grays. Green, amber and red are ONLY for states.
- * Soft tints and hovers come from the same blue (mix or transparency), never from new hues.
+ * Soft tints, lines and hovers come from the same blue (transparency or a darker step of it),
+ * never from new hues. The values come from the approved sample (docs/diseno/muestra).
  *
- * Review widths (media queries cannot read CSS variables, so these are documented here
- * and exported from tokens.ts as `reviewWidths`). Styles are written mobile first:
- *   - phone:   360 px  (base styles, no media query)
- *   - tablet:  768 px  (@media (min-width: 48rem))
- *   - desktop: 1280 px (@media (min-width: 80rem))
+ * Breakpoints (media queries cannot read CSS variables, so they are documented here and
+ * exported from tokens.ts as `breakpoints`). Styles are written mobile first:
+ *   - 32.5rem (520 px): wider gutters and the card gets more padding
+ *   - 53.75rem (860 px): the header menu opens up into a row
+ *   - 61.25rem (980 px): two-column layouts
+ * Review widths: phone 360 px, tablet 768 px, desktop 1280 px (`reviewWidths`).
  */
 
 :root {
@@ -22,76 +24,118 @@
   --color-brand-blue: #2563eb;
   --color-brand-white: #ffffff;
 
-  /* Tints and hovers derived from the brand blue (no new hues) */
-  --color-brand-blue-hover: color-mix(
-    in srgb,
-    var(--color-brand-blue) 82%,
-    var(--color-brand-navy)
-  );
-  --color-brand-blue-soft: color-mix(in srgb, var(--color-brand-blue) 10%, transparent);
+  /* Tones of the brand blue (no new hues) */
+  --color-brand-blue-hover: #1d4ed8;
+  --color-brand-blue-soft: color-mix(in srgb, var(--color-brand-blue) 8%, transparent);
+  --color-brand-blue-line: color-mix(in srgb, var(--color-brand-blue) 22%, transparent);
+
+  /* Orb tones: lighter steps of the same blue, used inside the DORA orb */
+  --color-orb-highlight: var(--color-brand-white);
+  --color-orb-100: #bfdbfe;
+  --color-orb-300: #93c5fd;
+  --color-orb-400: #60a5fa;
+  --color-orb-700: var(--color-brand-blue-hover);
 
   /* ---- Neutrals (blue-grays) ---- */
   --color-neutral-50: #f6f8fb;
   --color-neutral-100: #edf1f7;
-  --color-neutral-200: #dde3ee;
+  --color-neutral-200: #e3e8f1;
   --color-neutral-300: #c3ccdb;
   --color-neutral-400: #8d99b0;
   --color-neutral-500: #5f6b85;
   --color-neutral-600: #475269;
   --color-neutral-700: #343d52;
 
+  /* Light grays for text on navy */
+  --color-on-dark-soft: #cfd6e6;
+  --color-on-dark-muted: #b9c3da;
+
   /* ---- States (only for success, warning, error) ---- */
-  --color-success: #15803d;
+  --color-success: #14804a;
   --color-success-soft: #dcfce7;
-  --color-warning: #b45309;
+  --color-warning: #a15c00;
   --color-warning-soft: #fef3c7;
-  --color-danger: #b91c1c;
+  --color-danger: #b42318;
   --color-danger-soft: #fee2e2;
 
   /* ---- Semantic aliases (components use these) ---- */
   --color-bg: var(--color-brand-white);
   --color-bg-subtle: var(--color-neutral-50);
   --color-bg-inverse: var(--color-brand-navy);
+  --color-bg-tint: var(--color-brand-blue-soft);
+  --color-surface: var(--color-brand-white);
   --color-text: var(--color-brand-navy);
   --color-text-muted: var(--color-neutral-600);
   --color-text-inverse: var(--color-brand-white);
+  --color-text-inverse-soft: var(--color-on-dark-soft);
+  --color-text-inverse-muted: var(--color-on-dark-muted);
+  --color-text-accent: var(--color-brand-blue);
+  --color-text-accent-inverse: var(--color-orb-300);
   --color-border: var(--color-neutral-200);
   --color-border-strong: var(--color-neutral-300);
+  --color-border-accent: var(--color-brand-blue-line);
   --color-action: var(--color-brand-blue);
   --color-action-hover: var(--color-brand-blue-hover);
   --color-action-text: var(--color-brand-white);
   --color-link: var(--color-brand-blue);
   --color-focus: var(--color-brand-blue);
   --color-focus-inverse: var(--color-brand-white);
+  --color-overlay-inverse-soft: color-mix(in srgb, var(--color-brand-white) 8%, transparent);
+  --color-overlay-inverse-line: color-mix(in srgb, var(--color-brand-white) 28%, transparent);
+  --color-mark-watermark: var(--color-brand-blue);
 
   /* ---- Typography ---- */
-  /* TODO: system font stack for now. The final families (a title face with character
-     and a sober text face) will be chosen together with the visual design. */
-  --font-family-base:
-    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-family-heading: var(--font-family-base);
+  /* Families are self-hosted (@fontsource-variable, imported in main.tsx). The fallbacks keep
+     the layout readable while the font loads or if it fails. */
+  --font-family-base: 'Figtree Variable', system-ui, 'Segoe UI', sans-serif;
+  --font-family-heading:
+    'Bricolage Grotesque Variable', ui-rounded, 'Segoe UI', system-ui, sans-serif;
   --font-family-mono: ui-monospace, 'SFMono-Regular', menlo, consolas, monospace;
 
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-md: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
+  --font-size-2xs: 0.6875rem; /* 11 px */
+  --font-size-xs: 0.75rem; /* 12 px */
+  --font-size-caption: 0.8125rem; /* 13 px */
+  --font-size-sm: 0.875rem; /* 14 px */
+  --font-size-ui: 0.9375rem; /* 15 px */
+  --font-size-md: 1rem; /* 16 px */
+  --font-size-base: 1.0625rem; /* 17 px: body text */
+  --font-size-lg: 1.125rem; /* 18 px */
+  --font-size-subtitle: 1.1875rem; /* 19 px */
+  --font-size-xl: 1.3125rem; /* 21 px */
+  --font-size-quote: 1.375rem; /* 22 px */
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.875rem;
   --font-size-4xl: 2.25rem;
   --font-size-5xl: 3rem;
+  --font-size-ring: 2.75rem; /* 44 px: number inside the ring */
+
+  /* Fluid sizes from the sample */
+  --font-size-display: clamp(2.375rem, 5.3vw, 4.125rem); /* h1: 38 to 66 px */
+  --font-size-title: clamp(2.125rem, 4.6vw, 3.5rem); /* h2: 34 to 56 px */
+  --font-size-step: clamp(1.5rem, 2.4vw, 2rem); /* step title: 24 to 32 px */
+  --font-size-lead: clamp(1.125rem, 1.6vw, 1.3125rem); /* 18 to 21 px */
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
+  --font-weight-nav: 550;
   --font-weight-semibold: 600;
+  --font-weight-heading: 650;
   --font-weight-bold: 700;
 
+  --line-height-none: 1;
   --line-height-tight: 1.2;
-  --line-height-base: 1.5;
+  --line-height-heading: 1.04;
+  --line-height-snug: 1.3;
+  --line-height-base: 1.55;
   --line-height-relaxed: 1.65;
 
-  /* ---- Spacing (4 px base) ---- */
+  --tracking-heading: -0.025em;
+  --tracking-ring: -0.03em;
+  --tracking-quote: -0.01em;
+  --tracking-tag: 0.04em;
+  --tracking-label: 0.06em;
+
+  /* ---- Spacing (4 px base: --space-N is N * 4 px) ---- */
   --space-0: 0;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -99,53 +143,88 @@
   --space-4: 1rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
+  --space-7: 1.75rem;
   --space-8: 2rem;
+  --space-9: 2.25rem;
   --space-10: 2.5rem;
+  --space-11: 2.75rem;
   --space-12: 3rem;
+  --space-14: 3.5rem;
   --space-16: 4rem;
+  --space-19: 4.75rem;
   --space-24: 6rem;
+  --space-26: 6.5rem;
 
   /* ---- Borders ---- */
   --border-width: 1px;
+  --border-width-strong: 1.5px;
+  --border-width-accent: 3px;
 
   /* ---- Radii ---- */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 1rem;
+  --radius-xs: 0.5rem; /* 8 px */
+  --radius-sm: 0.75rem; /* 12 px */
+  --radius-button: 0.875rem; /* 14 px */
+  --radius-md: 1rem; /* 16 px */
+  --radius-lg: 1.75rem; /* 28 px */
   --radius-full: 9999px;
 
-  /* ---- Shadows (tinted with the brand navy) ---- */
+  /* ---- Shadows (tinted with the brand colors) ---- */
   --shadow-sm: 0 1px 2px color-mix(in srgb, var(--color-brand-navy) 8%, transparent);
   --shadow-md: 0 4px 12px color-mix(in srgb, var(--color-brand-navy) 10%, transparent);
   --shadow-lg: 0 12px 32px color-mix(in srgb, var(--color-brand-navy) 14%, transparent);
+  --shadow-card:
+    0 40px 80px -40px color-mix(in srgb, var(--color-brand-navy) 35%, transparent),
+    0 2px 0 color-mix(in srgb, var(--color-brand-navy) 2%, transparent);
+  --shadow-action: 0 10px 24px -12px color-mix(in srgb, var(--color-brand-blue) 70%, transparent);
+  --shadow-action-hover: 0 14px 28px -12px
+    color-mix(in srgb, var(--color-brand-blue) 80%, transparent);
 
   /* ---- Layout ---- */
-  --content-max-width: 70rem;
-  --page-gutter: var(--space-4);
+  --content-max-width: 72.5rem; /* 1160 px */
+  --page-gutter: 1.125rem; /* 18 px on phones */
   --touch-target-min: 2.75rem; /* 44 px */
-  --header-min-height: 3.5rem;
+  --header-height: 4.125rem; /* 66 px on phones */
+  --header-min-height: var(--header-height);
+  --logo-height: 2rem;
+  --section-padding: var(--space-19);
+  --scroll-offset: calc(var(--header-height) + var(--space-4));
+  --z-header: 30;
   --z-skip-link: 100;
+
+  /* ---- Sizes of the signature pieces ---- */
+  --ring-size: 8.25rem; /* 132 px on phones */
+  --orb-max-size: 27.5rem; /* 440 px */
+  --stage-min-height: 21.25rem; /* 340 px */
+  --chip-bar-width: 0.375rem; /* 6 px */
+  --chip-bar-height: 0.875rem; /* 14 px */
 
   /* ---- Focus ring ---- */
   --focus-ring-width: 3px;
-  --focus-ring-offset: 2px;
+  --focus-ring-offset: 3px;
 
   /* ---- Motion ---- */
   --duration-fast: 150ms;
   --duration-base: 200ms;
   --duration-slow: 300ms;
-  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-enter: 450ms;
+  --duration-panel: 500ms;
+  --duration-ring: 1000ms;
+  --easing-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 32.5rem) {
   :root {
-    --page-gutter: var(--space-8);
+    --page-gutter: var(--space-6);
+    --header-height: 4.75rem; /* 76 px */
+    --logo-height: 2.375rem;
+    --ring-size: 9.25rem; /* 148 px */
   }
 }
 
-@media (min-width: 80rem) {
+@media (min-width: 61.25rem) {
   :root {
-    --page-gutter: var(--space-12);
+    --section-padding: var(--space-26);
+    --stage-min-height: 23.75rem; /* 380 px */
   }
 }
 
@@ -155,6 +234,9 @@
     --duration-fast: 0.01ms;
     --duration-base: 0.01ms;
     --duration-slow: 0.01ms;
+    --duration-enter: 0.01ms;
+    --duration-panel: 0.01ms;
+    --duration-ring: 0.01ms;
   }
 
   html {

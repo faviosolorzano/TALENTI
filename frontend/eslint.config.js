@@ -23,6 +23,30 @@ export default defineConfig([
     },
   },
   {
+    // computeCompatibility is only a demonstration for the landing page (spec 003-13): the real
+    // percentage comes from the backend. Nothing else may import it.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/features/landing/**', 'src/features/compatibility/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '**/features/compatibility',
+                '**/features/compatibility/**',
+                '**/compatibility/**',
+              ],
+              message:
+                'computeCompatibility is a demo for the landing page only. The real percentage comes from the backend (RN-01).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['*.config.{js,ts}'],
     languageOptions: { globals: globals.node },
   },

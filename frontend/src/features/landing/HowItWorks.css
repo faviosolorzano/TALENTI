@@ -1,0 +1,92 @@
+.how {
+  padding-block: var(--section-padding);
+}
+
+.how__title {
+  font-size: var(--font-size-title);
+}
+
+.how__body {
+  margin-top: var(--space-11);
+}
+
+/* Panel 1: skills the person marked */
+.how__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  max-width: 26rem;
+}
+
+.how__chips span {
+  padding: var(--space-3) var(--space-5);
+  border: var(--border-width-strong) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  font-weight: var(--font-weight-semibold);
+}
+
+.how__chips span[data-on] {
+  border-color: var(--color-action);
+  color: var(--color-text-accent);
+}
+
+/* Panel 2: why they fit */
+.how__bars {
+  display: grid;
+  gap: var(--space-4);
+  width: min(22.5rem, 100%);
+}
+
+.how__bars > div {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}
+
+.how__bars i {
+  display: block;
+  height: var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+.how__bars b {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-action);
+  transition: width var(--duration-ring) var(--easing-standard);
+}
+
+/* The bars fill when their panel is the active one (set by the Steps component). */
+[data-active] .how__bars b {
+  width: var(--bar-width);
+}
+
+/* Panel 3: process line */
+.how__flow {
+  display: grid;
+  gap: var(--space-3);
+  width: min(22.5rem, 100%);
+}
+
+.how__flow > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-strong) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-weight: var(--font-weight-semibold);
+}
+
+.how__flow span {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+}

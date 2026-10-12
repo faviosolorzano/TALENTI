@@ -1,0 +1,66 @@
+.level-chip {
+  appearance: none;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  max-width: 100%;
+  gap: var(--space-1) var(--space-2);
+  min-height: var(--touch-target-min);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-3);
+  border: var(--border-width-strong) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-base),
+    background-color var(--duration-base),
+    transform var(--duration-base) var(--easing-standard);
+}
+
+.level-chip:hover {
+  border-color: var(--color-border-accent);
+}
+
+.level-chip:active {
+  transform: scale(0.97);
+}
+
+.level-chip[data-level='1'] {
+  border-color: var(--color-border-accent);
+  background: var(--color-bg-tint);
+}
+
+.level-chip[data-level='2'] {
+  border-color: var(--color-action);
+  background: var(--color-bg-tint);
+}
+
+/* Two small bars: none, one or both filled. They repeat what the words say. */
+.level-chip__bars {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.level-chip__bars b {
+  width: var(--chip-bar-width);
+  height: var(--chip-bar-height);
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: background-color var(--duration-slow);
+}
+
+.level-chip[data-level='1'] .level-chip__bars b:first-child,
+.level-chip[data-level='2'] .level-chip__bars b {
+  background: var(--color-action);
+}
+
+.level-chip__level {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}

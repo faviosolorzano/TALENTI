@@ -1,16 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { Link, NavLink, Outlet, useLocation, useMatches } from 'react-router'
-import { Logo } from '../components/Logo'
+import { Outlet, useLocation, useMatches } from 'react-router'
+import { Header } from '../components/Header'
 import { es } from '../i18n/es'
 import { isRouteHandle } from './routeHandle'
+import { useScrollToHash } from './useScrollToHash'
 import './Layout.css'
-
-const navItems = [
-  { to: '/', label: es.nav.home, end: true },
-  { to: '/registro', label: es.nav.register, end: false },
-  { to: '/ingresar', label: es.nav.login, end: false },
-  { to: '/panel', label: es.nav.dashboard, end: false },
-] as const
 
 export function Layout() {
   const { pathname } = useLocation()
@@ -19,6 +13,8 @@ export function Layout() {
   const previousPathname = useRef(pathname)
 
   const title = matches.map((match) => match.handle).findLast(isRouteHandle)?.title
+
+  useScrollToHash()
 
   // On every route: the tab title follows the page.
   useEffect(() => {
@@ -30,7 +26,7 @@ export function Layout() {
   useEffect(() => {
     if (previousPathname.current === pathname) return
     previousPathname.current = pathname
-    mainRef.current?.focus()
+    mainRef.current?.focus({ preventScroll: true })
   }, [pathname])
 
   return (
@@ -39,29 +35,13 @@ export function Layout() {
         {es.app.skipToContent}
       </a>
 
-      <header className="layout__header">
-        <div className="layout__header-inner">
-          <Link className="layout__brand" to="/">
-            <Logo />
-          </Link>
-
-          <nav className="layout__nav" aria-label={es.app.mainNavLabel}>
-            <ul className="layout__nav-list">
-              {navItems.map((item) => (
-                <li key={item.to}>
-                  <NavLink className="layout__nav-link" to={item.to} end={item.end}>
-                    {item.label}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <main id="contenido" className="layout__main" tabIndex={-1} ref={mainRef}>
         <Outlet />
       </main>
+
+      {/* 002: aquí van el pie, el aviso de cookies y los enlaces a las páginas legales. */}
     </div>
   )
 }
