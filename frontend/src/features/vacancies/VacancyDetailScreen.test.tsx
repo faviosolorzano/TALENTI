@@ -149,6 +149,14 @@ describe('Detail states and "Volver" (004-23)', () => {
     expect(busy?.querySelector('.skeleton')).not.toBeNull()
   })
 
+  it('keeps one h1 in the page while the detail skeleton is shown', () => {
+    mockBackend()
+    renderApp(`/oportunidades/${FIRST}`)
+    const titles = screen.getAllByRole('heading', { level: 1 })
+    expect(titles).toHaveLength(1)
+    expect(titles[0]).toHaveTextContent(es.pages.vacancy.title)
+  })
+
   it('on a missing vacancy says it does not exist and links to /oportunidades', async () => {
     mockBackend()
     renderApp('/oportunidades/no-existe')

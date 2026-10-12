@@ -14,6 +14,44 @@ describe('Skeletons and motion (004-25)', () => {
   })
 })
 
+describe('Colors and motion in the styles (004-25)', () => {
+  const folders = [dir, join(dir, '..', 'landing')]
+  const sheets = folders.flatMap((folder) =>
+    readdirSync(folder)
+      .filter((file) => file.endsWith('.css'))
+      .map((file) => ({ file, css: readFileSync(join(folder, file), 'utf-8') })),
+  )
+
+  it('reads the stylesheets of vacancies and landing', () => {
+    expect(sheets.length).toBeGreaterThan(10)
+  })
+
+  it('write no color by hand: no #hex, rgb( or hsl( (every color comes from a token)', () => {
+    const literal = /#[0-9a-fA-F]{3,8}(?![\w-])|rgba?\(|hsla?\(/
+    const offenders = sheets.filter(({ css }) => literal.test(css)).map(({ file }) => file)
+    expect(offenders).toEqual([])
+  })
+
+  it('stop moving cards and arrows with "prefers-reduced-motion"', () => {
+    const card = read('VacancyCard.css')
+    expect(card).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.card\.vacancy-card:hover\s*\{\s*transform:\s*none;/,
+    )
+    const featured = read('FeaturedVacancies.css')
+    expect(featured).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.featured__all:hover span\s*\{\s*transform:\s*none;/,
+    )
+  })
+
+  it('keep no fixed width in rem inside the layout rules: sizes come from tokens', () => {
+    const detail = read('VacancyDetailScreen.css')
+    expect(detail).toContain('var(--detail-aside-width)')
+    expect(detail).not.toMatch(/minmax\(0, 1fr\) \d/)
+    expect(read('ErrorNotice.css')).not.toMatch(/flex:\s*1 1 \d/)
+    expect(read('Skeletons.css')).not.toMatch(/minmax\(\d/)
+  })
+})
+
 describe('Texts in the vacancy screens (004-25)', () => {
   it('no component writes Spanish text by hand: it all comes from src/i18n/es.ts', () => {
     const components = readdirSync(dir).filter(

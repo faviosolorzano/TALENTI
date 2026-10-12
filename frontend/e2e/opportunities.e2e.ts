@@ -25,8 +25,15 @@ const horizontalScroll = (page: Page) =>
 
 const resultsTitle = (page: Page) => page.locator('#results-title')
 
-/** Waits for the list to finish loading and returns how many vacancies the title announces. */
+/**
+ * Waits for the list to finish loading and returns how many vacancies the title announces. While
+ * a new answer arrives the old list stays on screen (aria-busy), so it waits for that to end.
+ */
 async function loadedCount(page: Page): Promise<number> {
+  await expect(page.locator('section[aria-labelledby="results-title"]')).toHaveAttribute(
+    'aria-busy',
+    'false',
+  )
   await expect(resultsTitle(page)).toHaveText(/^\d+ vacantes?$/)
   return Number.parseInt((await resultsTitle(page).textContent()) ?? '', 10)
 }
@@ -113,7 +120,9 @@ test.describe('Main journey (004-17 to 004-22)', () => {
     expect(withJs).toBeLessThan(12)
 
     // Filter by modality: applies as soon as it is checked.
-    await page.getByRole('checkbox', { name: /^Híbrido/ }).check()
+    const hybrid = page.getByRole('checkbox', { name: /^Híbrido/ })
+    await hybrid.click()
+    await expect(hybrid).toBeChecked()
     await expect(page).toHaveURL(/q=JS&modalidad=hibrido/)
     expect(await loadedCount(page)).toBeLessThan(withJs + 1)
 
@@ -187,7 +196,9 @@ test.describe('Main journey (004-17 to 004-22)', () => {
   test('back and forward walk through the searches', async ({ page }) => {
     await page.goto('/oportunidades')
     await loadedCount(page)
-    await page.getByRole('checkbox', { name: /^Remoto/ }).check()
+    const remoteBox = page.getByRole('checkbox', { name: /^Remoto/ })
+    await remoteBox.click()
+    await expect(remoteBox).toBeChecked()
     await expect(page).toHaveURL(/modalidad=remoto/)
     const remote = await loadedCount(page)
     expect(remote).toBeLessThan(12)

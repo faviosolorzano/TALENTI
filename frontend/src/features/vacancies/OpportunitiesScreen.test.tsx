@@ -8,6 +8,8 @@ import { renderApp } from '../../test/renderApp'
 const countHeading = (text: string | RegExp) =>
   screen.findByRole('heading', { level: 2, name: text })
 
+const resultsTitle = () => document.getElementById('results-title') as HTMLElement
+
 const searchOf = (router: { state: { location: { search: string } } }) =>
   router.state.location.search
 
@@ -349,6 +351,94 @@ describe('Page /oportunidades: states (004-19)', () => {
       '3 vacantes',
     )
     expect(screen.getAllByRole('article')).toHaveLength(3)
+  })
+})
+
+describe('Page /oportunidades: refreshing keeps the list (004-19)', () => {
+  /** Backend whose answers for `slowPart` wait until `release()` is called. */
+  function slowBackend(slowPart: string) {
+    const api = mockBackend()
+    const real = api.fetch.getMockImplementation() as (
+      input: RequestInfo | URL,
+    ) => Promise<Response>
+    let release: () => void = () => {}
+    api.fetch.mockImplementation(async (input: RequestInfo | URL) => {
+      if (String(input).includes(slowPart)) {
+        await new Promise<void>((resolve) => (release = resolve))
+      }
+      return real(input)
+    })
+    return { release: () => release() }
+  }
+
+  it('keeps the previous list, the same title and no skeletons while a new answer arrives', async () => {
+    const slow = slowBackend('modality=REMOTE')
+    const { router } = renderApp('/oportunidades')
+    await countHeading('12 vacantes')
+
+    await act(() => router.navigate('/oportunidades?modalidad=remoto'))
+
+    const results = screen.getByRole('region', { name: '12 vacantes' })
+    expect(results).toHaveAttribute('aria-busy', 'true')
+    expect(results).toHaveAttribute('data-refreshing', 'true')
+    expect(resultsTitle()).toHaveTextContent('12 vacantes')
+    expect(screen.queryByText(es.opportunities.results.searching)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('article')).toHaveLength(9)
+    expect(results.querySelectorAll('.skeleton')).toHaveLength(0)
+
+    await act(async () => slow.release())
+    expect(await countHeading('4 vacantes')).toBeInTheDocument()
+    expect(screen.getAllByRole('article')).toHaveLength(4)
+    expect(screen.getByRole('region', { name: '4 vacantes' })).toHaveAttribute('aria-busy', 'false')
+  })
+
+  it('keeps the previous list when the page changes, too', async () => {
+    const slow = slowBackend('page=2')
+    renderApp('/oportunidades')
+    await countHeading('12 vacantes')
+    await userEvent.click(screen.getByRole('link', { name: 'Página 2' }))
+
+    expect(resultsTitle()).toHaveTextContent('12 vacantes')
+    expect(screen.getAllByRole('article')).toHaveLength(9)
+    expect(screen.getByRole('region', { name: '12 vacantes' })).toHaveAttribute('aria-busy', 'true')
+
+    await act(async () => slow.release())
+    expect(await screen.findByText('Mostrando 10–12 de 12')).toBeInTheDocument()
+    expect(screen.getAllByRole('article')).toHaveLength(3)
+  })
+
+  it('still ends with the answer of the LAST request while the old list is kept', async () => {
+    const slow = slowBackend('modality=REMOTE')
+    const { router } = renderApp('/oportunidades')
+    await countHeading('12 vacantes')
+
+    await act(() => router.navigate('/oportunidades?modalidad=remoto')) // slow
+    expect(resultsTitle()).toHaveTextContent('12 vacantes')
+    await act(() => router.navigate('/oportunidades?modalidad=presencial')) // fast
+    expect(await countHeading('3 vacantes')).toBeInTheDocument()
+
+    await act(async () => {
+      slow.release()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    })
+    expect(resultsTitle()).toHaveTextContent('3 vacantes')
+    expect(screen.getAllByRole('article')).toHaveLength(3)
+  })
+
+  it('shows skeletons only on the first load, and a failed refresh shows the error', async () => {
+    const api = mockBackend()
+    const { router } = renderApp('/oportunidades')
+    expect(
+      screen
+        .getByRole('region', { name: es.opportunities.results.searching })
+        .querySelectorAll('.skeleton').length,
+    ).toBeGreaterThan(0)
+    await countHeading('12 vacantes')
+
+    api.setFailing({ '/vacancies': 500 })
+    await act(() => router.navigate('/oportunidades?modalidad=remoto'))
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.opportunities.results.errorTitle)
+    expect(screen.queryAllByRole('article')).toHaveLength(0)
   })
 })
 
