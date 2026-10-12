@@ -40,6 +40,44 @@ server:
     include-message: never
     include-stacktrace: never
     include-binding-errors: never
+  servlet:
+    session:
+      # Sesión en memoria del servidor (basta para el E2). Expira tras 30 minutos sin actividad (001-14).
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+        # "Secure" sale de un solo interruptor, también para la cookie XSRF-TOKEN. Activo por defecto;
+        # solo el perfil dev (HTTP local) y las pruebas lo apagan.
+        secure: ${talenti.security.secure-cookies}
+
+logging:
+  pattern:
+    correlation: "[%X{correlationId:-}] "
+  level:
+    # Postgres incluye el valor repetido (el correo) en el mensaje de una violación de unicidad
+    # y Hibernate lo escribiría en el registro. El error se maneja y se responde 409 sin ese dato.
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: "OFF"
+
+talenti:
+  security:
+    secure-cookies: true
+  legal:
+    # Los textos viven en src/main/resources/legal/<version>/ (una sola versión para todo el conjunto).
+    version: v1
+    published-at: 2026-10-11T00:00:00Z
+  identity:
+    password:
+      min-length: 8             # decisión de Favio (spec 001, sección 10); se podrá subir
+      max-length: 64
+      bcrypt-cost: 12
+    lockout:
+      max-failed-attempts: 5
+      duration: 15m
+    login-rate-limit:
+      # Por origen. El origen sale de la cabecera X-Real-IP que pone nginx (ver ClientOrigin).
+      max-requests: 10
+      window: 1m
 
 ---
 spring:
@@ -49,6 +87,9 @@ spring:
 logging:
   level:
     com.talenti: DEBUG
+talenti:
+  security:
+    secure-cookies: false       # desarrollo por HTTP; el perfil prod siempre la exige
 
 ---
 spring:
@@ -61,3 +102,6 @@ logging:
     com.talenti: INFO
 server:
   shutdown: graceful
+talenti:
+  security:
+    secure-cookies: true
