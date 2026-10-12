@@ -22,15 +22,11 @@ spring:
     time-zone: UTC
   flyway:
     enabled: true
-    # Solo el esquema. Los datos de ejemplo (classpath:db/demo, V1000 en adelante) los agrega
-    # DemoDataConfiguration cuando talenti.demo-data.enabled=true.
+    # Flyway del ESQUEMA: estricto a propósito (sin ignore-migration-patterns ni out-of-order). Los datos de ejemplo
+    # (classpath:db/demo) los carga un segundo Flyway con su propio historial, solo si
+    # talenti.demo-data.enabled=true (ver DemoDataConfiguration); no pasan por este.
     locations: classpath:db/migration
     clean-disabled: true
-    # Si la demo se enciende y luego se apaga, Flyway ve migraciones aplicadas que ya no encuentra (V1000+): se
-    # ignoran en vez de fallar. "out-of-order" permite que una migración de esquema nueva (por ejemplo V4) se aplique
-    # en una base donde la demo ya cargó V1000; sin él, Flyway la rechazaría por tener una versión menor.
-    ignore-migration-patterns: "*:missing,*:future"
-    out-of-order: true
 
 management:
   endpoints:
@@ -77,7 +73,8 @@ talenti:
     secure-cookies: true
   demo-data:
     # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
-    # Encendida = Flyway carga también classpath:db/demo. Se controla con la variable TALENTI_DEMO_DATA:
+    # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.
+    # Se controla con la variable TALENTI_DEMO_DATA:
     #   - sin definirla: apagada (este valor por defecto) y también en el perfil prod;
     #   - perfil dev: encendida por defecto (ver abajo);
     #   - Docker Compose: la enciende con TALENTI_DEMO_DATA=true (el contenedor corre con el perfil prod).

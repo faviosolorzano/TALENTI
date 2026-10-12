@@ -72,6 +72,10 @@ final class SearchParameters {
 			}
 			else {
 				terms = SearchText.terms(cleaned);
+				if (terms.size() > SearchText.MAX_TERMS) {
+					violations.add(FieldViolation.of("q", "too-many-terms", SearchText.MAX_TERMS));
+					terms = List.of();
+				}
 			}
 		}
 

@@ -14,6 +14,9 @@ public final class SearchText {
 	/** Largo máximo de {@code q} (004-10). */
 	public static final int MAX_LENGTH = 80;
 
+	/** Máximo de términos de {@code q} que cuentan (004-10): más de 6 se rechazan con 422. */
+	public static final int MAX_TERMS = 6;
+
 	private SearchText() {
 	}
 
@@ -28,18 +31,26 @@ public final class SearchText {
 		return raw.replaceAll("[\\p{Cc}\\p{Z}]+", " ").strip();
 	}
 
-	/** Los términos del texto ya limpio, sin repetir (sin distinguir mayúsculas ni tildes) y en su orden. */
+	/**
+	 * Los términos del texto ya limpio, sin repetir (sin distinguir mayúsculas ni tildes) y en su orden. Se ignoran
+	 * los de una sola letra o cifra ("a", "5"): coinciden con casi todo y no ayudan a buscar. Un símbolo suelto
+	 * ("%", "_") sí cuenta, porque se busca como texto.
+	 */
 	public static List<String> terms(String cleaned) {
 		if (cleaned == null || cleaned.isBlank()) {
 			return List.of();
 		}
 		Map<String, String> unique = new LinkedHashMap<>();
 		for (String term : cleaned.split(" ")) {
-			if (!term.isEmpty()) {
+			if (!term.isEmpty() && !isSingleLetterOrDigit(term)) {
 				unique.putIfAbsent(TextNormalizer.normalize(term), term);
 			}
 		}
 		return new ArrayList<>(unique.values());
+	}
+
+	private static boolean isSingleLetterOrDigit(String term) {
+		return term.codePointCount(0, term.length()) == 1 && Character.isLetterOrDigit(term.codePointAt(0));
 	}
 
 	/**

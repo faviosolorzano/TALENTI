@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.talenti.vacancy.domain.FeaturedCompany;
@@ -16,11 +17,15 @@ import com.talenti.vacancy.domain.VacancyPage;
 import com.talenti.vacancy.persistence.VacancyReadRepository;
 
 /**
- * Lecturas públicas de vacantes (spec 004). Una sola transacción de solo lectura por llamada, para que el total y
- * la página salgan de la misma foto de la base. No escribe nada y no registra el texto de la búsqueda.
+ * Lecturas públicas de vacantes (spec 004). No escribe nada y no registra el texto de la búsqueda.
+ *
+ * <p>Cada llamada es una transacción de solo lectura con aislamiento {@code REPEATABLE_READ}: en PostgreSQL eso es
+ * una instantánea fija, así que el total, la página y las habilidades de las tarjetas salen de la misma foto de la
+ * base aunque otra transacción cierre o publique una vacante a mitad de la llamada. (Con el READ COMMITTED por
+ * defecto cada consulta ve su propia foto y {@code totalItems} podría no cuadrar con {@code items}.)
  */
 @Service
-@Transactional(readOnly = true)
+@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 public class VacancyQueryService {
 
 	private final VacancyReadRepository repository;

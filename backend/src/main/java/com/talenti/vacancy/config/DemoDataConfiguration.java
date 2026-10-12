@@ -1,39 +1,50 @@
 package com.talenti.vacancy.config;
 
-import org.flywaydb.core.api.Location;
+import javax.sql.DataSource;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.flyway.autoconfigure.FlywayConfigurationCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 
 /**
- * Datos de ejemplo FICTICIOS (spec 004, duda 2). Con {@code talenti.demo-data.enabled=true} Flyway ve también
- * {@code classpath:db/demo} (migraciones {@code V1000} en adelante: 8 empresas y 12 vacantes de programación).
- * Con {@code false} esa carpeta ni se mira. La variable de entorno es {@code TALENTI_DEMO_DATA}; los valores por
- * defecto están en {@code application.yml}.
+ * Datos de ejemplo FICTICIOS (spec 004, duda 2). Con {@code talenti.demo-data.enabled=true} se carga además
+ * {@code classpath:db/demo} (8 empresas y 12 vacantes de programación) con un SEGUNDO Flyway que lleva su propio
+ * historial ({@code flyway_schema_history_demo}). Con {@code false} este bean no existe: no se lee la carpeta ni se
+ * crea esa tabla. La variable de entorno es {@code TALENTI_DEMO_DATA}; los valores por defecto están en
+ * {@code application.yml}.
+ *
+ * <p>Por qué un Flyway aparte: así el Flyway del esquema queda estricto (sin {@code ignore-migration-patterns} ni
+ * {@code out-of-order}) y una migración nueva del esquema (V4 en adelante) se aplica aunque la demo ya esté cargada,
+ * porque el historial del esquema nunca llega a tener una versión 1000.
  */
 @Configuration(proxyBeanMethods = false)
+@ConditionalOnProperty(name = "talenti.demo-data.enabled", havingValue = "true")
 class DemoDataConfiguration {
-
-	static final String DEMO_LOCATION = "classpath:db/demo";
 
 	private static final Logger log = LoggerFactory.getLogger(DemoDataConfiguration.class);
 
-	@Bean
-	FlywayConfigurationCustomizer demoDataLocation(@Value("${talenti.demo-data.enabled:false}") boolean enabled) {
-		return configuration -> {
-			if (!enabled) {
-				return;
-			}
-			Location[] current = configuration.getLocations();
-			Location[] withDemo = new Location[current.length + 1];
-			System.arraycopy(current, 0, withDemo, 0, current.length);
-			withDemo[current.length] = new Location(DEMO_LOCATION);
-			configuration.locations(withDemo);
-			log.info("Datos de ejemplo activados: Flyway también carga {}", DEMO_LOCATION);
-		};
+	/**
+	 * Corre después de las migraciones del esquema ({@code flywayInitializer}): los datos necesitan las tablas y el
+	 * catálogo de habilidades.
+	 */
+	@Bean(initMethod = "migrate")
+	@DependsOn("flywayInitializer")
+	DemoDataMigrator demoDataMigrator(DataSource dataSource, Environment environment) {
+		if (environment.acceptsProfiles(Profiles.of("prod"))) {
+			// Compose corre con el perfil prod y enciende la demo a propósito; un despliegue real no debe hacerlo.
+			log.warn("ATENCIÓN: los datos de ejemplo FICTICIOS están ACTIVADOS con el perfil prod "
+					+ "(talenti.demo-data.enabled=true / TALENTI_DEMO_DATA=true). Es correcto solo para la demo; "
+					+ "en un entorno real apágalos.");
+		}
+		else {
+			log.info("Datos de ejemplo activados: se cargan además de {}", DemoDataMigrator.LOCATION);
+		}
+		return new DemoDataMigrator(dataSource);
 	}
 
 }
