@@ -13,7 +13,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record IdentityProperties(
 		@DefaultValue Password password,
 		@DefaultValue Lockout lockout,
-		@DefaultValue LoginRateLimit loginRateLimit) {
+		@DefaultValue LoginRateLimit loginRateLimit,
+		@DefaultValue RegisterRateLimit registerRateLimit) {
 
 	/** Política de contraseña y costo de BCrypt (bajo en las pruebas para que sean rápidas). */
 	public record Password(
@@ -30,6 +31,15 @@ public record IdentityProperties(
 
 	/** Límite de solicitudes de ingreso por origen (RNF-05). */
 	public record LoginRateLimit(
+			@DefaultValue("10") int maxRequests,
+			@DefaultValue("1m") Duration window) {
+	}
+
+	/**
+	 * Límite de solicitudes de registro por origen (decisión de Favio). El 10 es deliberado: varias personas de un
+	 * mismo laboratorio pueden compartir la IP.
+	 */
+	public record RegisterRateLimit(
 			@DefaultValue("10") int maxRequests,
 			@DefaultValue("1m") Duration window) {
 	}

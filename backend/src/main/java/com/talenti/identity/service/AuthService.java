@@ -1,6 +1,5 @@
 package com.talenti.identity.service;
 
-import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -12,7 +11,6 @@ import com.talenti.identity.Role;
 import com.talenti.identity.domain.AppUser;
 import com.talenti.identity.domain.AppUserRepository;
 import com.talenti.identity.domain.EmailPolicy;
-import com.talenti.identity.domain.LoginAttemptPolicy;
 import com.talenti.identity.domain.PasswordPolicy;
 
 /**
@@ -26,25 +24,18 @@ public class AuthService {
 
 	private final LoginAttemptService attempts;
 
-	private final LoginAttemptPolicy attemptPolicy;
-
 	private final ConsentService consents;
 
 	private final PasswordEncoder passwordEncoder;
 
-	private final Clock clock;
-
 	/** Hash de una contraseña al azar: se compara cuando no hay nada real que comparar, para gastar el mismo tiempo. */
 	private final String decoyHash;
 
-	AuthService(AppUserRepository users, LoginAttemptService attempts, LoginAttemptPolicy attemptPolicy,
-			ConsentService consents, PasswordEncoder passwordEncoder, Clock clock) {
+	AuthService(AppUserRepository users, LoginAttemptService attempts, ConsentService consents, PasswordEncoder passwordEncoder) {
 		this.users = users;
 		this.attempts = attempts;
-		this.attemptPolicy = attemptPolicy;
 		this.consents = consents;
 		this.passwordEncoder = passwordEncoder;
-		this.clock = clock;
 		this.decoyHash = passwordEncoder.encode(UUID.randomUUID().toString());
 	}
 
@@ -60,8 +51,10 @@ public class AuthService {
 			throw new InvalidCredentialsException();
 		}
 		AppUser user = found.get();
-		if (attemptPolicy.isLocked(user.lockState(), clock.instant())) {
-			// Aun con la contraseña correcta se responde igual; el intento no extiende el bloqueo.
+		// El intento se reserva ANTES de comparar: una transacción corta con bloqueo de fila revisa el bloqueo y suma
+		// 1 al contador. Así las solicitudes simultáneas no pueden comparar más de 5 contraseñas antes del bloqueo,
+		// y con la cuenta bloqueada (aun con la contraseña correcta) no se compara nada.
+		if (!attempts.reserveAttempt(user.getId())) {
 			spendHashingTime(password);
 			throw new InvalidCredentialsException();
 		}
@@ -69,9 +62,7 @@ public class AuthService {
 			attempts.recordFailure(user.getId());
 			throw new InvalidCredentialsException();
 		}
-		if (user.getFailedLoginCount() > 0 || user.getLockedUntil() != null) {
-			attempts.recordSuccess(user.getId());
-		}
+		attempts.recordSuccess(user.getId());
 		return new CurrentUser(user.getId(), user.getEmail(), user.getRole());
 	}
 

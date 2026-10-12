@@ -70,7 +70,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
 			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
 		List<FieldViolation> violations = ex.getBindingResult().getFieldErrors().stream()
-				.map(error -> FieldViolation.of(error.getField(), ruleOf(error.getCode())))
+				.map(error -> toViolation(error))
 				.toList();
 		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_ENTITY, ValidationFailedException.CODE, violations);
 		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).headers(headers).body(problem);
@@ -126,6 +126,19 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			case 415 -> "unsupported-media-type";
 			default -> status.is5xxServerError() ? "internal-error" : "request-error";
 		};
+	}
+
+	private static FieldViolation toViolation(org.springframework.validation.FieldError error) {
+		String rule = ruleOf(error.getCode());
+		if ("too-long".equals(rule) && error.getArguments() != null) {
+			// En @Size el segundo argumento es el máximo permitido; el texto lo muestra ("máximo 254 caracteres").
+			for (Object argument : error.getArguments()) {
+				if (argument instanceof Integer max && max < Integer.MAX_VALUE) {
+					return FieldViolation.of(error.getField(), rule, max);
+				}
+			}
+		}
+		return FieldViolation.of(error.getField(), rule);
 	}
 
 	private static String ruleOf(@Nullable String constraintCode) {

@@ -6,18 +6,14 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.stereotype.Component;
-
-import com.talenti.identity.config.IdentityProperties;
 import com.talenti.shared.web.TooManyRequestsException;
 
 /**
- * Límite de solicitudes de ingreso por origen (RNF-05, 001-11): ventana fija, en memoria del servidor.
+ * Límite de solicitudes por origen (RNF-05, 001-11), con un cubo por instancia (ingreso y registro): ventana fija, en memoria del servidor.
  * Pasado el máximo dentro de la ventana responde 429 con {@code Retry-After} hasta que la ventana termina.
  * Al reiniciar el servidor los contadores empiezan de cero (basta para el E2, igual que la sesión).
  */
-@Component
-public class LoginRateLimiter {
+public class RateLimiter {
 
 	/** Con más orígenes que esto se descartan las ventanas vencidas, para que la memoria no crezca sin límite. */
 	private static final int CLEANUP_THRESHOLD = 10_000;
@@ -33,9 +29,9 @@ public class LoginRateLimiter {
 
 	private final Clock clock;
 
-	LoginRateLimiter(IdentityProperties properties, Clock clock) {
-		this.maxRequests = properties.loginRateLimit().maxRequests();
-		this.windowLength = properties.loginRateLimit().window();
+	public RateLimiter(int maxRequests, Duration windowLength, Clock clock) {
+		this.maxRequests = maxRequests;
+		this.windowLength = windowLength;
 		this.clock = clock;
 	}
 

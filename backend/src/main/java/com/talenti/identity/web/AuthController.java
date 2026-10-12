@@ -49,7 +49,7 @@ class AuthController {
 	}
 
 	@PostMapping("/register")
-	ResponseEntity<UserResponse> register(@RequestBody RegisterRequest body, HttpServletRequest request,
+	ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest body, HttpServletRequest request,
 			HttpServletResponse response) {
 		CurrentUser user = registration.register(new RegistrationService.Command(body.email(), body.password(),
 				body.legalAccepted(), body.legalVersion()));

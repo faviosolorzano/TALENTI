@@ -5,14 +5,14 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import com.talenti.identity.service.LoginRateLimiter;
+import com.talenti.identity.service.RateLimiter;
 
-/** Cuenta cada solicitud de ingreso por origen, antes de leer el cuerpo (001-11). */
-class LoginRateLimitInterceptor implements HandlerInterceptor {
+/** Cuenta cada solicitud por origen en su cubo, antes de leer el cuerpo (001-11). */
+class RateLimitInterceptor implements HandlerInterceptor {
 
-	private final LoginRateLimiter limiter;
+	private final RateLimiter limiter;
 
-	LoginRateLimitInterceptor(LoginRateLimiter limiter) {
+	RateLimitInterceptor(RateLimiter limiter) {
 		this.limiter = limiter;
 	}
 

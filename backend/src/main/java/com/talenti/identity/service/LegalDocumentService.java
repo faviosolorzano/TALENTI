@@ -4,9 +4,12 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,8 @@ import com.talenti.shared.web.FieldViolation;
 @Service
 public class LegalDocumentService {
 
+	private static final Logger log = LoggerFactory.getLogger(LegalDocumentService.class);
+
 	/** Clave pública de cada documento y su archivo. */
 	private static final Map<String, String> FILES = Map.of(
 			"terms", "terms.es.md",
@@ -38,8 +43,19 @@ public class LegalDocumentService {
 
 	public LegalDocumentService(LegalProperties properties) {
 		List<LegalDocument> documents = new ArrayList<>();
+		Map<String, List<String>> unfinished = new LinkedHashMap<>();
 		for (String key : ORDER) {
-			documents.add(parse(key, read(properties.version(), FILES.get(key))));
+			String markdown = read(properties.version(), FILES.get(key));
+			documents.add(parse(key, markdown));
+			List<String> placeholders = LegalPlaceholders.find(markdown);
+			if (!placeholders.isEmpty()) {
+				unfinished.put(key, placeholders);
+			}
+		}
+		if (!unfinished.isEmpty()) {
+			// Un solo aviso, sin detener el arranque: la demo corre con borradores (RNF-08 pide revisión legal).
+			log.warn("Los documentos legales {} tienen marcadores sin completar: {}. Complétalos y haz la revisión legal "
+					+ "antes de usar Talenti con personas reales.", properties.version(), unfinished);
 		}
 		this.catalog = new LegalCatalog(properties.version(), properties.publishedAt(), List.copyOf(documents));
 	}

@@ -52,7 +52,10 @@ public class ConsentService {
 		}
 	}
 
-	/** Aceptar una versión nueva de los documentos estando ya con sesión (001-30). */
+	/**
+	 * Aceptar una versión nueva de los documentos estando ya con sesión (001-30). Es idempotente: si la persona
+	 * ya tiene aceptada la versión vigente de {@code TERMS} y {@code ACCOUNT_DATA}, no inserta ni audita de nuevo.
+	 */
 	@Transactional
 	public void acceptCurrentDocuments(UUID userId, Boolean legalAccepted, String legalVersion) {
 		var violations = legal.validateAcceptance(legalAccepted, legalVersion);
@@ -60,6 +63,9 @@ public class ConsentService {
 			throw new ValidationFailedException(violations);
 		}
 		legal.requireCurrentVersion(legalVersion);
+		if (!isAcceptancePending(userId)) {
+			return;
+		}
 		acceptAccountDocuments(userId, legalVersion);
 	}
 
