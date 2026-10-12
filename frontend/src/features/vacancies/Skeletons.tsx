@@ -52,6 +52,7 @@ export function CompanySkeletons({ count }: { count: number }) {
 export function VacancyDetailSkeleton() {
   return (
     <div className="container vacancy-detail-skeleton" aria-busy="true">
+      <h1 className="visually-hidden">{es.pages.vacancy.title}</h1>
       <span className="visually-hidden">{es.vacancies.loadingLabel}</span>
       <div aria-hidden="true">
         <span className="skeleton skeleton--line skeleton--short" />

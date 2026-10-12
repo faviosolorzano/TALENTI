@@ -233,7 +233,7 @@
 
 @media (min-width: 61.25rem) {
   .vacancy-detail__grid {
-    grid-template-columns: minmax(0, 1fr) 22rem;
+    grid-template-columns: minmax(0, 1fr) var(--detail-aside-width);
     grid-template-areas:
       'main apply'
       'main side';

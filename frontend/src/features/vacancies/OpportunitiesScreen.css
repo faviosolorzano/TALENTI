@@ -107,6 +107,12 @@
   color: var(--color-text-muted);
 }
 
+.opportunities__results[data-refreshing='true']
+  :is(.opportunities__list, .opportunities__empty, .pagination) {
+  opacity: var(--opacity-stale);
+  transition: opacity var(--duration-fast);
+}
+
 .opportunities__footnote {
   margin-top: var(--space-10);
 }

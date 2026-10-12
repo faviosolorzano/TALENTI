@@ -23,6 +23,12 @@
   transform: translateY(calc(-1 * var(--space-1)));
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .card.vacancy-card:hover {
+    transform: none;
+  }
+}
+
 .vacancy-card__body {
   min-width: 0;
   flex: 1;

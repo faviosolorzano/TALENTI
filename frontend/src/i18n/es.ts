@@ -94,7 +94,6 @@ export const es = {
     skillsLabel: 'Tecnologías',
     companyAndCity: (company: string, city: string) => `${company} · ${city}`,
     companyVacancies: (count: number) => (count === 1 ? '1 vacante' : `${count} vacantes`),
-    featuredLabel: 'Destacada',
     loadingLabel: 'Cargando…',
   },
   landingVacancies: {
@@ -106,7 +105,6 @@ export const es = {
     companiesTitle: 'Empresas que buscan talento',
     companiesError: 'No pudimos cargar las empresas.',
     companiesList: 'Empresas destacadas',
-    companyLink: (name: string, openVacancies: string) => `${name}, ${openVacancies}`,
   },
   opportunities: {
     title: 'Oportunidades',

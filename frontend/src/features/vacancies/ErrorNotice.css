@@ -10,7 +10,7 @@
 }
 
 .error-notice__message {
-  flex: 1 1 14rem;
+  flex: 1 1 var(--notice-message-basis);
   color: var(--color-text);
   font-weight: var(--font-weight-semibold);
 }

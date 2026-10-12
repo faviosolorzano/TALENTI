@@ -43,7 +43,11 @@ export function OpportunitiesScreen() {
   )
   const canonical = serializeSearch(state)
 
-  const results = useApiResource(canonical, (signal) => fetchVacancies(toApiQuery(state), signal))
+  // The previous answer stays on screen (dimmed) while a new one arrives: the list is not emptied
+  // and the title does not change on every click. Skeletons are only for the first load.
+  const results = useApiResource(canonical, (signal) => fetchVacancies(toApiQuery(state), signal), {
+    keepPrevious: true,
+  })
   const filters = useApiResource('filters', (signal) => fetchFilters(signal))
 
   const go = (next: SearchState, replace = false) =>
@@ -59,7 +63,7 @@ export function OpportunitiesScreen() {
   // 004-18: a page beyond the last one leads to the last one.
   const data = results.state.status === 'success' ? results.state.data : null
   const lastPage = data ? Math.max(1, data.totalPages) : 1
-  const outOfRange = data !== null && state.page > lastPage
+  const outOfRange = data !== null && !results.refreshing && state.page > lastPage
   useEffect(() => {
     if (outOfRange)
       navigate({ search: serializeSearch({ ...state, page: lastPage }) }, { replace: true })
@@ -134,7 +138,8 @@ export function OpportunitiesScreen() {
         <section
           className="opportunities__results"
           aria-labelledby="results-title"
-          aria-busy={loading}
+          aria-busy={loading || results.refreshing}
+          data-refreshing={results.refreshing}
         >
           <div className="opportunities__bar">
             <div aria-live="polite" aria-atomic="true">

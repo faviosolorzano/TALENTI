@@ -55,6 +55,12 @@
   transform: translateX(var(--space-1));
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .featured__all:hover span {
+    transform: none;
+  }
+}
+
 .featured__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

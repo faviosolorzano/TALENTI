@@ -210,6 +210,9 @@
   --avatar-size: 3rem; /* 48 px */
   --avatar-size-sm: 2.5rem; /* 40 px */
   --filters-width: 16.25rem; /* 260 px: side column of /oportunidades */
+  --detail-aside-width: 22rem; /* 352 px: apply and side column of a vacancy */
+  --notice-message-basis: 14rem; /* 224 px: width at which an error message wraps its button */
+  --company-item-min-width: 14rem; /* 224 px: narrowest company tile of the strip */
   --chip-bar-width: 0.375rem; /* 6 px */
   --chip-bar-height: 0.875rem; /* 14 px */
 
@@ -224,6 +227,7 @@
   --duration-enter: 450ms;
   --duration-panel: 500ms;
   --duration-ring: 1000ms;
+  --opacity-stale: 0.6; /* results kept on screen while a new answer arrives */
   --duration-shimmer: 1400ms; /* loading skeletons; reduced motion stops the animation */
   --easing-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
