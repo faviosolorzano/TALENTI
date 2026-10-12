@@ -17,10 +17,14 @@ import com.talenti.vacancy.domain.SearchText;
 import com.talenti.vacancy.domain.TextNormalizer;
 
 /**
- * Valida y normaliza los parámetros de {@code GET /vacancies} (004-06 a 004-10). Todo lo que no cumple se reúne en
- * un solo 422 con {@code errors[{field, rule}]} y la búsqueda no se ejecuta. Los parámetros repetidos se
- * deduplican; un parámetro vacío cuenta como ausente. Los mensajes de error nunca repiten el valor recibido: el
- * texto buscado no viaja a los registros.
+ * Valida y normaliza los parámetros de {@code GET /vacancies} (004-06 a 004-10 y la enmienda 004-26 a 004-29).
+ * Todo lo que no cumple se reúne en un solo 422 con {@code errors[{field, rule}]} y la búsqueda no se ejecuta.
+ * Los parámetros repetidos se deduplican; un parámetro vacío cuenta como ausente. Los mensajes de error nunca
+ * repiten el valor recibido: el texto buscado no viaja a los registros.
+ *
+ * <p>{@code q} se limpia, pierde sus palabras de relleno y se limita a 80 caracteres escritos y 6 palabras útiles.
+ * {@code sort} acepta {@code recent}, {@code company} y {@code relevance}; si falta, {@code relevance} cuando
+ * {@code q} tiene palabras útiles y {@code recent} cuando no.
  */
 final class SearchParameters {
 
@@ -111,7 +115,8 @@ final class SearchParameters {
 		}
 		checkCount(violations, "skill", skills);
 
-		SearchSort sort = SearchSort.RECENT;
+		// Sin "sort" el criterio decide: relevance con palabras útiles, recent sin ellas (004-29).
+		SearchSort sort = null;
 		String sortValue = first(query, "sort");
 		if (sortValue != null) {
 			SearchSort parsed = SearchSort.parse(sortValue.strip()).orElse(null);

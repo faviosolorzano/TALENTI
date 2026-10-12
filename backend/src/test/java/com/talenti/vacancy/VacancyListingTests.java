@@ -111,11 +111,16 @@ class VacancyListingTests extends VacancyIntegrationTest {
 	@Test
 	@DisplayName("004-06: 'programacion' y 'PROGRAMACIÓN' encuentran lo mismo, sin importar tildes ni mayúsculas")
 	void t004_06_accentsAndCaseAreIgnored() {
-		List<String> expected = List.of("Practicante Backend Java", "Practicante iOS", "Practicante PHP y Laravel");
+		// Tres lo dicen en el resumen y dos más solo en la descripción (004-32); los del resumen salen primero.
+		List<String> inSummary = List.of("Practicante Backend Java", "Practicante iOS", "Practicante PHP y Laravel");
+		List<String> inDescription = List.of("Practicante Frontend", "Practicante Full Stack Node.js");
 
-		assertThat(titles(list("?q=programacion"))).containsExactlyInAnyOrderElementsOf(expected);
-		assertThat(titles(list("?q=PROGRAMACI%C3%93N"))).containsExactlyInAnyOrderElementsOf(expected);
-		assertThat(titles(list("?q=Programaci%C3%B3n"))).containsExactlyInAnyOrderElementsOf(expected);
+		for (String query : List.of("?q=programacion", "?q=PROGRAMACI%C3%93N", "?q=Programaci%C3%B3n")) {
+			List<String> found = titles(list(query));
+			assertThat(found).as(query).hasSize(5);
+			assertThat(found.subList(0, 3)).as(query).containsExactlyInAnyOrderElementsOf(inSummary);
+			assertThat(found.subList(3, 5)).as(query).containsExactlyInAnyOrderElementsOf(inDescription);
+		}
 		// Y al revés: la consulta sin tilde contra un nombre con tilde ("Cóndor Datos").
 		assertThat(titles(list("?q=condor"))).containsExactlyInAnyOrder("Practicante de Datos con SQL",
 				"Practicante Python y automatización");
@@ -126,13 +131,13 @@ class VacancyListingTests extends VacancyIntegrationTest {
 	@DisplayName("004-06: la búsqueda mira título, resumen, empresa y habilidades (nombre o sinónimo)")
 	void t004_06_searchesTitleSummaryCompanyAndSkills() {
 		assertThat(titles(list("?q=calidad"))).as("título").contains("Practicante de Calidad");
-		assertThat(titles(list("?q=reservas"))).as("descripción: no se busca").isEmpty();
+		assertThat(titles(list("?q=reservas"))).as("descripción (004-32)").containsExactly("Practicante Backend Java");
 		assertThat(titles(list("?q=repetitivas"))).as("resumen").containsExactly("Practicante Python y automatización");
 		assertThat(titles(list("?q=misti"))).as("empresa").containsExactlyInAnyOrder("Practicante .NET",
 				"Practicante PHP y Laravel");
 		assertThat(titles(list("?q=laravel"))).as("nombre de habilidad").contains("Practicante PHP y Laravel");
-		assertThat(titles(list("?q=Amazon%20Web%20Services"))).as("sinónimo de habilidad")
-				.containsExactly("Practicante DevOps junior");
+		assertThat(titles(list("?q=Amazon%20Web%20Services")).get(0)).as("sinónimo de habilidad: sale primero")
+				.isEqualTo("Practicante DevOps junior");
 	}
 
 	@Test
@@ -149,15 +154,18 @@ class VacancyListingTests extends VacancyIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("004-06: varios términos deben cumplirse todos, cada uno en cualquier campo")
-	void t004_06_allTermsMustMatch() {
-		assertThat(titles(list("?q=backend%20java"))).containsExactly("Practicante Backend Java");
-		assertThat(titles(list("?q=java%20backend"))).containsExactly("Practicante Backend Java");
-		// Empresa en un término y habilidad deseable en el otro.
-		assertThat(titles(list("?q=condor%20docker"))).containsExactly("Practicante Python y automatización");
-		assertThat(titles(list("?q=backend%20swift"))).isEmpty();
+	@DisplayName("004-27: con varios términos basta uno (O); las que cumplen más salen primero")
+	void t004_27_anyTermMatches() {
+		List<String> backendJava = titles(list("?q=backend%20java"));
+		assertThat(backendJava.get(0)).isEqualTo("Practicante Backend Java");
+		assertThat(titles(list("?q=java%20backend")).get(0)).isEqualTo("Practicante Backend Java");
+		// Empresa en un término y habilidad deseable en el otro: la que cumple los dos sale primero.
+		assertThat(titles(list("?q=condor%20docker")).get(0)).isEqualTo("Practicante Python y automatización");
+		// Un término sin ninguna coincidencia ya no vacía el resultado.
+		List<String> backendSwift = titles(list("?q=backend%20swift"));
+		assertThat(backendSwift).contains("Practicante Backend Java", "Practicante iOS");
 		// Espacios de más y términos repetidos no cambian el resultado.
-		assertThat(titles(list("?q=%20%20backend%20%20JAVA%20backend%20"))).containsExactly("Practicante Backend Java");
+		assertThat(titles(list("?q=%20%20backend%20%20JAVA%20backend%20"))).isEqualTo(backendJava);
 	}
 
 	@Test
@@ -199,7 +207,8 @@ class VacancyListingTests extends VacancyIntegrationTest {
 	@DisplayName("004-06: un carácter nulo o de control en q no rompe la consulta")
 	void t004_06_controlCharactersAreSafe() {
 		assertThat(list("?q=%00").get("totalItems").asInt()).as("NUL").isEqualTo(12);
-		assertThat(titles(list("?q=backend%00java"))).as("NUL entre dos términos").containsExactly("Practicante Backend Java");
+		assertThat(titles(list("?q=backend%00java")).get(0)).as("NUL entre dos términos")
+				.isEqualTo("Practicante Backend Java");
 	}
 
 	// ------------------------------------------------------------------------------------------ 004-07
@@ -411,7 +420,7 @@ class VacancyListingTests extends VacancyIntegrationTest {
 		Response response = assertRejected("?q=uno%20dos%20tres%20cuatro%20cinco%20seis%20siete", "q", "too-many-terms");
 		assertThat(response.body()).doesNotContain("cinco");
 
-		assertThat(list("?q=uno%20dos%20tres%20cuatro%20cinco%20seis").get("totalItems").asInt()).isZero();
+		assertThat(list("?q=zzuno%20zzdos%20zztres%20zzcuatro%20zzcinco%20zzseis").get("totalItems").asInt()).isZero();
 		// Letras sueltas: no filtran ni cuentan para el límite.
 		assertThat(list("?q=a").get("totalItems").asInt()).isEqualTo(12);
 		assertThat(titles(list("?q=a%20b%20backend%20c%20d%20e%20f%20g"))).containsExactly("Practicante Backend Java");

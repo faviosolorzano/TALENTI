@@ -61,4 +61,26 @@ class SearchTextNeverLoggedTests extends VacancyIntegrationTest {
 		assertThat(badSort.body()).doesNotContain(secret);
 	}
 
+	@Test
+	@DisplayName("004-14: el texto buscado tampoco llega a los registros cuando la consulta falla por un error de la base de datos")
+	void t004_14_searchTextIsNeverLoggedWhenTheQueryFails(CapturedOutput output) {
+		String secret = "zzfallo" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+		// Un error real de PostgreSQL en la consulta de búsqueda: la columna que lee ya no existe.
+		jdbc.execute("ALTER TABLE vacancy RENAME COLUMN summary TO summary_renamed");
+		Response failed;
+		try {
+			failed = client().get("/api/v1/vacancies?q=" + secret + "%20java");
+		}
+		finally {
+			jdbc.execute("ALTER TABLE vacancy RENAME COLUMN summary_renamed TO summary");
+		}
+
+		assertThat(failed.status()).isEqualTo(500);
+		assertThat(failed.json().get("code").asString()).isEqualTo("internal-error");
+		assertThat(failed.body()).doesNotContain(secret);
+		assertThat(output.getAll()).as("registros de la aplicación").contains("Error no controlado")
+				.doesNotContain(secret);
+		assertThat(client().get("/api/v1/vacancies?q=java").status()).as("la búsqueda se recupera").isEqualTo(200);
+	}
+
 }

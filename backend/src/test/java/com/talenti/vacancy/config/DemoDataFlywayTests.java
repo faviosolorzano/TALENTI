@@ -23,7 +23,7 @@ import com.talenti.TestcontainersConfiguration;
 /**
  * 004-03: los dos Flyway sobre una base propia, EN ORDEN (cada prueba parte de lo que dejó la anterior). Se usa la
  * misma configuración que la aplicación: el Flyway del esquema con sus valores por defecto de Flyway (estricto) y el
- * de la demo construido por {@link DemoDataMigrator#flyway(DataSource)}. Las migraciones "V4" y "V5" de prueba están
+ * de la demo construido por {@link DemoDataMigrator#flyway(DataSource)}. Las migraciones "V5" y "V6" de prueba están
  * en {@code src/test/resources/db/probe-a} y {@code probe-b}, nunca en {@code db/migration}.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -107,12 +107,12 @@ class DemoDataFlywayTests {
 
 	@Test
 	@Order(4)
-	@DisplayName("004-03: una migración nueva del esquema (V4 de prueba) se aplica con la demo ya cargada")
+	@DisplayName("004-03: una migración nueva del esquema (V5 de prueba) se aplica con la demo ya cargada")
 	void t004_03_newSchemaMigrationAppliesWithDemoLoaded() {
 		schema("classpath:db/probe-a").migrate();
 
 		assertThat(jdbc.queryForObject("SELECT to_regclass('probe_a')::text", String.class)).isEqualTo("probe_a");
-		assertThat(count("SELECT count(*) FROM flyway_schema_history WHERE version = '4' AND success")).isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM flyway_schema_history WHERE version = '5' AND success")).isEqualTo(1);
 		schema("classpath:db/probe-a").validate();
 		new DemoDataMigrator(dataSource).migrate();
 		assertThat(count("SELECT count(*) FROM vacancy")).isEqualTo(12);
@@ -122,7 +122,7 @@ class DemoDataFlywayTests {
 	@Order(5)
 	@DisplayName("004-03: el Flyway del esquema sigue siendo estricto: una migración aplicada que ya no está hace fallar el arranque")
 	void t004_03_missingSchemaMigrationFails() {
-		// V4 ya está aplicada. Se agrega la V5 y se quita la V4: Flyway debe negarse en vez de ignorarlo.
+		// V5 ya está aplicada. Se agrega la V6 y se quita la V5: Flyway debe negarse en vez de ignorarlo.
 		schema("classpath:db/probe-a", "classpath:db/probe-b").migrate();
 
 		assertThatThrownBy(() -> schema("classpath:db/probe-b").migrate()).isInstanceOf(FlywayValidateException.class)
