@@ -1,0 +1,31 @@
+.dora-orb {
+  display: grid;
+  place-items: center;
+}
+
+.dora-orb__canvas {
+  display: block;
+  width: min(var(--orb-max-size), 100%);
+  aspect-ratio: 1;
+}
+
+/* No canvas: a simple circle with the same tones as the orb. */
+.dora-orb--fallback {
+  width: min(var(--orb-max-size), 100%);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.dora-orb__circle {
+  width: 50%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--color-orb-100),
+    var(--color-orb-400) 38%,
+    var(--color-action) 72%,
+    var(--color-orb-700)
+  );
+  box-shadow: 0 0 4rem var(--color-brand-blue-line);
+}

@@ -1,0 +1,229 @@
+.compat__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.compat__avatar {
+  display: grid;
+  flex: none;
+  width: var(--space-12);
+  height: var(--space-12);
+  place-items: center;
+  border-radius: var(--radius-button);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.compat__head > div:last-child {
+  min-width: 0;
+}
+
+.compat__title,
+.compat__subtitle {
+  overflow-wrap: anywhere;
+}
+
+.compat__title {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+}
+
+.compat__subtitle {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+/* Ring and verdict: stacked on phones */
+.compat__score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin: var(--space-6) 0 var(--space-5);
+}
+
+.compat__verdict {
+  min-width: 0;
+  flex: 1;
+}
+
+.compat__verdict h3 {
+  font-size: var(--font-size-subtitle);
+  line-height: var(--line-height-tight);
+}
+
+.compat__verdict p {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.compat__chips-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.compat__chips-title strong {
+  font-size: var(--font-size-ui);
+}
+
+.compat__chips-title span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+.compat__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.compat__groups {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.compat__group-title {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--line-height-base);
+  text-transform: uppercase;
+}
+
+.compat__rows {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compat__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  font-size: var(--font-size-ui);
+  animation: compat-row-in var(--duration-enter) var(--easing-standard) both;
+}
+
+@keyframes compat-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+.compat__mark {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.compat__row[data-tone='ok'] .compat__mark {
+  background: var(--color-success);
+}
+
+.compat__row[data-tone='mid'] .compat__mark {
+  background: var(--color-warning);
+}
+
+.compat__row[data-tone='no'] .compat__mark {
+  background: var(--color-danger);
+}
+
+.compat__row[data-tone='unknown'] .compat__mark {
+  border: var(--border-width-strong) dashed var(--color-text-muted);
+}
+
+.compat__evidence {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-style: normal;
+}
+
+/* DORA's explanation (always labeled as AI) */
+.compat__dora {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-tint);
+}
+
+.compat__dora p {
+  font-size: var(--font-size-ui);
+}
+
+.compat__how {
+  margin-top: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.compat__how summary {
+  min-height: var(--touch-target-min);
+  padding-block: var(--space-3);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.compat__how p {
+  margin-top: var(--space-2);
+}
+
+.compat__how table {
+  width: 100%;
+  margin-top: var(--space-2);
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.compat__how th,
+.compat__how td {
+  padding: var(--space-2) 0;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.compat__how th {
+  font-weight: var(--font-weight-regular);
+  text-align: left;
+}
+
+.compat__how td {
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+  text-align: right;
+}
+
+.compat__sample {
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+/* From 520 px the ring sits beside the verdict */
+@media (min-width: 32.5rem) {
+  .compat__score {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-6);
+    margin-top: var(--space-6);
+  }
+}

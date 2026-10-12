@@ -1,0 +1,116 @@
+.dora-section {
+  position: relative;
+  overflow: hidden;
+  padding-block: var(--section-padding);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+}
+
+.dora-section__grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-11);
+  align-items: center;
+}
+
+.dora-section__title {
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-title);
+}
+
+.dora-section__lead {
+  max-width: 40ch;
+  margin-top: var(--space-6);
+  color: var(--color-text-inverse-muted);
+  font-size: var(--font-size-lead);
+}
+
+.dora-section__states {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-9);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--color-overlay-inverse-soft);
+}
+
+.dora-section__states button {
+  appearance: none;
+  min-height: var(--touch-target-min);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-inverse-soft);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-slow),
+    color var(--duration-slow);
+}
+
+.dora-section__states button:hover {
+  color: var(--color-text-inverse);
+}
+
+.dora-section__states button[aria-pressed='true'] {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.dora-section :focus-visible {
+  outline-color: var(--color-focus-inverse);
+}
+
+.dora-section__mic {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.dora-section__mic-message,
+.dora-section__note {
+  color: var(--color-text-inverse-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dora-section__note {
+  margin-top: var(--space-3);
+}
+
+.dora-section__caption {
+  position: relative;
+  min-height: var(--space-24);
+  margin-top: calc(var(--space-8) * -1);
+  text-align: center;
+}
+
+.dora-section__caption p {
+  max-width: 24ch;
+  margin: var(--space-2) auto 0;
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-quote);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-quote);
+  line-height: var(--line-height-snug);
+}
+
+@media (min-width: 32.5rem) {
+  .dora-section__states button {
+    padding-inline: var(--space-4);
+    font-size: var(--font-size-ui);
+  }
+}
+
+@media (min-width: 61.25rem) {
+  .dora-section__grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-14);
+  }
+}

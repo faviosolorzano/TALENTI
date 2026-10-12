@@ -1,0 +1,139 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  border-bottom: var(--border-width) solid transparent;
+  background: var(--color-bg);
+  transition: border-color var(--duration-slow);
+}
+
+.header[data-scrolled] {
+  border-bottom-color: var(--color-border);
+}
+
+/* Phone and tablet: logo, "Crear cuenta" and the menu button. */
+.header__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-height: var(--header-height);
+}
+
+.header__brand {
+  display: block;
+  flex: none;
+  border-radius: var(--radius-xs);
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.header__login {
+  display: none;
+}
+
+.header__menu-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width-strong) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-none);
+  cursor: pointer;
+}
+
+/* Folded menu: a panel under the bar, closed unless the button opened it. */
+.header__menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: var(--space-3) var(--page-gutter) var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.header__menu[data-open='true'] {
+  display: block;
+}
+
+.header__list {
+  display: grid;
+  margin: 0 auto;
+  padding: 0;
+  max-width: var(--content-max-width);
+  list-style: none;
+}
+
+.header__link {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-nav);
+  text-decoration: none;
+  transition:
+    color var(--duration-base),
+    background-color var(--duration-base);
+}
+
+.header__link:hover {
+  background: var(--color-bg-tint);
+  color: var(--color-text);
+}
+
+.header__link[aria-current='page'] {
+  color: var(--color-text);
+}
+
+/* Wide: the menu opens up into a row and "Ingresar" becomes a button on the right. */
+@media (min-width: 53.75rem) {
+  .header__bar {
+    gap: var(--space-7);
+  }
+
+  .header__menu-button,
+  .header__list-login {
+    display: none;
+  }
+
+  .header__login {
+    display: inline-flex;
+  }
+
+  .header__menu {
+    position: static;
+    display: block;
+    margin-left: var(--space-3);
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .header__list {
+    display: flex;
+    gap: var(--space-1);
+    margin: 0;
+  }
+
+  .header__link {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-base);
+  }
+}

@@ -21,7 +21,7 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: es.app.skipToContent })).toHaveFocus()
   })
 
-  it('shows the main navigation with its four links', () => {
+  it('shows the main navigation: Inicio, Cómo funciona and DORA (and Ingresar in the folded menu)', () => {
     renderApp('/')
 
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
@@ -29,10 +29,24 @@ describe('Layout', () => {
 
     expect(links.map((link) => link.textContent)).toEqual([
       es.nav.home,
-      es.nav.register,
+      es.nav.how,
+      es.nav.dora,
       es.nav.login,
-      es.nav.dashboard,
     ])
+  })
+
+  it('shows "Ingresar" and "Crear cuenta" at the right of the header', () => {
+    renderApp('/')
+
+    const banner = screen.getByRole('banner')
+    expect(within(banner).getByRole('link', { name: es.nav.register })).toHaveAttribute(
+      'href',
+      '/registro',
+    )
+    expect(within(banner).getAllByRole('link', { name: es.nav.login })[0]).toHaveAttribute(
+      'href',
+      '/ingresar',
+    )
   })
 
   it('shows the logo in the top bar', () => {
@@ -57,26 +71,35 @@ describe('Layout', () => {
     renderApp('/')
 
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.dashboard }))
+    await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
 
-    expect(screen.getByRole('heading', { level: 1, name: es.pages.dashboard.title })).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: es.pages.login.title })).toBeVisible()
   })
 
   it('updates the document title on every route change, not only on the placeholder pages', async () => {
     renderApp('/')
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
+    const banner = screen.getByRole('banner')
 
-    const steps = [
-      [es.nav.register, es.pages.register.title],
-      [es.nav.login, es.pages.login.title],
-      [es.nav.dashboard, es.pages.dashboard.title],
-      [es.nav.home, es.pages.home.title],
-    ] as const
+    await userEvent.click(within(banner).getByRole('link', { name: es.nav.register }))
+    expect(document.title).toBe(`${es.pages.register.title} · ${es.app.name}`)
 
-    for (const [linkName, title] of steps) {
-      await userEvent.click(within(nav).getByRole('link', { name: linkName }))
-      expect(document.title).toBe(`${title} · ${es.app.name}`)
-    }
+    await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
+    expect(document.title).toBe(`${es.pages.login.title} · ${es.app.name}`)
+
+    await userEvent.click(within(nav).getByRole('link', { name: es.nav.home }))
+    expect(document.title).toBe(`${es.pages.home.title} · ${es.app.name}`)
+  })
+
+  it('scrolls to the section of a hash link and moves focus to it', async () => {
+    renderApp('/')
+    const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
+
+    await userEvent.click(within(nav).getByRole('link', { name: es.nav.dora }))
+
+    const section = document.getElementById('dora')
+    expect(section?.scrollIntoView).toHaveBeenCalled()
+    expect(section).toHaveFocus()
   })
 
   it('moves focus to the main content when the route changes', async () => {

@@ -1,0 +1,12 @@
+.badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-tag);
+  line-height: var(--line-height-none);
+  white-space: nowrap;
+}
