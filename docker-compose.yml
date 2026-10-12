@@ -47,6 +47,9 @@ services:
       # Rol de la aplicación (sin superusuario), no el administrador de la imagen.
       SPRING_DATASOURCE_USERNAME: ${APP_DB_USER:?copia .env.example como .env}
       SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD:?copia .env.example como .env}
+      # Datos de ejemplo FICTICIOS (spec 004). El contenedor corre con el perfil prod, cuyo valor por defecto es
+      # "false"; Compose lo enciende aquí (la demo). Para apagarlo: TALENTI_DEMO_DATA=false en el .env.
+      TALENTI_DEMO_DATA: ${TALENTI_DEMO_DATA:-true}
     # Sin "ports": el navegador llega al backend solo a través del proxy de nginx (frontend).
     read_only: true
     tmpfs:
