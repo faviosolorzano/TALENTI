@@ -71,7 +71,7 @@ public final class SearchText {
 			String term = stripEdges(written);
 			String normalized = TextNormalizer.normalize(term);
 			// Una marca de acento suelta se normaliza a nada: no hay nada que buscar.
-			if (!normalized.isEmpty() && !isSingleLetterOrDigit(term) && !SearchStopWords.isStopWord(term)) {
+			if (!normalized.isEmpty() && !isSingleLetterOrDigit(normalized) && !SearchStopWords.isStopWord(term)) {
 				unique.putIfAbsent(normalized, term);
 			}
 		}
