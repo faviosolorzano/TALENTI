@@ -111,9 +111,15 @@ public final class SearchText {
 	 * <li>El borde se exige solo donde el término empieza o termina en letra o cifra. Así "c#", "node.js" y
 	 * "100%" funcionan; no se usan {@code \m} ni {@code \M} porque fallan con símbolos.</li>
 	 * </ul>
+	 *
+	 * @param term una palabra que no queda vacía al normalizarla; {@link #terms(String)} ya descarta las que sí
+	 * @throws IllegalArgumentException si la palabra es nula, está vacía o solo tiene marcas de acento
 	 */
 	public static String matchPattern(String term) {
 		String normalized = TextNormalizer.normalize(term);
+		if (normalized.isEmpty()) {
+			throw new IllegalArgumentException("La palabra buscada no puede quedar vacía al normalizarla");
+		}
 		StringBuilder pattern = new StringBuilder();
 		if (isAlnum(normalized.codePointAt(0))) {
 			pattern.append(NO_ALNUM_BEFORE);
@@ -130,11 +136,11 @@ public final class SearchText {
 	 * La palabra normalizada para buscar por parecido (004-31), o vacío si no corresponde: solo las de
 	 * {@value #FUZZY_MIN_LENGTH} letras o más y hechas únicamente de letras y cifras ("c#", "node.js" y "100%" se
 	 * buscan solo de forma exacta). Se compara con cada palabra entera del texto mediante {@code similarity()} de
-	 * pg_trgm.
+	 * pg_trgm. Una palabra nula, vacía o sin letras al normalizarla no es elegible (devuelve vacío).
 	 */
 	public static Optional<String> fuzzyWord(String term) {
 		String normalized = TextNormalizer.normalize(term);
-		boolean eligible = normalized.codePointCount(0, normalized.length()) >= FUZZY_MIN_LENGTH
+		boolean eligible = !normalized.isEmpty() && normalized.codePointCount(0, normalized.length()) >= FUZZY_MIN_LENGTH
 				&& normalized.codePoints().allMatch(SearchText::isAlnum);
 		return eligible ? Optional.of(normalized) : Optional.empty();
 	}

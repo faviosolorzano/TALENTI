@@ -2,6 +2,7 @@ package com.talenti.vacancy.persistence;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -12,6 +13,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -42,9 +46,22 @@ import com.talenti.vacancy.domain.VacancyStatus;
  * ({@code similarity()} de pg_trgm sobre palabras enteras); una vacante coincide si aparece al menos una y el orden
  * por parecido suma puntos por campo. Sin {@code tsvector}. {@code unaccent} y {@code pg_trgm} las crea el
  * administrador de la base en {@code db/init/01-init-roles.sh}.
+ *
+ * <p><b>Límite de escala:</b> las expresiones regulares y {@code similarity()} se evalúan fila por fila sobre
+ * {@code lower(unaccent(campo))}, sin índice. Con las decenas de vacantes del E2 tarda milisegundos; con decenas de
+ * miles tarda segundos. Por eso la búsqueda apaga el JIT de PostgreSQL (compilar la consulta costaba más que
+ * ejecutarla) y corre con un tiempo máximo ({@link #searchTimeout}): si se agota, {@link QueryTimeoutException}.
+ * Mejora futura, sin hacer ahora: una columna normalizada con las palabras de cada vacante y un índice GIN
+ * (pg_trgm) sobre ella, para que el filtro use índice.
  */
 @Repository
 public class VacancyReadRepository {
+
+	/** Tiempo máximo de cada consulta de la búsqueda (propiedad {@code talenti.vacancy.search-timeout}). */
+	static final String DEFAULT_SEARCH_TIMEOUT = "5s";
+
+	/** SQLSTATE de PostgreSQL para una consulta cancelada (aquí, por {@code statement_timeout}). */
+	private static final String QUERY_CANCELED = "57014";
 
 	private static final String CARD_COLUMNS = """
 			v.id, v.title, v.summary, v.modality, v.location, v.hours_per_week, v.published_at, v.featured,
@@ -55,12 +72,34 @@ public class VacancyReadRepository {
 
 	private final JdbcClient jdbc;
 
-	VacancyReadRepository(JdbcClient jdbc) {
+	private final Duration searchTimeout;
+
+	VacancyReadRepository(JdbcClient jdbc,
+			@Value("${talenti.vacancy.search-timeout:" + DEFAULT_SEARCH_TIMEOUT + "}") Duration searchTimeout) {
 		this.jdbc = jdbc;
+		this.searchTimeout = searchTimeout;
 	}
 
-	/** Vacantes abiertas que cumplen el filtro, en la página pedida ({@code page} desde 1). */
+	/**
+	 * Vacantes abiertas que cumplen el filtro, en la página pedida ({@code page} desde 1).
+	 *
+	 * @throws QueryTimeoutException si una consulta supera el tiempo máximo; no lleva el texto buscado
+	 */
 	public SearchResult search(SearchCriteria criteria, int page, int size) {
+		try {
+			return doSearch(criteria, page, size);
+		}
+		catch (DataAccessException e) {
+			if (isQueryCanceled(e)) {
+				// Sin la causa: la consulta no debe volver a los registros con nada de lo que escribió el visitante.
+				throw new QueryTimeoutException("La búsqueda superó el tiempo máximo");
+			}
+			throw e;
+		}
+	}
+
+	private SearchResult doSearch(SearchCriteria criteria, int page, int size) {
+		limitSearchCost();
 		Map<String, Object> params = new LinkedHashMap<>();
 		String where = where(criteria, params);
 
@@ -77,6 +116,26 @@ public class VacancyReadRepository {
 					.params(pageParams).query(VacancyReadRepository::mapCard).list();
 		}
 		return new SearchResult(withSkills(cards), total);
+	}
+
+	/**
+	 * Apaga el JIT y fija el tiempo máximo de las consultas que siguen, solo dentro de la transacción actual
+	 * ({@code set_config(..., true)} es {@code SET LOCAL}): al terminar, la conexión vuelve al grupo sin cambios y la
+	 * instantánea {@code REPEATABLE_READ} del servicio no se altera. Los valores son del código, no del visitante.
+	 * Sin transacción abierta no tendría efecto; {@code VacancyQueryService} siempre abre una.
+	 */
+	private void limitSearchCost() {
+		jdbc.sql("SELECT set_config('jit', 'off', true), set_config('statement_timeout', :millis, true)")
+				.param("millis", Long.toString(Math.max(1, searchTimeout.toMillis()))).query().singleRow();
+	}
+
+	private static boolean isQueryCanceled(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause() == cause ? null : cause.getCause()) {
+			if (cause instanceof SQLException sql && QUERY_CANCELED.equals(sql.getSQLState())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Vacantes abiertas marcadas como destacadas, de la más reciente a la más antigua. */

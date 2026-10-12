@@ -71,6 +71,10 @@ logging:
 talenti:
   security:
     secure-cookies: true
+  vacancy:
+    # Tiempo máximo de cada consulta de la búsqueda de vacantes (spec 004). Al agotarse, la petición responde 503
+    # search-timeout en vez de ocupar la base de datos. Formato de duración de Spring (por ejemplo 5s).
+    search-timeout: 5s
   demo-data:
     # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
     # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.
