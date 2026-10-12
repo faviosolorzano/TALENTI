@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------- Etapa 1: compilar con Maven y JDK 21 ----------
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+FROM maven:3.9.12-eclipse-temurin-21-alpine AS build
 WORKDIR /build
 
 # Primero solo el pom: la capa de dependencias se reutiliza mientras el pom no cambie.
@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests \
     && cp target/talenti-backend-*.jar /build/app.jar
 
 # ---------- Etapa 2: ejecutar con JRE 21 y usuario sin privilegios ----------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21.0.12.1_1-jre-alpine
 RUN addgroup -S -g 10001 talenti && adduser -S -u 10001 -G talenti -H -s /sbin/nologin talenti
 WORKDIR /app
 COPY --from=build --chown=talenti:talenti /build/app.jar /app/app.jar
