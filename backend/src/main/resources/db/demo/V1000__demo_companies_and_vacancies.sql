@@ -9,13 +9,13 @@
 -- Empresas (8; 4 destacadas)
 -- ---------------------------------------------------------------------------
 INSERT INTO company (id, name, city, short_description, featured) VALUES
-    ('c0000000-0000-4000-8000-000000000001', 'Nexa Digital', 'Lima',
+    ('c0000000-0000-4000-8000-000000000001', 'Nodo Digital', 'Lima',
      'Desarrolla sitios web y tiendas en línea para negocios que empiezan a vender por internet.', true),
     ('c0000000-0000-4000-8000-000000000002', 'Andes Tech', 'Lima',
      'Construye servicios en la nube y sistemas internos para pequeñas y medianas empresas.', true),
     ('c0000000-0000-4000-8000-000000000003', 'Cóndor Datos', 'Lima',
      'Ordena y analiza datos para que otras empresas tomen mejores decisiones.', true),
-    ('c0000000-0000-4000-8000-000000000004', 'Tambo Cloud', 'Lima',
+    ('c0000000-0000-4000-8000-000000000004', 'Urpi Cloud', 'Lima',
      'Ofrece infraestructura y automatización en la nube para equipos de software.', true),
     ('c0000000-0000-4000-8000-000000000005', 'Punto Código', 'Arequipa',
      'Revisa y prueba software para encontrar errores antes de que lo usen los clientes.', false),

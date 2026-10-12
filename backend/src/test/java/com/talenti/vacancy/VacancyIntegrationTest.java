@@ -86,7 +86,7 @@ public abstract class VacancyIntegrationTest {
 		return ids;
 	}
 
-	/** Inserta una vacante abierta de Nexa Digital (presencial en Lima, salvo que se cambie) y devuelve su id. */
+	/** Inserta una vacante abierta de Nodo Digital (presencial en Lima, salvo que se cambie) y devuelve su id. */
 	protected UUID insertVacancy(String title, String summary, OffsetDateTime publishedAt, String status,
 			boolean featured) {
 		UUID id = UUID.randomUUID();

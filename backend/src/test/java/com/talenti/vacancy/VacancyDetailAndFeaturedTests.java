@@ -168,11 +168,11 @@ class VacancyDetailAndFeaturedTests extends VacancyIntegrationTest {
 		for (JsonNode item : companies.get("items")) {
 			names.add(item.get("name").asString());
 		}
-		assertThat(names).containsExactly("Tambo Cloud", "Nexa Digital", "Andes Tech", "Cóndor Datos");
+		assertThat(names).containsExactly("Urpi Cloud", "Nodo Digital", "Andes Tech", "Cóndor Datos");
 		JsonNode nexa = companies.get("items").get(1);
 		assertThat(nexa.propertyNames()).containsExactlyInAnyOrder("id", "name", "city", "shortDescription",
 				"openVacancies");
-		assertThat(nexa.get("openVacancies").asInt()).as("Nexa tiene 2 vacantes abiertas").isEqualTo(2);
+		assertThat(nexa.get("openVacancies").asInt()).as("Nodo tiene 2 vacantes abiertas").isEqualTo(2);
 		assertThat(companies.get("items").get(0).get("openVacancies").asInt()).isEqualTo(1);
 		assertThat(client().get("/api/v1/companies/featured?limit=2").json().get("items")).hasSize(2);
 		assertThat(client().get("/api/v1/companies/featured?limit=8").json().get("items")).hasSize(4);

@@ -30,10 +30,10 @@ class VacancySeedAndCatalogTests extends VacancyIntegrationTest {
 		assertThat(count("SELECT count(*) FROM vacancy WHERE status = 'OPEN'")).isEqualTo(12);
 		assertThat(count("SELECT count(*) FROM vacancy WHERE featured")).isEqualTo(4);
 		assertThat(jdbc.queryForList("SELECT name FROM company WHERE featured ORDER BY name", String.class))
-				.containsExactly("Andes Tech", "Cóndor Datos", "Nexa Digital", "Tambo Cloud");
+				.containsExactly("Andes Tech", "Cóndor Datos", "Nodo Digital", "Urpi Cloud");
 		assertThat(jdbc.queryForList("SELECT name FROM company ORDER BY name", String.class)).containsExactly(
-				"Andes Tech", "Cóndor Datos", "Misti Software", "Nexa Digital", "Punto Código", "Quipu Systems",
-				"Ruta Labs", "Tambo Cloud");
+				"Andes Tech", "Cóndor Datos", "Misti Software", "Nodo Digital", "Punto Código", "Quipu Systems",
+				"Ruta Labs", "Urpi Cloud");
 	}
 
 	@Test
