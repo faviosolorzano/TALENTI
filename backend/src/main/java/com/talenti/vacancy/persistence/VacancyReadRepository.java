@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -36,8 +37,11 @@ import com.talenti.vacancy.domain.VacancyStatus;
  * Consultas de solo lectura del módulo vacancy. Todo valor del visitante viaja como parámetro (nunca se une al
  * texto de la consulta) y el texto de la búsqueda no se escribe en ningún registro.
  *
- * <p>La búsqueda es {@code unaccent} + {@code ILIKE} por términos (spec 004, duda 3): sin relevancia ni
- * {@code tsvector}. {@code unaccent} la crea el administrador de la base en {@code db/init/01-init-roles.sh}.
+ * <p>La búsqueda (spec 004, duda 3 y enmienda 1) compara cada palabra útil, como expresión regular de palabra
+ * completa o inicio de palabra, con {@code lower(unaccent(campo))}, y las de 4 letras o más también por parecido
+ * ({@code similarity()} de pg_trgm sobre palabras enteras); una vacante coincide si aparece al menos una y el orden
+ * por parecido suma puntos por campo. Sin {@code tsvector}. {@code unaccent} y {@code pg_trgm} las crea el
+ * administrador de la base en {@code db/init/01-init-roles.sh}.
  */
 @Repository
 public class VacancyReadRepository {
@@ -69,7 +73,7 @@ public class VacancyReadRepository {
 			pageParams.put("limit", size);
 			pageParams.put("offset", (long) (page - 1) * size);
 			cards = jdbc.sql("SELECT " + CARD_COLUMNS + " FROM vacancy v JOIN company c ON c.id = v.company_id WHERE "
-					+ where + " ORDER BY " + orderBy(criteria.sort()) + " LIMIT :limit OFFSET :offset")
+					+ where + " ORDER BY " + orderBy(criteria) + " LIMIT :limit OFFSET :offset")
 					.params(pageParams).query(VacancyReadRepository::mapCard).list();
 		}
 		return new SearchResult(withSkills(cards), total);
@@ -177,11 +181,21 @@ public class VacancyReadRepository {
 		List<String> conditions = new ArrayList<>();
 		conditions.add("v.status = 'OPEN'");
 
-		int index = 0;
-		for (String term : criteria.terms()) {
-			String name = "term" + index++;
-			params.put(name, SearchText.containsPattern(term));
-			conditions.add(termCondition(":" + name));
+		// Una vacante coincide si al menos una palabra útil aparece, exacta o parecida, en algún campo (004-27, 004-31).
+		List<String> termMatches = new ArrayList<>();
+		for (int i = 0; i < criteria.terms().size(); i++) {
+			String term = criteria.terms().get(i);
+			params.put(termParameter(i), SearchText.matchPattern(term));
+			String match = anyFieldMatches(":" + termParameter(i));
+			Optional<String> fuzzy = SearchText.fuzzyWord(term);
+			if (fuzzy.isPresent()) {
+				params.put(fuzzyParameter(i), fuzzy.get());
+				match = "(" + match + " OR " + anyFieldSimilar(":" + fuzzyParameter(i)) + ")";
+			}
+			termMatches.add(match);
+		}
+		if (!termMatches.isEmpty()) {
+			conditions.add("(" + String.join(" OR ", termMatches) + ")");
 		}
 
 		if (!criteria.modalities().isEmpty()) {
@@ -208,23 +222,127 @@ public class VacancyReadRepository {
 		return String.join(" AND ", conditions);
 	}
 
-	/** Un término debe aparecer en título, resumen, empresa o en el nombre o un sinónimo de una habilidad pedida. */
-	private static String termCondition(String parameter) {
-		String pattern = "unaccent(" + parameter + ")";
-		return "(unaccent(v.title) ILIKE " + pattern
-				+ " OR unaccent(v.summary) ILIKE " + pattern
-				+ " OR unaccent(c.name) ILIKE " + pattern
-				+ " OR EXISTS (SELECT 1 FROM vacancy_requirement tr JOIN skill ts ON ts.id = tr.skill_id"
-				+ " WHERE tr.vacancy_id = v.id AND (unaccent(ts.name) ILIKE " + pattern
-				+ " OR EXISTS (SELECT 1 FROM unnest(ts.aliases) AS alias(value) WHERE unaccent(alias.value) ILIKE "
-				+ pattern + "))))";
+	private static String termParameter(int index) {
+		return "term" + index;
 	}
 
-	/** Siempre termina en {@code v.id}: un orden total, para que las páginas no repitan ni omitan vacantes. */
-	private static String orderBy(SearchSort sort) {
-		return switch (sort) {
+	private static String fuzzyParameter(int index) {
+		return "fuzzy" + index;
+	}
+
+	// -- Búsqueda por palabras (004-27, 004-28, 004-31, 004-32) ------------------------------------------------
+	// Coincidencia exacta: la palabra llega como una expresión regular ya escapada (SearchText.matchPattern) y se
+	// compara con lower(unaccent(campo)) usando el operador ~ de PostgreSQL.
+	// Coincidencia por parecido: la palabra normalizada se compara con cada palabra entera del campo mediante
+	// similarity() de pg_trgm (no word_similarity: "java" dentro de "javascript" daría 1,0).
+	// Los fragmentos se reutilizan tanto para filtrar (anyFieldMatches, anyFieldSimilar) como para puntuar
+	// (termScore, similarityScore), así que el filtro y el orden siempre coinciden.
+
+	private static String fieldMatches(String column, String parameter) {
+		return "lower(unaccent(" + column + ")) ~ " + parameter;
+	}
+
+	/**
+	 * Alguna palabra entera de la columna se parece a la buscada. La constante del umbral es del código, no del
+	 * visitante, por eso va en el texto de la consulta.
+	 */
+	private static String fieldSimilar(String column, String parameter) {
+		return "EXISTS (SELECT 1 FROM regexp_split_to_table(lower(unaccent(" + column + ")), '[^[:alnum:]]+') "
+				+ "AS fw(word) WHERE fw.word <> '' AND similarity(fw.word, " + parameter + ") >= "
+				+ "CAST(" + SearchText.SIMILARITY_THRESHOLD + " AS real))";
+	}
+
+	private static String titleMatches(String parameter) {
+		return fieldMatches("v.title", parameter);
+	}
+
+	private static String summaryMatches(String parameter) {
+		return fieldMatches("v.summary", parameter);
+	}
+
+	private static String descriptionMatches(String parameter) {
+		return fieldMatches("v.description", parameter);
+	}
+
+	private static String companyMatches(String parameter) {
+		return fieldMatches("c.name", parameter);
+	}
+
+	/** Alguna habilidad pedida (obligatoria o deseable) cuyo nombre o sinónimo cumple la condición. */
+	private static String skillMatches(BiFunction<String, String, String> field, String parameter) {
+		return "EXISTS (SELECT 1 FROM vacancy_requirement tr JOIN skill ts ON ts.id = tr.skill_id"
+				+ " WHERE tr.vacancy_id = v.id AND (" + field.apply("ts.name", parameter)
+				+ " OR EXISTS (SELECT 1 FROM unnest(ts.aliases) AS alias(value) WHERE "
+				+ field.apply("alias.value", parameter) + ")))";
+	}
+
+	private static String skillMatches(String parameter) {
+		return skillMatches(VacancyReadRepository::fieldMatches, parameter);
+	}
+
+	private static String skillSimilar(String parameter) {
+		return skillMatches(VacancyReadRepository::fieldSimilar, parameter);
+	}
+
+	/**
+	 * La palabra aparece, tal cual, en título, resumen, descripción, empresa o en el nombre o un sinónimo de una
+	 * habilidad pedida.
+	 */
+	private static String anyFieldMatches(String parameter) {
+		return "(" + titleMatches(parameter) + " OR " + summaryMatches(parameter) + " OR "
+				+ descriptionMatches(parameter) + " OR " + companyMatches(parameter) + " OR " + skillMatches(parameter)
+				+ ")";
+	}
+
+	/** Una palabra parecida aparece en título, resumen, empresa o habilidades. La descripción no: es larga y ruidosa. */
+	private static String anyFieldSimilar(String parameter) {
+		return "(" + fieldSimilar("v.title", parameter) + " OR " + fieldSimilar("v.summary", parameter) + " OR "
+				+ fieldSimilar("c.name", parameter) + " OR " + skillSimilar(parameter) + ")";
+	}
+
+	/**
+	 * Puntos de una palabra por coincidencia exacta (004-28, 004-32): el mayor entre habilidad pedida o título (3),
+	 * empresa (2) y resumen o descripción (1); 0 si no aparece. No se suman los campos de una misma palabra. Una
+	 * habilidad obligatoria no pesa más que una deseable, y {@code featured} no interviene (principio 3).
+	 */
+	private static String termScore(String parameter) {
+		return "(CASE WHEN " + skillMatches(parameter) + " OR " + titleMatches(parameter) + " THEN 3 WHEN "
+				+ companyMatches(parameter) + " THEN 2 WHEN " + summaryMatches(parameter) + " OR "
+				+ descriptionMatches(parameter) + " THEN 1 ELSE 0 END)";
+	}
+
+	/** Puntos de una palabra por parecido (004-31), con los mismos pesos por campo que {@link #termScore}. */
+	private static String similarityScore(String parameter) {
+		return "(CASE WHEN " + skillSimilar(parameter) + " OR " + fieldSimilar("v.title", parameter) + " THEN 3 WHEN "
+				+ fieldSimilar("c.name", parameter) + " THEN 2 WHEN " + fieldSimilar("v.summary", parameter)
+				+ " THEN 1 ELSE 0 END)";
+	}
+
+	/**
+	 * Siempre termina en {@code v.id}: un orden total, para que las páginas no repitan ni omitan vacantes. Con
+	 * {@code RELEVANCE} se ordena primero por los puntos de coincidencia exacta de todas las palabras y, solo para
+	 * desempatar, por los puntos de parecido: un parecido nunca desplaza a una coincidencia exacta (004-31). Los
+	 * parámetros {@code termN} y {@code fuzzyN} son los mismos del filtro.
+	 */
+	private static String orderBy(SearchCriteria criteria) {
+		return switch (criteria.sort()) {
 			case RECENT -> "v.published_at DESC, v.id";
 			case COMPANY -> "lower(unaccent(c.name)), c.name, v.published_at DESC, v.id";
+			case RELEVANCE -> {
+				List<String> exact = new ArrayList<>();
+				List<String> similar = new ArrayList<>();
+				for (int i = 0; i < criteria.terms().size(); i++) {
+					exact.add(termScore(":" + termParameter(i)));
+					if (SearchText.fuzzyWord(criteria.terms().get(i)).isPresent()) {
+						similar.add(similarityScore(":" + fuzzyParameter(i)));
+					}
+				}
+				String order = "(" + String.join(" + ", exact) + ") DESC";
+				if (!similar.isEmpty()) {
+					order += ", (" + String.join(" + ", similar) + ") DESC";
+				}
+				yield order + ", v.published_at DESC, v.id";
+			}
 		};
 	}
 
