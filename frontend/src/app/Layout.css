@@ -1,0 +1,113 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Skip link: hidden until it receives keyboard focus */
+.layout__skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-skip-link);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+  transform: translateY(-200%);
+  transition: transform var(--duration-fast) var(--easing-standard);
+}
+
+.layout__skip-link:focus {
+  transform: translateY(0);
+  outline: var(--focus-ring-width) solid var(--color-focus-inverse);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.layout__header {
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-bg);
+}
+
+/* Phone: logo on the first row, navigation below it. */
+.layout__header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-6);
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+  padding: var(--space-2) var(--page-gutter);
+  min-height: var(--header-min-height);
+}
+
+.layout__brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  border-radius: var(--radius-sm);
+}
+
+.layout__nav {
+  flex-basis: 100%;
+}
+
+.layout__nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layout__nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: background-color var(--duration-fast) var(--easing-standard);
+}
+
+.layout__nav-link:hover {
+  background: var(--color-brand-blue-soft);
+  color: var(--color-text);
+}
+
+.layout__nav-link[aria-current='page'] {
+  background: var(--color-brand-blue-soft);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.layout__main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+  padding: var(--space-8) var(--page-gutter) var(--space-16);
+}
+
+/* Tablet and up: logo and navigation share one row. */
+@media (min-width: 48rem) {
+  .layout__nav {
+    flex-basis: auto;
+  }
+
+  .layout__main {
+    padding-top: var(--space-12);
+  }
+}
+
+@media (min-width: 80rem) {
+  .layout__main {
+    padding-top: var(--space-16);
+  }
+}

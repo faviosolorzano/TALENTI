@@ -2,13 +2,13 @@
 
 Plataforma web con IA que conecta a estudiantes de programación de institutos del Perú con prácticas preprofesionales. Proyecto de Fin de Carrera de TECSUP.
 
-**Estado:** en construcción (Fase 0). Todos los datos de prueba son inventados.
+**Estado:** en construcción (Fase 0 lista: el sistema arranca; las pantallas aún dicen "En construcción"). Todos los datos de prueba son inventados.
 
 ## Estructura
 ```
-backend/              API en Spring Boot (Java 21) con PostgreSQL
+backend/              API en Spring Boot 4.1 (Java 21) con PostgreSQL 18 y pgvector
 frontend/             Aplicación web en React con TypeScript
-docker-compose.yml    Levanta todo con un solo comando (llega con la Fase 0)
+docker-compose.yml    Levanta todo con un solo comando
 .env.example          Variables de entorno de ejemplo (sin valores reales)
 ```
 
@@ -16,20 +16,28 @@ docker-compose.yml    Levanta todo con un solo comando (llega con la Fase 0)
 Necesitas **Docker Desktop** encendido y **Git**.
 
 1. Clona el repositorio y entra a la carpeta.
-2. Copia `.env.example` como `.env`. Los valores de ejemplo ya sirven para probar en tu computadora.
-3. Levanta todo:
+2. Copia `.env.example` como `.env`. Los valores de ejemplo sirven para probar en tu computadora.
    ```bash
-   docker compose up
+   cp .env.example .env
+   ```
+3. Levanta todo (la primera vez descarga imágenes y puede tardar varios minutos):
+   ```bash
+   docker compose up --build
    ```
 4. Abre `http://localhost:3000` en el navegador.
 
-> Los pasos 3 y 4 funcionarán cuando exista el `docker-compose.yml`. Esta guía se actualiza en ese momento.
+Para apagar todo: `docker compose down`. Para borrar también los datos de la base de prueba: `docker compose down -v`.
 
 La IA y la voz funcionan con adaptadores simulados: no necesitas ninguna cuenta ni clave para probar.
 
+## Pruebas
+- Backend (necesita Docker, usa PostgreSQL real en un contenedor): `cd backend && ./mvnw test`
+- Frontend: `cd frontend && npm install && npm run test`
+
 ## Si algo falla
 - Comprueba que Docker Desktop esté abierto y diga que el motor está funcionando.
-- Revisa que no haya otro programa usando los puertos `3000` y `8080`.
+- Revisa que no haya otro programa usando el puerto `3000`.
+- Si `docker compose up` dice que falta una variable, no copiaste `.env.example` como `.env`.
 - Cuéntale a Favio qué viste en pantalla y qué comando ejecutaste.
 
 ## Reglas

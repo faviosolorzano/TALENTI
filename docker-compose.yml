@@ -1,0 +1,85 @@
+# Talenti: base de datos, backend y frontend con un solo comando.
+#   1. Copia .env.example como .env y completa los valores (el .env no se sube al repositorio).
+#   2. docker compose up --build
+# Este archivo no contiene contraseñas: todo viene de .env.
+
+name: talenti
+
+services:
+  db:
+    # Misma versión de pgvector que usan las pruebas (backend/src/test/.../TestcontainersConfiguration.java).
+    image: pgvector/pgvector:0.8.2-pg18-trixie
+    restart: unless-stopped
+    environment:
+      # Superusuario de la imagen: solo crea la base y ejecuta db/init/. El backend no lo usa.
+      POSTGRES_DB: ${POSTGRES_DB:?copia .env.example como .env}
+      POSTGRES_USER: ${POSTGRES_USER:?copia .env.example como .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copia .env.example como .env}
+      # Rol de la aplicación, sin superusuario; lo crea db/init/01-init-roles.sh.
+      APP_DB_USER: ${APP_DB_USER:?copia .env.example como .env}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?copia .env.example como .env}
+    volumes:
+      # PostgreSQL 18 guarda sus datos bajo /var/lib/postgresql (ver notas de la imagen oficial).
+      - pgdata:/var/lib/postgresql
+      # Los scripts se ejecutan solo al crear el volumen vacío.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    # Sin "ports": la base de datos solo es visible para los demás servicios de la red de Compose.
+    # Sin cap_drop: PostgreSQL necesita capacidades al arrancar (cambio de usuario y de dueño).
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?copia .env.example como .env}
+      # Rol de la aplicación (sin superusuario), no el administrador de la imagen.
+      SPRING_DATASOURCE_USERNAME: ${APP_DB_USER:?copia .env.example como .env}
+      SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD:?copia .env.example como .env}
+    # Sin "ports": el navegador llega al backend solo a través del proxy de nginx (frontend).
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    # nginx sin privilegios escucha en el 8080 del contenedor.
+    ports:
+      - "${FRONTEND_PORT:?copia .env.example como .env}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  pgdata:

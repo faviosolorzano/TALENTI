@@ -14,7 +14,7 @@ Formato: `tipo(ámbito): resumen en presente`. Tipos: `feat`, `fix`, `docs`, `te
 - `feat(identidad): registrar estudiante con consentimiento`
 - `test(compatibilidad): cubrir el tope por requisito obligatorio ausente`
 
-Un commit hace una sola cosa. Los hechos con ayuda de IA terminan con la línea `Co-Authored-By`.
+Un commit hace una sola cosa.
 
 ## Pull Requests
 Cada rama se integra a `main` con un Pull Request. Se describe qué cambia, cómo probarlo y que las pruebas pasan. Se integra con "squash".

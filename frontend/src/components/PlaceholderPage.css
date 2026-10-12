@@ -1,0 +1,28 @@
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 40rem;
+}
+
+.placeholder__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.placeholder__status {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-action);
+}
+
+.placeholder__text {
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 48rem) {
+  .placeholder__title {
+    font-size: var(--font-size-4xl);
+  }
+}
