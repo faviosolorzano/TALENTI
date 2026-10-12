@@ -10,18 +10,15 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.talenti.identity.config.IdentityProperties;
 import com.talenti.shared.web.TooManyRequestsException;
 import com.talenti.support.MutableClock;
 
 /** 001-11: límite de 10 solicitudes de ingreso por minuto y por origen, con reloj simulado. */
-class LoginRateLimiterTests {
+class RateLimiterTests {
 
 	private final MutableClock clock = new MutableClock(Instant.parse("2026-10-11T12:00:00Z"));
 
-	private final LoginRateLimiter limiter = new LoginRateLimiter(new IdentityProperties(
-			new IdentityProperties.Password(8, 64, 4), new IdentityProperties.Lockout(5, Duration.ofMinutes(15)),
-			new IdentityProperties.LoginRateLimit(10, Duration.ofMinutes(1))), clock);
+	private final RateLimiter limiter = new RateLimiter(10, Duration.ofMinutes(1), clock);
 
 	@Test
 	@DisplayName("001-11: la solicitud 11 del mismo origen en un minuto da 429 con Retry-After")

@@ -141,6 +141,28 @@ class LegalIntegrationTests extends IdentityIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("001-30: aceptar la versión vigente ya aceptada es idempotente: 204 sin insertar ni auditar de nuevo")
+	void t001_30_acceptingAnAlreadyAcceptedVersionIsIdempotent() {
+		RegisteredStudent student = registerStudent();
+		int consents = count("SELECT count(*) FROM consent_record WHERE user_id = ?", student.id());
+		int audits = count("SELECT count(*) FROM audit_event WHERE actor_user_id = ?", student.id());
+		assertThat(consents).isEqualTo(2);
+
+		for (int i = 0; i < 2; i++) {
+			Response response = student.api().post(ACCEPT, Map.of("legalAccepted", true, "legalVersion", "v1"));
+			assertThat(response.status()).isEqualTo(204);
+		}
+
+		assertThat(count("SELECT count(*) FROM consent_record WHERE user_id = ?", student.id())).isEqualTo(consents);
+		assertThat(count("SELECT count(*) FROM audit_event WHERE actor_user_id = ?", student.id())).isEqualTo(audits);
+		// Con la casilla sin marcar o con una versión vencida sigue rechazando, aunque ya esté aceptada.
+		assertThat(student.api().post(ACCEPT, Map.of("legalAccepted", false, "legalVersion", "v1")).status())
+				.isEqualTo(422);
+		assertThat(student.api().post(ACCEPT, Map.of("legalAccepted", true, "legalVersion", "v0")).status())
+				.isEqualTo(409);
+	}
+
+	@Test
 	@DisplayName("001-30: sin aceptar responde 422; con una versión vencida, 409; sin sesión, 401; sin token CSRF, 403")
 	void t001_30_rejectionsOfAccept() {
 		RegisteredStudent student = registerStudent();

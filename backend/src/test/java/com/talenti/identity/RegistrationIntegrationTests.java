@@ -194,6 +194,56 @@ class RegistrationIntegrationTests extends IdentityIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("001-05: los campos con un tamaño desmesurado se rechazan con 422 (too-long) antes de procesarlos")
+	void t001_05_oversizedFieldsAreRejected() {
+		int usersBefore = count("SELECT count(*) FROM app_user");
+		Map<String, Object> longPassword = registerBody(uniqueEmail(), "A1" + "x".repeat(300));
+		Map<String, Object> longVersion = registerBody(uniqueEmail(), validPassword());
+		longVersion.put("legalVersion", "v".repeat(21));
+		Map<String, Object> longEmail = registerBody("a".repeat(300) + "@ejemplo.test", validPassword());
+
+		assertTooLong(client().post(REGISTER, longPassword), "password");
+		assertTooLong(client().post(REGISTER, longVersion), "legalVersion");
+		Response email = client().post(REGISTER, longEmail);
+		assertTooLong(email, "email");
+		assertThat(email.json().get("errors").get(0).get("message").asString()).contains("254");
+		assertTooLong(client().post("/api/v1/auth/login", loginBody("a".repeat(300) + "@ejemplo.test", "Aa1")), "email");
+		assertTooLong(client().post("/api/v1/auth/login", loginBody(uniqueEmail(), "A1" + "x".repeat(300))), "password");
+		assertThat(count("SELECT count(*) FROM app_user")).isEqualTo(usersBefore);
+	}
+
+	private static void assertTooLong(Response response, String field) {
+		assertThat(response.status()).as(field).isEqualTo(422);
+		JsonNode error = response.json().get("errors").get(0);
+		assertThat(error.get("field").asString()).isEqualTo(field);
+		assertThat(error.get("rule").asString()).isEqualTo("too-long");
+	}
+
+	@Test
+	@DisplayName("001-11b: más de 10 solicitudes de registro por minuto desde un mismo origen responden 429 con Retry-After; otro origen y el ingreso no se ven afectados")
+	void t001_11b_moreThanTenRegisterRequestsPerMinuteAreLimited() {
+		ApiClient api = client();
+		Map<String, Object> invalid = registerBody("no-es-un-correo", validPassword());
+		for (int i = 1; i <= 10; i++) {
+			assertThat(api.post(REGISTER, invalid).status()).as("solicitud %d", i).isEqualTo(422);
+		}
+
+		Response limited = api.post(REGISTER, registerBody(uniqueEmail(), validPassword()));
+
+		assertThat(limited.status()).isEqualTo(429);
+		assertThat(limited.json().get("code").asString()).isEqualTo("too-many-requests");
+		assertThat(limited.header("Content-Type")).contains("application/problem+json");
+		assertThat(Long.parseLong(limited.header("Retry-After"))).isBetween(1L, 61L);
+		// No se creó la cuenta de la solicitud limitada.
+		// Otro origen no se ve afectado, y el ingreso del mismo origen tiene su propio cubo.
+		assertThat(client().post(REGISTER, registerBody(uniqueEmail(), validPassword())).status()).isEqualTo(201);
+		assertThat(api.post("/api/v1/auth/login", loginBody(uniqueEmail(), validPassword())).status()).isEqualTo(401);
+		// Pasada la ventana, el origen vuelve a poder registrar.
+		clock.advance(Duration.ofSeconds(61));
+		assertThat(api.post(REGISTER, registerBody(uniqueEmail(), validPassword())).status()).isEqualTo(201);
+	}
+
+	@Test
 	@DisplayName("001-05: el correo se recorta y se pasa a minúsculas antes de guardarse")
 	void t001_05_emailIsTrimmedAndLowercased() {
 		String email = uniqueEmail();
