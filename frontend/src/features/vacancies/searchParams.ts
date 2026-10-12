@@ -13,7 +13,11 @@ export interface SearchState {
   /** One city, or '' for any. */
   location: string
   skill: string[]
-  sort: VacancySort
+  /**
+   * The order the person chose, or `null` when they have not: with text the server then ranks by
+   * relevance, without text by recency (spec 004-29/30). `relevance` only exists with text.
+   */
+  sort: VacancySort | null
   page: number
 }
 
@@ -28,7 +32,7 @@ export const EMPTY_SEARCH: SearchState = {
   modality: [],
   location: '',
   skill: [],
-  sort: 'recent',
+  sort: null,
   page: 1,
 }
 
@@ -38,7 +42,14 @@ const MODALITY_TO_URL: Record<Modality, string> = {
   ONSITE: 'presencial',
 }
 const MODALITY_ORDER: readonly Modality[] = ['REMOTE', 'HYBRID', 'ONSITE']
-const SORT_TO_URL: Record<VacancySort, string> = { recent: 'recientes', company: 'empresa' }
+const SORT_TO_URL: Record<VacancySort, string> = {
+  relevance: 'relevancia',
+  recent: 'recientes',
+  company: 'empresa',
+}
+const URL_TO_SORT = new Map<string, VacancySort>(
+  Object.entries(SORT_TO_URL).map(([sort, url]) => [url, sort as VacancySort]),
+)
 
 /** Trims and collapses spaces, like the backend does. */
 export function cleanText(text: string): string {
@@ -64,15 +75,18 @@ export function parseSearchParams(params: URLSearchParams): SearchState {
     .filter((value) => SKILL_SLUG.test(value))
     .slice(0, MAX_FILTER_VALUES)
 
-  const sortValue = params.get('orden')?.trim()
-  const sort: VacancySort = sortValue === SORT_TO_URL.company ? 'company' : 'recent'
+  const sortValue = URL_TO_SORT.get(params.get('orden')?.trim() ?? '') ?? null
 
   const pageText = params.get('pagina')?.trim() ?? ''
   const pageNumber = /^\d{1,6}$/.test(pageText) ? Number(pageText) : 1
   const page = pageNumber >= 1 && pageNumber <= MAX_PAGE ? pageNumber : 1
 
+  const validQ = length(q) > MAX_QUERY_LENGTH || CONTROL_CHARACTERS.test(q) ? '' : q
+  // "Más relevantes" does not exist without text: `orden=relevancia` is ignored and corrected.
+  const sort = sortValue === 'relevance' && !validQ ? null : sortValue
+
   return {
-    q: length(q) > MAX_QUERY_LENGTH || CONTROL_CHARACTERS.test(q) ? '' : q,
+    q: validQ,
     modality,
     location:
       length(location) > MAX_LOCATION_LENGTH || CONTROL_CHARACTERS.test(location) ? '' : location,
@@ -80,6 +94,22 @@ export function parseSearchParams(params: URLSearchParams): SearchState {
     sort,
     page,
   }
+}
+
+/**
+ * The order that goes in the address and to the API, or `null` to leave it to the server.
+ * Without text the default is recency, so `recent` is left out and `relevance` is meaningless;
+ * with text the default is relevance, so a chosen `recent` must travel.
+ */
+function writableSort(state: SearchState): VacancySort | null {
+  if (!state.sort) return null
+  if (!state.q) return state.sort === 'company' ? 'company' : null
+  return state.sort
+}
+
+/** The order the selector shows: the chosen one, or the server's default for this search. */
+export function effectiveSort(state: SearchState): VacancySort {
+  return writableSort(state) ?? (state.q ? 'relevance' : 'recent')
 }
 
 /** Canonical query string ("?a=b" or ""). Defaults and empty values are left out. */
@@ -91,7 +121,8 @@ export function serializeSearch(state: SearchState): string {
   }
   if (state.location) params.set('ubicacion', state.location)
   for (const value of state.skill) params.append('tecnologia', value)
-  if (state.sort !== 'recent') params.set('orden', SORT_TO_URL[state.sort])
+  const sort = writableSort(state)
+  if (sort) params.set('orden', SORT_TO_URL[sort])
   if (state.page > 1) params.set('pagina', String(state.page))
   const text = params.toString()
   return text ? `?${text}` : ''
@@ -112,6 +143,16 @@ export function hasActiveFilters(state: SearchState): boolean {
   return Boolean(state.q || state.location) || panelFilterCount(state) > 0
 }
 
+/** Same text and sort, no place, modality or technology, first page. */
+export function clearNarrowing(state: SearchState): SearchState {
+  return { ...state, modality: [], location: '', skill: [], page: 1 }
+}
+
+/** True when a place, a modality or a technology narrows the list (the text does not count). */
+export function hasNarrowingFilters(state: SearchState): boolean {
+  return Boolean(state.location) || panelFilterCount(state) > 0
+}
+
 /** Same sort, no filters, first page. */
 export function clearFilters(state: SearchState): SearchState {
   return { ...EMPTY_SEARCH, sort: state.sort }
@@ -123,7 +164,7 @@ export function toApiQuery(state: SearchState): VacancyQuery {
     modality: state.modality,
     location: state.location ? [state.location] : [],
     skill: state.skill,
-    sort: state.sort,
+    sort: writableSort(state) ?? undefined,
     page: state.page,
   }
 }
