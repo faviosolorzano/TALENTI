@@ -104,6 +104,28 @@ public final class ApiClient {
 		return send("POST", path, body, true);
 	}
 
+	/** GET con cabeceras propias, por ejemplo {@code If-None-Match}. */
+	public Response get(String path, Map<String, String> headers) {
+		return send("GET", path, null, null, headers);
+	}
+
+	/** PUT con el token CSRF que el frontend leería de la cookie (lo pide primero si aún no lo tiene). */
+	public Response put(String path, Object body) {
+		return withCsrf("PUT", path, body);
+	}
+
+	/** DELETE con el token CSRF que el frontend leería de la cookie (lo pide primero si aún no lo tiene). */
+	public Response delete(String path) {
+		return withCsrf("DELETE", path, null);
+	}
+
+	private Response withCsrf(String method, String path, Object body) {
+		if (cookies.get("XSRF-TOKEN") == null) {
+			get("/api/v1/auth/csrf");
+		}
+		return send(method, path, body, cookies.get("XSRF-TOKEN"), Map.of());
+	}
+
 	public Response postWithoutCsrf(String path, Object body) {
 		return send("POST", path, body, false);
 	}
@@ -114,11 +136,16 @@ public final class ApiClient {
 	}
 
 	private Response send(String method, String path, Object body, boolean withCsrf) {
-		return send(method, path, body, withCsrf ? cookies.get("XSRF-TOKEN") : null);
+		return send(method, path, body, withCsrf ? cookies.get("XSRF-TOKEN") : null, Map.of());
 	}
 
 	private Response send(String method, String path, Object body, String csrfToken) {
+		return send(method, path, body, csrfToken, Map.of());
+	}
+
+	private Response send(String method, String path, Object body, String csrfToken, Map<String, String> extra) {
 		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base + path)).header("X-Real-IP", origin);
+		extra.forEach(request::header);
 		if (!cookies.isEmpty()) {
 			request.header("Cookie", cookies.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue())
 					.collect(Collectors.joining("; ")));
@@ -133,8 +160,11 @@ public final class ApiClient {
 		else if ("POST".equals(method)) {
 			request.POST(HttpRequest.BodyPublishers.noBody());
 		}
-		else {
+		else if ("GET".equals(method)) {
 			request.GET();
+		}
+		else {
+			request.method(method, HttpRequest.BodyPublishers.noBody());
 		}
 		try {
 			HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());

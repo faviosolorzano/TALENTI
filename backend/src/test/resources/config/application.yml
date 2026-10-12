@@ -3,6 +3,10 @@ talenti:
   identity:
     password:
       bcrypt-cost: 4           # el mínimo de BCrypt: pruebas rápidas
+  demo-data:
+    # Las pruebas no dependen de la variable TALENTI_DEMO_DATA del equipo: parten sin datos de ejemplo y las
+    # que los necesitan los piden con properties = "talenti.demo-data.enabled=true".
+    enabled: false
 
 ---
 # Las pruebas hablan HTTP sin TLS, así que las cookies no llevan Secure, salvo en el perfil prod,
