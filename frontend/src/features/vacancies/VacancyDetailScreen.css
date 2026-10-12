@@ -54,6 +54,20 @@
   font-size: var(--font-size-ui);
 }
 
+.vacancy-detail__profile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.vacancy-detail__profile-note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}
+
 .vacancy-detail__title {
   margin-top: var(--space-5);
   overflow-wrap: anywhere;

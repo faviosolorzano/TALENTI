@@ -162,6 +162,8 @@ export const es = {
   },
   vacancyDetail: {
     back: 'Volver a los resultados',
+    companyProfile: 'Ver perfil de la empresa',
+    companyProfileSoon: 'Próximamente',
     about: 'Sobre la vacante',
     company: 'Sobre la empresa',
     requirements: 'Requisitos',
