@@ -1,0 +1,16 @@
+# Valores solo para las pruebas (se suman a src/main/resources/application.yml).
+talenti:
+  identity:
+    password:
+      bcrypt-cost: 4           # el mínimo de BCrypt: pruebas rápidas
+
+---
+# Las pruebas hablan HTTP sin TLS, así que las cookies no llevan Secure, salvo en el perfil prod,
+# que las exige (las pruebas de ese perfil comprueban el atributo Secure).
+spring:
+  config:
+    activate:
+      on-profile: "!prod"
+talenti:
+  security:
+    secure-cookies: false
