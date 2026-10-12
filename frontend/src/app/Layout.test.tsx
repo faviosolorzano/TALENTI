@@ -61,4 +61,36 @@ describe('Layout', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: es.pages.dashboard.title })).toBeVisible()
   })
+
+  it('updates the document title on every route change, not only on the placeholder pages', async () => {
+    renderApp('/')
+    const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
+
+    const steps = [
+      [es.nav.register, es.pages.register.title],
+      [es.nav.login, es.pages.login.title],
+      [es.nav.dashboard, es.pages.dashboard.title],
+      [es.nav.home, es.pages.home.title],
+    ] as const
+
+    for (const [linkName, title] of steps) {
+      await userEvent.click(within(nav).getByRole('link', { name: linkName }))
+      expect(document.title).toBe(`${title} · ${es.app.name}`)
+    }
+  })
+
+  it('moves focus to the main content when the route changes', async () => {
+    renderApp('/')
+    const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
+
+    await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
+
+    expect(screen.getByRole('main')).toHaveFocus()
+  })
+
+  it('does not steal focus on the first load of the page', () => {
+    renderApp('/panel')
+
+    expect(screen.getByRole('main')).not.toHaveFocus()
+  })
 })

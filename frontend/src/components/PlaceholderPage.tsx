@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { es } from '../i18n/es'
 import './PlaceholderPage.css'
 
@@ -12,10 +11,6 @@ export function PlaceholderPage({
   title,
   description = es.placeholder.description,
 }: PlaceholderPageProps) {
-  useEffect(() => {
-    document.title = `${title} · ${es.app.name}`
-  }, [title])
-
   return (
     <section className="placeholder">
       <h1 className="placeholder__title">{title}</h1>

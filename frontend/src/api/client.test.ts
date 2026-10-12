@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { es } from '../i18n/es'
 import { ApiError, apiFetch, CSRF_HEADER_NAME, readCookie } from './client'
 
 function jsonResponse(body: unknown, status = 200) {
@@ -22,7 +23,7 @@ describe('API client', () => {
     document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   })
 
-  it('calls /api/v1 with the session cookie included', async () => {
+  it('calls /api/v1 with the session cookie sent only to the same origin', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true }))
 
     const result = await apiFetch<{ ok: boolean }>('/health')
@@ -30,7 +31,7 @@ describe('API client', () => {
     expect(result).toEqual({ ok: true })
     const [url, init] = fetchMock.mock.calls[0]!
     expect(url).toBe('/api/v1/health')
-    expect(init?.credentials).toBe('include')
+    expect(init?.credentials).toBe('same-origin')
   })
 
   it('does not send the CSRF token on read requests', async () => {
@@ -76,5 +77,37 @@ describe('API client', () => {
     expect(readCookie('a', 'a=1; b=dos%20tres')).toBe('1')
     expect(readCookie('b', 'a=1; b=dos%20tres')).toBe('dos tres')
     expect(readCookie('c', 'a=1; b=2')).toBeNull()
+  })
+
+  it('does not throw on a badly encoded cookie: it returns null', () => {
+    expect(() => readCookie('a', 'a=%E0%A4%A')).not.toThrow()
+    expect(readCookie('a', 'a=%E0%A4%A')).toBeNull()
+    expect(readCookie('b', 'a=%E0%A4%A; b=ok')).toBe('ok')
+  })
+
+  it('translates a rejected fetch into the Spanish network error text', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const failure = await apiFetch('/health').catch((error: unknown) => error)
+
+    expect(failure).toBeInstanceOf(ApiError)
+    expect(failure).toMatchObject({ status: 0, message: es.errors.network })
+  })
+
+  it('lets a cancelled request through as an abort, not as a network error', async () => {
+    fetchMock.mockRejectedValue(new DOMException('Aborted', 'AbortError'))
+
+    const failure = await apiFetch('/health').catch((error: unknown) => error)
+
+    expect(failure).not.toBeInstanceOf(ApiError)
+    expect(failure).toMatchObject({ name: 'AbortError' })
+  })
+
+  it('uses the generic Spanish text as the message of an HTTP error', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ title: 'Forbidden' }, 500))
+
+    const failure = await apiFetch('/health').catch((error: unknown) => error)
+
+    expect(failure).toMatchObject({ status: 500, message: es.errors.generic })
   })
 })

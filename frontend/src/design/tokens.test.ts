@@ -44,4 +44,12 @@ describe('Design tokens', () => {
   it('collapse the motion durations when the user prefers reduced motion', () => {
     expect(tokensCss).toMatch(/@media \(prefers-reduced-motion: reduce\)/)
   })
+
+  it('derive the shadows from the navy token and define the border width', () => {
+    expect(cssValue('--border-width')).toBe('1PX')
+    for (const name of ['--shadow-sm', '--shadow-md', '--shadow-lg']) {
+      expect(cssValue(name)).toContain('VAR(--COLOR-BRAND-NAVY)')
+    }
+    expect(tokensCss).not.toMatch(/rgb\(\s*11\s+19\s+43/i)
+  })
 })

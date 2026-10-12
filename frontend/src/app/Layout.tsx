@@ -1,6 +1,8 @@
-import { Link, NavLink, Outlet } from 'react-router'
+import { useEffect, useRef } from 'react'
+import { Link, NavLink, Outlet, useLocation, useMatches } from 'react-router'
 import { Logo } from '../components/Logo'
 import { es } from '../i18n/es'
+import { isRouteHandle } from './routeHandle'
 import './Layout.css'
 
 const navItems = [
@@ -11,6 +13,26 @@ const navItems = [
 ] as const
 
 export function Layout() {
+  const { pathname } = useLocation()
+  const matches = useMatches()
+  const mainRef = useRef<HTMLElement>(null)
+  const previousPathname = useRef(pathname)
+
+  const title = matches.map((match) => match.handle).findLast(isRouteHandle)?.title
+
+  // On every route: the tab title follows the page.
+  useEffect(() => {
+    document.title = title ? `${title} · ${es.app.name}` : es.app.name
+  }, [title])
+
+  // On route change (not on first load): move focus to the main content so keyboard and
+  // screen reader users start at the new page.
+  useEffect(() => {
+    if (previousPathname.current === pathname) return
+    previousPathname.current = pathname
+    mainRef.current?.focus()
+  }, [pathname])
+
   return (
     <div className="layout">
       <a className="layout__skip-link" href="#contenido">
@@ -37,7 +59,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main id="contenido" className="layout__main" tabIndex={-1}>
+      <main id="contenido" className="layout__main" tabIndex={-1} ref={mainRef}>
         <Outlet />
       </main>
     </div>

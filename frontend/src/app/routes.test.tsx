@@ -23,6 +23,7 @@ describe('Provisional routes', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: es.pages.notFound.title }),
     ).toBeInTheDocument()
+    expect(document.title).toBe(`${es.pages.notFound.title} · ${es.app.name}`)
     expect(screen.getByRole('link', { name: es.pages.notFound.backHome })).toHaveAttribute(
       'href',
       '/',

@@ -1,9 +1,15 @@
+import { es } from '../i18n/es'
+
 /**
  * Minimal API client. Calls `/api/v1/...` with the session cookie and, for requests that
  * change data, sends the CSRF token read from the cookie.
  *
- * Not used by any screen yet. The cookie and header names follow the Spring Security
- * defaults; adjust them here if the backend contract says otherwise.
+ * Not used by any screen yet.
+ *
+ * PENDING CONTRACT (CSRF): the cookie and header names below are a PROVISIONAL guess, not an
+ * agreed contract. Spec 001 (identity and consent) will close it: the backend is expected to
+ * use `CookieCsrfTokenRepository` with a handler for single-page apps. When that spec is
+ * approved, confirm or change the two names here and update the tests.
  */
 
 export const API_BASE_PATH = '/api/v1'
@@ -25,21 +31,29 @@ export class ApiError extends Error {
   readonly status: number
   readonly problem: ProblemDetails | null
 
-  constructor(status: number, problem: ProblemDetails | null) {
-    super(problem?.title ?? `HTTP ${status}`)
+  /**
+   * `status` is the HTTP status, or 0 when there was no response (network failure).
+   * `message` is a user-facing Spanish text, never the raw backend title.
+   */
+  constructor(status: number, problem: ProblemDetails | null, message: string = es.errors.generic) {
+    super(message)
     this.name = 'ApiError'
     this.status = status
     this.problem = problem
   }
 }
 
-/** Reads a cookie by name. Returns `null` if it does not exist. */
+/** Reads a cookie by name. Returns `null` if it does not exist or is badly encoded. */
 export function readCookie(name: string, cookieSource: string = document.cookie): string | null {
   for (const part of cookieSource.split(';')) {
     const separatorIndex = part.indexOf('=')
     if (separatorIndex === -1) continue
     if (part.slice(0, separatorIndex).trim() === name) {
-      return decodeURIComponent(part.slice(separatorIndex + 1).trim())
+      try {
+        return decodeURIComponent(part.slice(separatorIndex + 1).trim())
+      } catch {
+        return null
+      }
     }
   }
   return null
@@ -72,13 +86,21 @@ export async function apiFetch<T = unknown>(
     if (csrfToken) finalHeaders.set(CSRF_HEADER_NAME, csrfToken)
   }
 
-  const response = await fetch(`${API_BASE_PATH}${path}`, {
-    ...init,
-    method: upperMethod,
-    headers: finalHeaders,
-    credentials: 'include',
-    body: json === undefined ? undefined : JSON.stringify(json),
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_PATH}${path}`, {
+      ...init,
+      method: upperMethod,
+      headers: finalHeaders,
+      // The app and the API share the origin (nginx proxies /api/), so same-origin is enough.
+      credentials: 'same-origin',
+      body: json === undefined ? undefined : JSON.stringify(json),
+    })
+  } catch (error) {
+    // A request cancelled on purpose (AbortController) is not a network failure.
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
+    throw new ApiError(0, null, es.errors.network)
+  }
 
   if (!response.ok) {
     throw new ApiError(response.status, await parseJsonSafely<ProblemDetails>(response))
