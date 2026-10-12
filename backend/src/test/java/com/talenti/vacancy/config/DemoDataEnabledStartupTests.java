@@ -45,12 +45,12 @@ class DemoDataEnabledStartupTests {
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM vacancy_requirement", Integer.class)).isEqualTo(60);
 		assertThat(jdbc.queryForObject(
 				"SELECT success FROM flyway_schema_history_demo WHERE version = '1000'", Boolean.class)).isTrue();
-		// El historial del esquema nunca ve la V1000: por eso una V4 posterior se aplica sin problema.
+		// El historial del esquema nunca ve la V1000: por eso una migración posterior se aplica sin problema.
 		assertThat(jdbc.queryForObject(
 				"SELECT count(*) FROM flyway_schema_history WHERE version ~ '^[0-9]+$' AND version::int >= 1000",
 				Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("SELECT max(version::int) FROM flyway_schema_history WHERE version IS NOT NULL",
-				Integer.class)).isEqualTo(3);
+				Integer.class)).isEqualTo(4);
 	}
 
 	@Test

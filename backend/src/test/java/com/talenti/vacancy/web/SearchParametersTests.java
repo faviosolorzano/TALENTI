@@ -64,6 +64,36 @@ class SearchParametersTests {
 	}
 
 	@Test
+	@DisplayName("004-26: q pierde las palabras de relleno; si solo era relleno, no filtra")
+	void t004_26_stopWordsAreDiscarded() {
+		assertThat(SearchParameters.parse(query("q", "se usar java")).criteria().terms()).containsExactly("java");
+		assertThat(SearchParameters.parse(query("q", "Quiero un Practicante de datos con SQL")).criteria().terms())
+				.containsExactly("datos", "SQL");
+		assertThat(SearchParameters.parse(query("q", "se usar")).criteria().terms()).isEmpty();
+		assertThat(SearchParameters.parse(query("q", "practicante")).criteria().terms()).isEmpty();
+	}
+
+	@Test
+	@DisplayName("004-29: sin sort, relevance si hay palabras útiles y recent si no; sort explícito se respeta")
+	void t004_29_defaultSortDependsOnUsefulTerms() {
+		assertThat(SearchParameters.parse(query("q", "se usar java")).criteria().sort()).isEqualTo(SearchSort.RELEVANCE);
+		assertThat(SearchParameters.parse(query()).criteria().sort()).isEqualTo(SearchSort.RECENT);
+		assertThat(SearchParameters.parse(query("q", "se usar")).criteria().sort()).as("solo relleno")
+				.isEqualTo(SearchSort.RECENT);
+		assertThat(SearchParameters.parse(query("q", "java", "sort", "recent")).criteria().sort())
+				.isEqualTo(SearchSort.RECENT);
+		assertThat(SearchParameters.parse(query("q", "java", "sort", "company")).criteria().sort())
+				.isEqualTo(SearchSort.COMPANY);
+		assertThat(SearchParameters.parse(query("q", "java", "sort", "relevance")).criteria().sort())
+				.isEqualTo(SearchSort.RELEVANCE);
+		assertThat(SearchParameters.parse(query("sort", "relevance")).criteria().sort())
+				.as("relevance sin palabras útiles se comporta como recent").isEqualTo(SearchSort.RECENT);
+		assertThat(SearchParameters.parse(query("q", "practicante", "sort", "relevance")).criteria().sort())
+				.isEqualTo(SearchSort.RECENT);
+		assertThat(SearchParameters.parse(query("sort", "company")).criteria().sort()).isEqualTo(SearchSort.COMPANY);
+	}
+
+	@Test
 	@DisplayName("004-07: los filtros repetibles se deduplican y conservan su orden")
 	void t004_07_repeatableFiltersAreDeduplicated() {
 		SearchParameters parameters = SearchParameters.parse(query("modality", "REMOTE", "modality", "HYBRID",
@@ -81,6 +111,7 @@ class SearchParametersTests {
 		assertThat(violationsOf(query("modality", "FOO"))).containsExactly(FieldViolation.of("modality", "invalid"));
 		assertThat(violationsOf(query("modality", "remote"))).containsExactly(FieldViolation.of("modality", "invalid"));
 		assertThat(violationsOf(query("sort", "oldest"))).containsExactly(FieldViolation.of("sort", "invalid"));
+		assertThat(violationsOf(query("sort", "Relevance"))).containsExactly(FieldViolation.of("sort", "invalid"));
 		assertThat(violationsOf(query("skill", "Java"))).containsExactly(FieldViolation.of("skill", "invalid"));
 		assertThat(violationsOf(query("skill", "a b"))).containsExactly(FieldViolation.of("skill", "invalid"));
 		assertThat(violationsOf(query("skill", "a".repeat(41)))).containsExactly(FieldViolation.of("skill", "invalid"));
@@ -128,6 +159,21 @@ class SearchParametersTests {
 				FieldViolation.of("q", "too-many-terms", 6));
 		assertThat(SearchParameters.parse(query("q", "a b c")).criteria().terms()).as("solo letras sueltas: no filtra")
 				.isEmpty();
+	}
+
+	@Test
+	@DisplayName("004-10: el límite de 6 cuenta las palabras útiles, no el relleno: una frase natural larga pasa")
+	void t004_10_sixTermLimitCountsUsefulWordsOnly() {
+		// 9 palabras escritas (relleno incluido), 4 útiles: pasa.
+		String natural = "quiero un practicante de java con spring boot sql";
+		assertThat(natural.length()).isLessThanOrEqualTo(80);
+		assertThat(SearchParameters.parse(query("q", natural)).criteria().terms()).containsExactly("java", "spring",
+				"boot", "sql");
+		// 7 palabras útiles entre relleno: sigue siendo 422.
+		assertThat(violationsOf(query("q", "se uno dos tres cuatro cinco seis siete de")))
+				.containsExactly(FieldViolation.of("q", "too-many-terms", 6));
+		// 80 caracteres escritos siguen siendo el tope aunque casi todo sea relleno.
+		assertThat(violationsOf(query("q", "se ".repeat(28)))).containsExactly(FieldViolation.of("q", "too-long", 80));
 	}
 
 	@Test

@@ -124,6 +124,39 @@ class VacancySchemaTests {
 	}
 
 	@Test
+	@DisplayName("004-31: la extensión pg_trgm la creó el administrador de la base, no el rol de la aplicación, y similarity() funciona")
+	void t004_31_pgTrgmCreatedByTheAdministrator() {
+		Map<String, Object> extension = jdbc.queryForMap("""
+				SELECT r.rolname, r.rolsuper FROM pg_extension e JOIN pg_roles r ON r.oid = e.extowner
+				WHERE e.extname = 'pg_trgm'""");
+
+		assertThat(extension.get("rolsuper")).as("creada por un superusuario").isEqualTo(true);
+		assertThat(extension.get("rolname")).isNotEqualTo(TestcontainersConfiguration.APP_USER);
+		assertThat(jdbc.queryForObject("SELECT similarity('pyton', 'python') > 0.4", Boolean.class)).isTrue();
+		assertThat(jdbc.queryForObject("SELECT success FROM flyway_schema_history WHERE version = '4'", Boolean.class))
+				.isTrue();
+	}
+
+	@Test
+	@DisplayName("004-31: si falta la extensión pg_trgm (y unaccent existe), la migración V4 falla con un mensaje claro")
+	void t004_31_migrationFailsClearlyWithoutPgTrgm() {
+		try (PostgreSQLContainer plain = new PostgreSQLContainer(TestcontainersConfiguration.PGVECTOR_IMAGE)) {
+			plain.start();
+			JdbcTemplate admin = new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(
+					plain.getJdbcUrl(), plain.getUsername(), plain.getPassword()));
+			admin.execute("CREATE EXTENSION unaccent");
+			Flyway flyway = Flyway.configure()
+					.dataSource(plain.getJdbcUrl(), plain.getUsername(), plain.getPassword())
+					.locations("classpath:db/migration").load();
+
+			assertThatThrownBy(flyway::migrate).isInstanceOf(FlywayException.class)
+					.hasMessageContaining("pg_trgm")
+					.hasMessageContaining("docker compose down -v")
+					.hasMessageContaining("V4");
+		}
+	}
+
+	@Test
 	@DisplayName("004-01: las restricciones de company y skill")
 	void t004_01_companyAndSkillConstraints() {
 		assertViolation("uq_company_name", tx -> {
