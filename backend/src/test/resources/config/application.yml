@@ -1,8 +1,19 @@
 # Valores solo para las pruebas (se suman a src/main/resources/application.yml).
+spring:
+  datasource:
+    hikari:
+      # Cada contexto de Spring en caché mantiene su propio pool contra el mismo PostgreSQL de prueba (max_connections
+      # = 100). Con el valor por defecto (10 abiertas por contexto) los contextos de las pruebas lo agotan.
+      minimum-idle: 1
+      maximum-pool-size: 6
 talenti:
   identity:
     password:
       bcrypt-cost: 4           # el mínimo de BCrypt: pruebas rápidas
+  demo-data:
+    # Las pruebas no dependen de la variable TALENTI_DEMO_DATA del equipo: parten sin datos de ejemplo y las
+    # que los necesitan los piden con properties = "talenti.demo-data.enabled=true".
+    enabled: false
 
 ---
 # Las pruebas hablan HTTP sin TLS, así que las cookies no llevan Secure, salvo en el perfil prod,

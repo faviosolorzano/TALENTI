@@ -22,6 +22,9 @@ spring:
     time-zone: UTC
   flyway:
     enabled: true
+    # Flyway del ESQUEMA: estricto a propósito (sin ignore-migration-patterns ni out-of-order). Los datos de ejemplo
+    # (classpath:db/demo) los carga un segundo Flyway con su propio historial, solo si
+    # talenti.demo-data.enabled=true (ver DemoDataConfiguration); no pasan por este.
     locations: classpath:db/migration
     clean-disabled: true
 
@@ -68,6 +71,15 @@ logging:
 talenti:
   security:
     secure-cookies: true
+  demo-data:
+    # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
+    # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.
+    # Se controla con la variable TALENTI_DEMO_DATA:
+    #   - sin definirla: apagada (este valor por defecto) y también en el perfil prod;
+    #   - perfil dev: encendida por defecto (ver abajo);
+    #   - Docker Compose: la enciende con TALENTI_DEMO_DATA=true (el contenedor corre con el perfil prod).
+    # Apagarla después de encenderla no borra lo cargado: para empezar de cero, "docker compose down -v".
+    enabled: ${TALENTI_DEMO_DATA:false}
   legal:
     # Los textos viven en src/main/resources/legal/<version>/ (una sola versión para todo el conjunto).
     version: v1
@@ -100,6 +112,8 @@ logging:
 talenti:
   security:
     secure-cookies: false       # desarrollo por HTTP; el perfil prod siempre la exige
+  demo-data:
+    enabled: ${TALENTI_DEMO_DATA:true}      # en desarrollo hay vacantes de ejemplo salvo que se apague
 
 ---
 spring:
@@ -115,3 +129,5 @@ server:
 talenti:
   security:
     secure-cookies: true
+  demo-data:
+    enabled: ${TALENTI_DEMO_DATA:false}     # producción: apagada salvo que se encienda a propósito con la variable

@@ -18,13 +18,13 @@ import org.testcontainers.utility.MountableFile;
 public class TestcontainersConfiguration {
 
 	/** La misma imagen (y versión) que usa docker-compose.yml. */
-	static final DockerImageName PGVECTOR_IMAGE = DockerImageName.parse("pgvector/pgvector:0.8.2-pg18-trixie")
+	public static final DockerImageName PGVECTOR_IMAGE = DockerImageName.parse("pgvector/pgvector:0.8.2-pg18-trixie")
 			.asCompatibleSubstituteFor("postgres");
 
 	public static final String APP_USER = "talenti_app";
 
 	/** Contraseña descartable, válida solo dentro del contenedor efímero de la prueba. */
-	static final String APP_PASSWORD = "app-solo-para-pruebas";
+	public static final String APP_PASSWORD = "app-solo-para-pruebas";
 
 	/** Maven ejecuta las pruebas con backend/ como directorio de trabajo. */
 	private static final Path INIT_SCRIPT = Path.of("..", "db", "init", "01-init-roles.sh").toAbsolutePath()
@@ -44,13 +44,21 @@ public class TestcontainersConfiguration {
 
 	private static synchronized PostgreSQLContainer shared() {
 		if (sharedContainer == null) {
-			sharedContainer = new PostgreSQLContainer(PGVECTOR_IMAGE)
-					.withEnv("APP_DB_USER", APP_USER)
-					.withEnv("APP_DB_PASSWORD", APP_PASSWORD)
-					.withCopyFileToContainer(MountableFile.forHostPath(INIT_SCRIPT, 0755),
-							"/docker-entrypoint-initdb.d/01-init-roles.sh");
+			sharedContainer = newContainer();
 		}
 		return sharedContainer;
+	}
+
+	/**
+	 * Un contenedor nuevo, igual al compartido (mismo script de inicialización y mismo rol de la aplicación). Lo
+	 * usan las pruebas que necesitan una base vacía, por ejemplo la de la semilla apagada (004-03).
+	 */
+	public static PostgreSQLContainer newContainer() {
+		return new PostgreSQLContainer(PGVECTOR_IMAGE)
+				.withEnv("APP_DB_USER", APP_USER)
+				.withEnv("APP_DB_PASSWORD", APP_PASSWORD)
+				.withCopyFileToContainer(MountableFile.forHostPath(INIT_SCRIPT, 0755),
+						"/docker-entrypoint-initdb.d/01-init-roles.sh");
 	}
 
 	/** Conecta Flyway y la aplicación con el rol de la aplicación, no con el superusuario del contenedor. */
