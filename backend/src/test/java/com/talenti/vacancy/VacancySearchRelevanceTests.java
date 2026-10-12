@@ -10,9 +10,13 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.talenti.support.ApiClient.Response;
+import com.talenti.vacancy.domain.SearchCriteria;
 import com.talenti.vacancy.domain.SearchText;
+import com.talenti.vacancy.persistence.VacancyReadRepository;
 
 import tools.jackson.databind.JsonNode;
 
@@ -22,6 +26,12 @@ import tools.jackson.databind.JsonNode;
  * Se apoya en la semilla de 12 vacantes de {@link VacancyIntegrationTest}.
  */
 class VacancySearchRelevanceTests extends VacancyIntegrationTest {
+
+	@Autowired
+	private TransactionTemplate transactions;
+
+	@Autowired
+	private VacancyReadRepository repository;
 
 	/** Vacantes de la semilla que piden JavaScript (en el título o como habilidad). */
 	private static final List<String> JAVASCRIPT_TITLES = List.of("Practicante Frontend",
@@ -169,25 +179,50 @@ class VacancySearchRelevanceTests extends VacancyIntegrationTest {
 	// ------------------------------------------------------------------------------------------ 004-28 / 004-29
 
 	@Test
-	@DisplayName("004-28: habilidad o título pesan más que la empresa y esta más que el resumen; 'destacada' no influye")
+	@DisplayName("004-28: con la misma fecha, el orden lo deciden los pesos: título o habilidad (nombre o sinónimo), empresa, resumen o descripción")
 	void t004_28_fieldWeights() {
-		OffsetDateTime old = OffsetDateTime.now(ZoneOffset.UTC).minusDays(60);
-		// Misma fecha de publicación y 'destacada' al revés: solo el campo donde aparece 'zorzal' decide.
-		UUID inTitle = insertVacancy("Practicante zorzal", "Resumen de prueba.", old, "OPEN", false);
-		UUID inSummary = insertVacancy("Practicante uno", "Trabajo con zorzal.", old, "OPEN", true);
-		UUID inDescription = insertVacancy("Practicante dos", "Resumen de prueba.", old, "OPEN", true);
-		jdbc.update("UPDATE vacancy SET description = 'Aprenderás zorzal en el día a día.' WHERE id = ?", inDescription);
+		// La misma palabra, una sola vez y en un único lugar de cada vacante; todas con la misma fecha de
+		// publicación, y las de menor peso marcadas como destacadas: solo el campo donde aparece decide el orden.
+		OffsetDateTime same = OffsetDateTime.now(ZoneOffset.UTC).minusDays(60);
+		UUID company = UUID.randomUUID();
+		jdbc.update("INSERT INTO company (id, name, city, short_description) VALUES (?, 'Quetzalux Labs', 'Lima', 'Empresa de prueba.')",
+				company);
+		jdbc.update("INSERT INTO skill (slug, name, aliases) VALUES ('zz-quetzalux', 'Quetzalux', ARRAY[]::text[])");
+		jdbc.update("INSERT INTO skill (slug, name, aliases) VALUES ('zz-herramienta', 'Herramienta Zeta', ARRAY['Quetzalux'])");
+		UUID inTitle = insertVacancy("Practicante quetzalux", "Resumen de prueba.", same, "OPEN", false);
+		UUID inSkillName = insertVacancy("Practicante con habilidad por nombre", "Resumen de prueba.", same, "OPEN", false);
+		UUID inSkillAlias = insertVacancy("Practicante con habilidad por sinonimo", "Resumen de prueba.", same, "OPEN", false);
+		UUID inCompany = insertVacancy("Practicante de la empresa", "Resumen de prueba.", same, "OPEN", false);
+		UUID inSummary = insertVacancy("Practicante de resumen", "Usa quetzalux a diario.", same, "OPEN", true);
+		UUID inDescription = insertVacancy("Practicante de descripcion", "Resumen de prueba.", same, "OPEN", true);
+		jdbc.update("UPDATE vacancy SET company_id = ? WHERE id = ?", company, inCompany);
+		jdbc.update("UPDATE vacancy SET description = 'Aprenderás quetzalux en el día a día.' WHERE id = ?", inDescription);
+		jdbc.update("INSERT INTO vacancy_requirement (vacancy_id, skill_id, kind, min_level) "
+				+ "SELECT ?, id, 'REQUIRED', 1 FROM skill WHERE slug = 'zz-quetzalux'", inSkillName);
+		jdbc.update("INSERT INTO vacancy_requirement (vacancy_id, skill_id, kind, min_level) "
+				+ "SELECT ?, id, 'DESIRABLE', 1 FROM skill WHERE slug = 'zz-herramienta'", inSkillAlias);
 		try {
-			List<String> found = titles(list("?q=zorzal"));
+			List<String> found = titles(list("?q=quetzalux&size=24"));
 
-			assertThat(found).hasSize(3);
-			assertThat(found.get(0)).isEqualTo("Practicante zorzal");
-			assertThat(found.subList(1, 3)).containsExactlyInAnyOrder("Practicante uno", "Practicante dos");
+			assertThat(found).hasSize(6);
+			assertThat(found.subList(0, 3)).as("título, habilidad por nombre y habilidad por sinónimo pesan igual (3)")
+					.containsExactlyInAnyOrder("Practicante quetzalux", "Practicante con habilidad por nombre",
+							"Practicante con habilidad por sinonimo");
+			assertThat(found.get(3)).as("la empresa pesa menos (2)").isEqualTo("Practicante de la empresa");
+			assertThat(found.subList(4, 6)).as("resumen y descripción pesan lo mismo y menos (1)")
+					.containsExactlyInAnyOrder("Practicante de resumen", "Practicante de descripcion");
+			// El orden por parecido solo cambia si el peso cambia: una palabra sin coincidir nada no mueve a nadie.
+			assertThat(titles(list("?q=quetzalux%20zzqxwv&size=24"))).isEqualTo(found);
 		}
 		finally {
 			deleteVacancy(inTitle);
+			deleteVacancy(inSkillName);
+			deleteVacancy(inSkillAlias);
+			deleteVacancy(inCompany);
 			deleteVacancy(inSummary);
 			deleteVacancy(inDescription);
+			jdbc.update("DELETE FROM skill WHERE slug IN ('zz-quetzalux', 'zz-herramienta')");
+			jdbc.update("DELETE FROM company WHERE id = ?", company);
 		}
 	}
 
@@ -408,6 +443,25 @@ class VacancySearchRelevanceTests extends VacancyIntegrationTest {
 		long averageMillis = (System.nanoTime() - start) / 5 / 1_000_000;
 
 		assertThat(averageMillis).as("milisegundos por petición con 6 palabras").isLessThan(1500);
+	}
+
+	@Test
+	@DisplayName("004-14: dentro de su transacción la búsqueda apaga el JIT y fija el tiempo máximo; al terminar no queda nada")
+	void t004_14_searchLimitsAreLocalToTheTransaction() {
+		List<String> inside = transactions.execute(status -> {
+			repository.search(new SearchCriteria(List.of("java"), List.of(), List.of(), List.of(), null), 1, 9);
+			return List.of(jdbc.queryForObject("SHOW jit", String.class),
+					jdbc.queryForObject("SHOW statement_timeout", String.class));
+		});
+
+		assertThat(inside).as("jit y statement_timeout dentro de la transacción de la búsqueda").containsExactly("off", "5s");
+		assertThat(jdbc.queryForObject("SHOW jit", String.class)).as("SET LOCAL no se filtra").isEqualTo("on");
+		assertThat(jdbc.queryForObject("SHOW statement_timeout", String.class)).isEqualTo("0");
+		// Y la caché sigue igual: la respuesta de una búsqueda trae ETag y Cache-Control público.
+		Response response = client().get("/api/v1/vacancies?q=java");
+		assertThat(response.status()).isEqualTo(200);
+		assertThat(response.header("ETag")).isNotBlank();
+		assertThat(response.header("Cache-Control")).contains("public").contains("max-age=60");
 	}
 
 	// ------------------------------------------------------------------------------------------ 004-32

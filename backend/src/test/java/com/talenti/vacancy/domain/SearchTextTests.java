@@ -1,6 +1,7 @@
 package com.talenti.vacancy.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -99,6 +100,21 @@ class SearchTextTests {
 		assertThat(SearchText.fuzzyWord("node.js")).isEmpty();
 		assertThat(SearchText.fuzzyWord("100%")).isEmpty();
 		assertThat(SearchText.fuzzyWord("java17")).contains("java17");
+	}
+
+	@Test
+	@DisplayName("004-27: matchPattern exige una palabra no vacía al normalizar; fuzzyWord devuelve vacío en esos casos")
+	void t004_27_emptyTermIsRejected() {
+		for (String empty : new String[] { "", "   ", "\u0301", null }) {
+			assertThatThrownBy(() -> SearchText.matchPattern(empty)).isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining("vacía");
+			assertThat(SearchText.fuzzyWord(empty)).isEmpty();
+		}
+		// terms() nunca las entrega: el contrato se cumple desde q.
+		assertThat(SearchText.terms("\u0301 \u0301a")).as("una marca suelta, o con una letra, no es una palabra").isEmpty();
+		for (String term : SearchText.terms("a \u0301 java ,;")) {
+			assertThat(SearchText.matchPattern(term)).isNotEmpty();
+		}
 	}
 
 	@Test
