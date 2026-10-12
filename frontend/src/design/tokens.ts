@@ -55,6 +55,19 @@ export const stateColors = {
   dangerSoft: '#FEE2E2',
 } as const
 
+/**
+ * Company avatar tones (no logos): background and text. The third tone is 14 % of the brand
+ * blue over white; `avatarSoftAlpha` is that percentage.
+ */
+export const avatarTones = {
+  softAlpha: 0.14,
+  tones: [
+    { background: brandColors.navy, text: brandColors.white },
+    { background: brandColors.blue, text: brandColors.white },
+    { background: '#E0E9FC', text: brandColors.navy },
+  ],
+} as const
+
 /** Spacing scale in rem (4 px base: key N is N * 4 px). */
 export const spacing = {
   0: 0,

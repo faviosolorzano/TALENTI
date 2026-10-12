@@ -1,0 +1,102 @@
+.skeleton {
+  display: block;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(
+      100deg,
+      var(--color-skeleton) 30%,
+      var(--color-skeleton-shine) 50%,
+      var(--color-skeleton) 70%
+    )
+    var(--color-skeleton);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer var(--duration-shimmer) linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* "Reduce motion": the gradient stays still. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.skeleton--avatar {
+  flex: none;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: var(--radius-button);
+}
+
+.skeleton--avatar-sm {
+  flex: none;
+  width: var(--avatar-size-sm);
+  height: var(--avatar-size-sm);
+  border-radius: var(--radius-button);
+}
+
+.skeleton--title {
+  width: 70%;
+  height: var(--space-6);
+}
+
+.skeleton--line {
+  width: 100%;
+  height: var(--space-4);
+}
+
+.skeleton--short {
+  width: 45%;
+}
+
+.skeleton--heading {
+  width: 80%;
+  height: var(--space-10);
+  margin-block: var(--space-4);
+}
+
+.skeleton--block {
+  height: 12rem;
+  margin-top: var(--space-6);
+}
+
+.card.vacancy-skeleton {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.vacancy-skeleton__body {
+  display: grid;
+  flex: 1;
+  gap: var(--space-3);
+}
+
+.company-skeletons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+
+.company-skeletons__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.vacancy-detail-skeleton {
+  padding-block: var(--space-8) var(--space-16);
+}

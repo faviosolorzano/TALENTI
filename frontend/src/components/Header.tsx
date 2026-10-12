@@ -71,7 +71,11 @@ export function Header() {
                 {es.nav.home}
               </NavLink>
             </li>
-            {/* S2: aquí entra el enlace a Oportunidades. */}
+            <li>
+              <NavLink className="header__link" to="/oportunidades" onClick={closeMenu}>
+                {es.nav.opportunities}
+              </NavLink>
+            </li>
             <li>
               <Link
                 className="header__link"
