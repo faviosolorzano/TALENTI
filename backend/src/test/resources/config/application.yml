@@ -1,4 +1,11 @@
 # Valores solo para las pruebas (se suman a src/main/resources/application.yml).
+spring:
+  datasource:
+    hikari:
+      # Cada contexto de Spring en caché mantiene su propio pool contra el mismo PostgreSQL de prueba (max_connections
+      # = 100). Con el valor por defecto (10 abiertas por contexto) los contextos de las pruebas lo agotan.
+      minimum-idle: 1
+      maximum-pool-size: 6
 talenti:
   identity:
     password:

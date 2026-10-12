@@ -104,10 +104,30 @@ class SearchParametersTests {
 	void t004_10_queryLength() {
 		assertThat(violationsOf(query("q", "a".repeat(81)))).containsExactly(FieldViolation.of("q", "too-long", 80));
 		assertThat(SearchParameters.parse(query("q", "a".repeat(80))).criteria().terms()).hasSize(1);
-		assertThat(SearchParameters.parse(query("q", " ".repeat(50) + "a" + " ".repeat(50))).criteria().terms())
-				.containsExactly("a");
+		assertThat(SearchParameters.parse(query("q", " ".repeat(50) + "ab" + " ".repeat(50))).criteria().terms())
+				.containsExactly("ab");
+		// Más de 80 caracteres con espacios internos (que no se colapsan) también es 422.
+		String spaced = "programacion backend fullstack ".repeat(3).strip();
+		assertThat(spaced.length()).isGreaterThan(80);
+		assertThat(violationsOf(query("q", spaced))).containsExactly(FieldViolation.of("q", "too-long", 80));
+		assertThat(violationsOf(query("q", "a ".repeat(41)))).as("81 caracteres de letras sueltas y espacios")
+				.containsExactly(FieldViolation.of("q", "too-long", 80));
 		// Cuenta caracteres, no bytes: 80 letras con tilde (2 bytes cada una) son válidas.
 		assertThat(SearchParameters.parse(query("q", "ñ".repeat(80))).criteria().terms()).hasSize(1);
+	}
+
+	@Test
+	@DisplayName("004-10: máximo 6 términos (422 too-many-terms); 6 pasan, los repetidos y los de una letra no cuentan")
+	void t004_10_maxSixTerms() {
+		assertThat(violationsOf(query("q", "uno dos tres cuatro cinco seis siete")))
+				.containsExactly(FieldViolation.of("q", "too-many-terms", 6));
+		assertThat(SearchParameters.parse(query("q", "uno dos tres cuatro cinco seis")).criteria().terms()).hasSize(6);
+		assertThat(SearchParameters.parse(query("q", "uno DOS tres cuatro cinco seis Uno a b c d e f g")).criteria()
+				.terms()).as("repetidos y de una letra no cuentan").hasSize(6);
+		assertThat(violationsOf(query("q", "ab cd ef gh ij kl mn"))).containsExactly(
+				FieldViolation.of("q", "too-many-terms", 6));
+		assertThat(SearchParameters.parse(query("q", "a b c")).criteria().terms()).as("solo letras sueltas: no filtra")
+				.isEmpty();
 	}
 
 	@Test

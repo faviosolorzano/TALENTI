@@ -37,6 +37,15 @@ class VacancySeedAndCatalogTests extends VacancyIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("004-03: la demo se carga con un segundo Flyway: su V1000 vive en flyway_schema_history_demo, no en el del esquema")
+	void t004_03_demoHasItsOwnHistory() {
+		assertThat(count("SELECT count(*) FROM flyway_schema_history_demo WHERE version = '1000' AND success"))
+				.isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM flyway_schema_history WHERE version = '1000'")).isZero();
+		assertThat(count("SELECT count(*) FROM flyway_schema_history WHERE version = '3' AND success")).isEqualTo(1);
+	}
+
+	@Test
 	@DisplayName("004-03: reparto de 4 remotas, 5 híbridas y 3 presenciales; Lima 5 y Arequipa 3")
 	void t004_03_distribution() {
 		Map<String, Integer> byModality = new HashMap<>();

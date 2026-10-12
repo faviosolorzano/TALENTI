@@ -238,6 +238,8 @@ class VacancySchemaTests {
 		assertThat(jdbc.queryForObject(
 				"SELECT count(*) FROM flyway_schema_history WHERE version ~ '^[0-9]+$' AND version::int >= 1000",
 				Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("SELECT to_regclass('flyway_schema_history_demo')::text", String.class))
+				.as("con la demo apagada ni se crea el historial de la demo").isNull();
 	}
 
 	@Test

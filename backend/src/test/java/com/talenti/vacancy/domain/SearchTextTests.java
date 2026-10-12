@@ -42,6 +42,18 @@ class SearchTextTests {
 	}
 
 	@Test
+	@DisplayName("004-10: los términos de una sola letra o cifra se ignoran; los símbolos sueltos y las palabras de 2 letras no")
+	void t004_10_singleLetterTermsAreIgnored() {
+		assertThat(SearchText.terms("a b c java")).containsExactly("java");
+		assertThat(SearchText.terms("Ñ 5 backend")).containsExactly("backend");
+		assertThat(SearchText.terms("a")).isEmpty();
+		assertThat(SearchText.terms("a A á")).as("ninguna cuenta").isEmpty();
+		assertThat(SearchText.terms("c# js ui")).containsExactly("c#", "js", "ui");
+		assertThat(SearchText.terms("% _ \\ \"")).as("los símbolos sueltos se buscan como texto")
+				.containsExactly("%", "_", "\\", "\"");
+	}
+
+	@Test
 	@DisplayName("004-06: %, _ y la barra invertida se escapan para que valgan como texto en ILIKE")
 	void t004_06_likePatternEscapesWildcards() {
 		assertThat(SearchText.containsPattern("java")).isEqualTo("%java%");

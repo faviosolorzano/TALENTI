@@ -406,6 +406,30 @@ class VacancyListingTests extends VacancyIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("004-10: más de 6 términos responde 422 too-many-terms; 6 funcionan; las letras sueltas se ignoran")
+	void t004_10_termLimit() {
+		Response response = assertRejected("?q=uno%20dos%20tres%20cuatro%20cinco%20seis%20siete", "q", "too-many-terms");
+		assertThat(response.body()).doesNotContain("cinco");
+
+		assertThat(list("?q=uno%20dos%20tres%20cuatro%20cinco%20seis").get("totalItems").asInt()).isZero();
+		// Letras sueltas: no filtran ni cuentan para el límite.
+		assertThat(list("?q=a").get("totalItems").asInt()).isEqualTo(12);
+		assertThat(titles(list("?q=a%20b%20backend%20c%20d%20e%20f%20g"))).containsExactly("Practicante Backend Java");
+		// Un símbolo suelto sigue buscándose como texto.
+		assertThat(list("?q=%25%20_").get("totalItems").asInt()).isZero();
+	}
+
+	@Test
+	@DisplayName("004-10: más de 80 caracteres con espacios internos responde 422, aunque tenga pocas palabras")
+	void t004_10_tooLongWithInnerSpaces() {
+		String spaced = "programacion%20backend%20fullstack%20".repeat(3).substring(0, 3 * 37 - 3);
+
+		Response response = assertRejected("?q=" + spaced, "q", "too-long");
+
+		assertThat(response.body()).doesNotContain("programacion");
+	}
+
+	@Test
 	@DisplayName("004-10: más de 10 valores distintos en un filtro responden 422; 10 son válidos y los repetidos se cuentan una vez")
 	void t004_10_tooManyFilterValues() {
 		StringBuilder skills = new StringBuilder("?");
