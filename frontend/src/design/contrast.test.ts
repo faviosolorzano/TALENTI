@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { contrastRatio, overlay } from './color'
-import { brandColors, neutralColors, onDarkColors, orbColors, stateColors } from './tokens'
+import {
+  avatarTones,
+  brandColors,
+  neutralColors,
+  onDarkColors,
+  orbColors,
+  stateColors,
+} from './tokens'
 
 const { navy, blue, white } = brandColors
 const blueSoft = overlay(blue, 0.08, white)
@@ -29,9 +36,22 @@ const pairs: ReadonlyArray<readonly [name: string, text: string, background: str
   ['navy on white (selected DORA state)', navy, white],
 ]
 
+// 004-16: the text of every company avatar tone reaches 4.5:1.
+const avatarPairs = avatarTones.tones.map(
+  (tone, index) => [`avatar tone ${index + 1}`, tone.text, tone.background] as const,
+)
+
 describe('Color contrast (003-02)', () => {
   it.each(pairs)('%s reaches 4.5:1', (_name, text, background) => {
     expect(contrastRatio(text, background)).toBeGreaterThanOrEqual(AA)
+  })
+
+  it.each(avatarPairs)('%s (004-16) reaches 4.5:1', (_name, text, background) => {
+    expect(contrastRatio(text, background)).toBeGreaterThanOrEqual(AA)
+  })
+
+  it('computes the soft avatar tone as the brand blue over white', () => {
+    expect(avatarTones.tones[2].background).toBe(overlay(blue, avatarTones.softAlpha, white))
   })
 
   it('computes known reference values', () => {

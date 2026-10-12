@@ -397,13 +397,13 @@ describe('Header (003-09)', () => {
     expect(button).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('has Inicio, Cómo funciona and DORA in the center, with Ingresar and Crear cuenta, and no "Para empresas"', () => {
+  it('has Inicio, Oportunidades, Cómo funciona and DORA in the center (004-24), with Ingresar and Crear cuenta, and no "Para empresas"', () => {
     renderInRouter(<Header />)
     const menu = screen.getByRole('navigation', { name: es.app.mainNavLabel })
     const names = within(menu)
       .getAllByRole('link')
       .map((link) => link.textContent)
-    expect(names.slice(0, 3)).toEqual([es.nav.home, es.nav.how, es.nav.dora])
+    expect(names.slice(0, 4)).toEqual([es.nav.home, es.nav.opportunities, es.nav.how, es.nav.dora])
     expect(screen.getAllByRole('link', { name: es.nav.login }).length).toBeGreaterThan(0)
     expect(screen.getByRole('link', { name: es.nav.register })).toHaveAttribute('href', '/registro')
     expect(screen.queryByText(/empresas/i)).not.toBeInTheDocument()

@@ -89,7 +89,12 @@ test.describe('Keyboard only (003-27)', () => {
       expect(outline.color).toBe(i === 0 ? 'rgb(255, 255, 255)' : 'rgb(37, 99, 235)')
     }
     expect(names[0]).toBe('Saltar al contenido')
-    expect(names.slice(1, 4)).toEqual(['Talenti, inicio', 'Inicio', 'Cómo funciona'])
+    expect(names.slice(1, 5)).toEqual([
+      'Talenti, inicio',
+      'Inicio',
+      'Oportunidades',
+      'Cómo funciona',
+    ])
     const heroAction = names.indexOf('Ver mis vacantes')
     const firstChip = names.findIndex((n) => n.startsWith('Java,'))
     expect(heroAction).toBeGreaterThan(5)

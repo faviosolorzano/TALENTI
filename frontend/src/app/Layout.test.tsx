@@ -21,7 +21,7 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: es.app.skipToContent })).toHaveFocus()
   })
 
-  it('shows the main navigation: Inicio, Cómo funciona and DORA (and Ingresar in the folded menu)', () => {
+  it('shows the main navigation: Inicio, Oportunidades, Cómo funciona and DORA (and Ingresar in the folded menu)', () => {
     renderApp('/')
 
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
@@ -29,6 +29,7 @@ describe('Layout', () => {
 
     expect(links.map((link) => link.textContent)).toEqual([
       es.nav.home,
+      es.nav.opportunities,
       es.nav.how,
       es.nav.dora,
       es.nav.login,

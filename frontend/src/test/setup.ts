@@ -9,6 +9,11 @@ beforeEach(() => {
   ) as unknown as typeof HTMLCanvasElement.prototype.getContext
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
   Element.prototype.scrollIntoView = vi.fn()
+  // No test reaches a real server: a test that needs the API installs `mockBackend()`.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => Promise.reject(new TypeError('fetch is not mocked in this test'))),
+  )
 })
 
 afterEach(() => {
