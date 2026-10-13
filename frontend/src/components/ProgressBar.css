@@ -1,0 +1,31 @@
+.progress {
+  height: var(--progress-height);
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+}
+
+.progress__fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--progress) * 100%);
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-action), var(--color-orb-400));
+  transition: width var(--duration-ring) var(--easing-standard);
+  animation: progress-grow var(--duration-ring) var(--easing-standard) both;
+}
+
+@keyframes progress-grow {
+  from {
+    width: 0;
+  }
+}
+
+/* "Reduce motion": the bar shows its value at once. */
+@media (prefers-reduced-motion: reduce) {
+  .progress__fill {
+    transition: none;
+    animation: none;
+  }
+}

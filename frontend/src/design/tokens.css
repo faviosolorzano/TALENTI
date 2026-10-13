@@ -231,6 +231,15 @@
   --auth-mark-size: 20rem; /* 320 px: watermark inside the side panel */
   --checkbox-size: var(--space-6); /* 24 px */
 
+  /* ---- Student home and profile (specs 005 and 006) ---- */
+  --progress-height: 0.75rem; /* 12 px: progress bar */
+  --tick-size: 1.75rem; /* 28 px: done / pending mark of a section */
+  --profile-aside-width: 22.5rem; /* 360 px: progress column of /perfil */
+  --picker-max-height: 15rem; /* 240 px: list of the skill search */
+  --home-orb-size: 4.5rem; /* 72 px: DORA orb in the home block */
+  --textarea-min-height: 8rem; /* 128 px */
+  --level-option-min-width: 6rem; /* 96 px: one option of a level group */
+
   /* ---- Focus ring ---- */
   --focus-ring-width: 3px;
   --focus-ring-offset: 3px;

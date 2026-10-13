@@ -7,7 +7,7 @@ import { PasswordField } from '../../components/PasswordField'
 import { TextField } from '../../components/TextField'
 import { es } from '../../i18n/es'
 import { safeReturnTo } from '../../session/returnTo'
-import { RETURN_TO_PARAM, sessionPaths } from '../../session/sessionPaths'
+import { landingPathFor, RETURN_TO_PARAM, sessionPaths } from '../../session/sessionPaths'
 import { useSession } from '../../session/useSession'
 import { AuthLayout } from './AuthLayout'
 import { loginErrors, NO_ERRORS, type FormErrors } from './errors'
@@ -28,7 +28,8 @@ export function LoginScreen() {
   const [params] = useSearchParams()
 
   const returnTo = safeReturnTo(params.get(RETURN_TO_PARAM))
-  const destination = returnTo ?? sessionPaths.dashboard
+  // Without `returnTo` a student goes to the Home and the other roles to /panel (005-05).
+  const destinationFor = (role: string | undefined) => returnTo ?? landingPathFor(role)
   const notice = noticeFrom(location.state)
 
   const [email, setEmail] = useState('')
@@ -52,7 +53,7 @@ export function LoginScreen() {
   }, [errors])
 
   if (session.status === 'authenticated' && !leaving) {
-    return <Navigate to={destination} replace />
+    return <Navigate to={destinationFor(session.user?.role)} replace />
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -61,10 +62,10 @@ export function LoginScreen() {
     setSubmitting(true)
     setErrors(NO_ERRORS)
     try {
-      await loginUser({ email, password })
+      const user = await loginUser({ email, password })
       setLeaving(true)
       await session.refresh()
-      navigate(destination, { replace: true })
+      navigate(destinationFor(user.role), { replace: true })
     } catch (error) {
       setPassword('')
       setErrors(loginErrors(error))

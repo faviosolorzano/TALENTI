@@ -9,7 +9,7 @@ import { PasswordField } from '../../components/PasswordField'
 import { TextField } from '../../components/TextField'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
-import { sessionPaths } from '../../session/sessionPaths'
+import { landingPathFor, sessionPaths } from '../../session/sessionPaths'
 import { useSession } from '../../session/useSession'
 import { LEGAL_PATHS } from '../legal/paths'
 import { AuthLayout } from './AuthLayout'
@@ -61,7 +61,7 @@ export function RegisterScreen() {
   }, [errors])
 
   if (session.status === 'authenticated' && !leaving) {
-    return <Navigate to={sessionPaths.dashboard} replace />
+    return <Navigate to={landingPathFor(session.user?.role)} replace />
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -78,7 +78,7 @@ export function RegisterScreen() {
       })
       setLeaving(true)
       await session.refresh()
-      navigate(sessionPaths.dashboard, { replace: true, state: { welcome: true } })
+      navigate(sessionPaths.home, { replace: true, state: { welcome: true } })
     } catch (error) {
       const failure = registerErrors(error)
       if (failure.legalOutdated) {

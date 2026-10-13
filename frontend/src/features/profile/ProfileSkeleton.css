@@ -1,0 +1,29 @@
+.card.profile-skeleton__summary {
+  display: grid;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-skeleton__number {
+  width: 40%;
+  height: var(--font-size-4xl);
+  margin-block: 0;
+}
+
+.card.profile-skeleton__section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton--tick {
+  flex: none;
+  width: var(--tick-size);
+  height: var(--tick-size);
+  border-radius: var(--radius-full);
+}
+
+.profile-skeleton__section .skeleton--title {
+  width: 40%;
+}

@@ -96,7 +96,9 @@ export function safeReturnTo(raw: string | null | undefined): string | null {
 /** The sign-in address that comes back to `target` afterwards (if it is a safe route). */
 export function loginPathWithReturn(target: string): string {
   const safe = safeReturnTo(target)
-  // Going to the panel is what happens anyway: no parameter needed.
-  if (!safe || safe === sessionPaths.dashboard) return sessionPaths.login
+  // Going to the Home or the panel is what happens anyway: no parameter needed.
+  if (!safe || safe === sessionPaths.dashboard || safe === sessionPaths.home) {
+    return sessionPaths.login
+  }
   return `${sessionPaths.login}?${RETURN_TO_PARAM}=${encodeURIComponent(safe)}`
 }

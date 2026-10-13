@@ -68,6 +68,16 @@
   outline-color: var(--color-focus-inverse);
 }
 
+/* Danger: only to confirm something that cannot be undone */
+.btn--danger {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
+.btn--danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 85%, var(--color-brand-navy));
+}
+
 /* Disabled */
 .btn:disabled,
 .btn[aria-disabled='true'] {
@@ -79,4 +89,9 @@
 .btn--primary:disabled,
 .btn--primary[aria-disabled='true'] {
   background: var(--color-action);
+}
+
+.btn--danger:disabled,
+.btn--danger[aria-disabled='true'] {
+  background: var(--color-danger);
 }
