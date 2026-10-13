@@ -12,7 +12,11 @@ test.describe('Same-origin loading and fonts with the real CSP (003-03)', () => 
     const consoleErrors: string[] = []
     page.on('request', (request) => requests.push(request.url()))
     page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors.push(message.text())
+      if (message.type() !== 'error') return
+      // A visitor's `GET /auth/me` answers 401 by design (spec 001): the browser logs that line.
+      const isVisitorCheck =
+        message.location().url.endsWith('/api/v1/auth/me') && /status of 401/.test(message.text())
+      if (!isVisitorCheck) consoleErrors.push(message.text())
     })
     await page.addInitScript(() => {
       ;(window as unknown as { __cspViolations: string[] }).__cspViolations = []

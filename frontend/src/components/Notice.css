@@ -1,0 +1,37 @@
+.notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-left-width: var(--border-width-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.notice--error {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.notice--success {
+  border-color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.notice__title {
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-heading);
+}
+
+.notice > p {
+  font-size: var(--font-size-md);
+}
+
+/* Receives focus after a failed send, to read it; it is not a control */
+.notice[tabindex='-1']:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}

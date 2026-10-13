@@ -137,3 +137,32 @@
     font-size: var(--font-size-base);
   }
 }
+
+/* "Cerrar sesión" inside the folded menu: a button that looks like the links around it */
+.header__link--button {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: var(--font-family-base);
+  text-align: left;
+  cursor: pointer;
+}
+
+.header__link--button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* A line under the bar: the session could not be checked, or signing out failed */
+.header__note {
+  flex-basis: 100%;
+  padding-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.header__note--error {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}

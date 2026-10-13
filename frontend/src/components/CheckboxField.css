@@ -1,0 +1,57 @@
+.check {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.check__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.check__input {
+  flex: none;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  /* The row is at least 44 px tall: centre the box on the first line of the label */
+  margin: calc((var(--touch-target-min) - var(--checkbox-size)) / 2) 0 0;
+  accent-color: var(--color-action);
+  cursor: pointer;
+}
+
+.check__label {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: block;
+  min-height: var(--touch-target-min);
+  padding-block: var(--space-2);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  cursor: pointer;
+}
+
+.check__label a {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+.check__input[aria-invalid='true'] {
+  outline: var(--border-width-strong) solid var(--color-danger);
+  outline-offset: var(--space-1);
+}
+
+.check__hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.check__error {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--color-danger);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}

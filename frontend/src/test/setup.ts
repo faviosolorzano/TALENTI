@@ -1,7 +1,11 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
 import { createFakeCanvasContext } from './mocks'
+
+// Waiting helpers (findBy*, waitFor) give a slow machine, with every test file running at once,
+// more than the 1 s default before they give up.
+configure({ asyncUtilTimeout: 5000 })
 
 beforeEach(() => {
   // Each test starts as a first visit: no cookie choice from a previous test.

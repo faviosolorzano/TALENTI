@@ -85,6 +85,11 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
   const { required, desirable } = vacancy.requirements
   const returnTo = encodeURIComponent(`/oportunidades/${vacancy.id}`)
   const soonId = useId()
+  const applySoonId = useId()
+  // Signed in (any role): "Postular" is not available yet. While the session is still being
+  // checked it is shown disabled too, so a signed-in person never sees the "Inicia sesión" link.
+  const signedIn = session.status === 'authenticated'
+  const checkingSession = session.status === 'loading'
 
   return (
     <div className="container vacancy-detail">
@@ -125,8 +130,18 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
       <div className="vacancy-detail__grid">
         <Card as="section" className="vacancy-detail__apply" aria-label={es.vacancyDetail.apply}>
           {open ? (
-            session.isStudent ? (
-              <Button disabled>{es.vacancyDetail.applyDisabled}</Button>
+            signedIn || checkingSession ? (
+              <>
+                {/* S5 will turn this into the real application; until then it only says so. */}
+                <Button disabled aria-describedby={applySoonId}>
+                  {es.vacancyDetail.apply}
+                </Button>
+                {signedIn && (
+                  <p id={applySoonId} className="vacancy-detail__notice">
+                    {es.vacancyDetail.applySoon}
+                  </p>
+                )}
+              </>
             ) : (
               <>
                 <Button to={`/ingresar?returnTo=${returnTo}`}>{es.vacancyDetail.apply}</Button>

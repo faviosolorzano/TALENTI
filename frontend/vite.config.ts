@@ -22,5 +22,8 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // The screens with forms type whole sentences with userEvent; with every test file running
+    // at the same time that can pass the 5 s default on a slow machine.
+    testTimeout: 20000,
   },
 })

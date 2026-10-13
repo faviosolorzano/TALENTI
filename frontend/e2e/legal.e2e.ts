@@ -445,7 +445,8 @@ test.describe('Widths 360, 768 and 1280 (002-07)', () => {
     await scroller.focus()
     await expect(scroller).toBeFocused()
     await page.keyboard.press('ArrowRight')
-    expect(await scroller.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0)
+    // The page scrolls smoothly: wait for the box to move instead of reading it at once.
+    await expect.poll(() => scroller.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0)
   })
 })
 
@@ -548,7 +549,8 @@ test.describe('Footer (002-08)', () => {
   test('the footer links and the button are reached with Tab and opened with Enter', async ({
     page,
   }) => {
-    await page.goto('/panel')
+    // A static public page: /panel is private now and would redirect (and move the focus).
+    await page.goto('/recuperar-cuenta')
     const footer = page.getByRole('contentinfo')
     await footer.getByRole('link', { name: 'Términos y Condiciones' }).focus()
     await page.keyboard.press('Tab')
@@ -921,15 +923,28 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     )
   })
 
-  /** The student has an old version: only the answer of GET /auth/me is simulated. */
+  /**
+   * The student has an old version: only the answer of GET /auth/me is simulated. Like the
+   * server, once a POST /legal/accept answers 204 nothing is pending any more.
+   */
   async function pendingStudent(page: Page, pending = true) {
+    let accepted = false
+    page.on('response', (response) => {
+      if (
+        response.url().endsWith('/api/v1/legal/accept') &&
+        response.request().method() === 'POST' &&
+        response.status() === 204
+      ) {
+        accepted = true
+      }
+    })
     await page.route('**/api/v1/auth/me', (route) =>
       route.fulfill({
         json: {
           id: '00000000-0000-4000-8000-000000000001',
           email: 'ana@example.org',
           role: 'STUDENT',
-          legalAcceptancePending: pending,
+          legalAcceptancePending: pending && !accepted,
         },
       }),
     )
@@ -954,7 +969,9 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
       page.getByRole('checkbox', { name: 'He leído y acepto los documentos nuevos.' }),
     ).not.toBeChecked()
     await expect(page.getByRole('button', { name: 'Aceptar y continuar' })).toBeEnabled()
-    await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeEnabled()
+    await expect(
+      page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }),
+    ).toBeEnabled()
   })
 
   test('002-19: without the box it does not continue and says why; with it, it accepts and goes back to returnTo', async ({
@@ -1079,7 +1096,9 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     await expect(page.getByRole('alert')).toContainText('necesitas aceptar los documentos nuevos')
   })
 
-  test('T8: "Cerrar sesión" is always there and leaves to the home page', async ({ page }) => {
+  test('T8: "Cerrar sesión" is always there and leaves to the sign-in page saying so', async ({
+    page,
+  }) => {
     await pendingStudent(page)
     let loggedOut = false
     await page.route('**/api/v1/auth/logout', (route) => {
@@ -1087,16 +1106,17 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
       return route.fulfill({ status: 204 })
     })
     await page.goto('/aceptar-documentos')
-    await page.getByRole('button', { name: 'Cerrar sesión' }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
+    await expect(page).toHaveURL(/\/ingresar$/)
+    await expect(page.getByText('Cerraste sesión.')).toBeVisible()
     expect(loggedOut).toBe(true)
   })
 
   test('001-14: without a session (the real backend answers 401) it goes to the sign-in page and remembers where to come back', async ({
     page,
   }) => {
-    await page.goto('/aceptar-documentos?returnTo=%2Fpanel')
-    await expect(page).toHaveURL(/\/ingresar\?returnTo=%2Fpanel$/)
+    await page.goto('/aceptar-documentos?returnTo=%2Foportunidades')
+    await expect(page).toHaveURL(/\/ingresar\?returnTo=%2Foportunidades$/)
   })
 
   test('the documents stay readable while the acceptance is pending', async ({ page }) => {

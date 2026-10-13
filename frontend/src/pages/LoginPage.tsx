@@ -1,6 +1,5 @@
-import { PlaceholderPage } from '../components/PlaceholderPage'
-import { es } from '../i18n/es'
+import { LoginScreen } from '../features/identity/LoginScreen'
 
 export function LoginPage() {
-  return <PlaceholderPage title={es.pages.login.title} />
+  return <LoginScreen />
 }

@@ -1,6 +1,5 @@
-import { PlaceholderPage } from '../components/PlaceholderPage'
-import { es } from '../i18n/es'
+import { RegisterScreen } from '../features/identity/RegisterScreen'
 
 export function RegisterPage() {
-  return <PlaceholderPage title={es.pages.register.title} />
+  return <RegisterScreen />
 }

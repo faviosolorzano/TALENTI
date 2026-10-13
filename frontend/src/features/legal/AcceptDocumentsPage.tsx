@@ -1,71 +1,72 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import {
-  acceptLegalDocuments,
-  fetchLegalAcceptancePending,
-  fetchLegalCatalog,
-  logoutRequest,
-} from '../../api/legal'
+import { acceptLegalDocuments, fetchLegalCatalog } from '../../api/legal'
 import { ApiError } from '../../api/client'
 import { Button } from '../../components/Button'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
+import { loginPathWithReturn } from '../../session/returnTo'
+import { useSession } from '../../session/useSession'
+import { useSignOut } from '../../session/useSignOut'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import { DraftNotice } from './DraftNotice'
 import { formatPublishedDate } from './format'
-import { leaveTo } from './navigation'
 import { DEFAULT_RETURN_PATH, LEGAL_PATHS, safeReturnTo } from './paths'
 import '../vacancies/Skeletons.css'
 import './AcceptDocumentsPage.css'
 
-type Problem = 'mustAccept' | 'outdated' | 'failed' | 'logoutFailed'
+type Problem = 'mustAccept' | 'outdated' | 'failed'
 
 /**
  * `/aceptar-documentos` (002-18, 002-19): the Terms or the Privacy Policy changed since the
  * student accepted them. They read the new texts, tick the box (it starts unticked) and
  * continue to the page they asked for (`returnTo`, internal routes only); or they sign out.
- * Signing out and reading the documents are never blocked.
+ * Signing out and reading the documents are never blocked. Who is signed in, and whether
+ * something is pending, comes from the session (`SessionProvider`, `GET /auth/me`); after
+ * accepting or signing out the session is refreshed without reloading the page.
  */
 export function AcceptDocumentsPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
+  const session = useSession()
   const returnTo = safeReturnTo(params.get('returnTo')) ?? DEFAULT_RETURN_PATH
-  const { state, retry, refreshing } = useApiResource(
-    'accept-documents',
-    async (signal) => {
-      const [pending, catalog] = await Promise.all([
-        fetchLegalAcceptancePending(signal),
-        fetchLegalCatalog(signal),
-      ])
-      return { pending, catalog }
-    },
-    { keepPrevious: true },
-  )
+  const { state, retry, refreshing } = useApiResource('accept-documents', fetchLegalCatalog, {
+    keepPrevious: true,
+  })
   const [checked, setChecked] = useState(false)
   const [problem, setProblem] = useState<Problem | null>(null)
   const [saving, setSaving] = useState(false)
-  const [leaving, setLeaving] = useState(false)
+  // The same "Cerrar sesión" as the header and the panel: same destination, same message.
+  const { signOut, pending: leaving, failed: logoutFailed } = useSignOut()
   const checkboxRef = useRef<HTMLInputElement>(null)
   const problemId = useId()
+  const { refresh } = session
 
-  const sessionExpired =
-    state.status === 'error' && state.error instanceof ApiError && state.error.status === 401
-  const upToDate = state.status === 'success' && !state.data.pending
+  // Each time the screen opens the answer of the server is checked again.
+  useEffect(() => {
+    void refresh({ onlyIfStale: true })
+  }, [refresh])
+
+  const signedOut = session.status === 'visitor'
+  const upToDate = session.status === 'authenticated' && !session.legalAcceptancePending
 
   // No session (or it expired, 001-14): to the sign-in page, coming back here afterwards.
   useEffect(() => {
-    if (!sessionExpired) return
-    navigate(`/ingresar?returnTo=${encodeURIComponent(returnTo)}`, { replace: true })
-  }, [sessionExpired, navigate, returnTo])
+    if (!signedOut || leaving) return
+    navigate(loginPathWithReturn(returnTo), {
+      replace: true,
+      state: session.notice ? { notice: session.notice } : undefined,
+    })
+  }, [signedOut, leaving, navigate, returnTo, session.notice])
 
   // Nothing pending: this screen has nothing to show ("con la versión al día no aparece nada").
   useEffect(() => {
-    if (upToDate) leaveTo(returnTo)
-  }, [upToDate, returnTo])
+    if (upToDate && !saving) navigate(returnTo, { replace: true })
+  }, [upToDate, saving, navigate, returnTo])
 
-  const handleSessionLost = () => {
-    navigate(`/ingresar?returnTo=${encodeURIComponent(returnTo)}`, { replace: true })
-  }
+  const pending = session.status === 'authenticated' && session.legalAcceptancePending
+  const sessionLoading = session.status === 'loading'
+  const sessionUnavailable = session.status === 'unavailable'
 
   const accept = async (version: string) => {
     if (!checked) {
@@ -77,12 +78,14 @@ export function AcceptDocumentsPage() {
     setSaving(true)
     try {
       await acceptLegalDocuments(version)
-      leaveTo(returnTo)
+      // The server now has the acceptance: ask who we are again (no page reload) and go on.
+      await refresh()
+      navigate(returnTo, { replace: true })
       return
     } catch (error) {
       const status = error instanceof ApiError ? error.status : 0
       if (status === 401) {
-        handleSessionLost()
+        navigate(loginPathWithReturn(returnTo), { replace: true })
         return
       }
       if (status === 409) {
@@ -100,20 +103,9 @@ export function AcceptDocumentsPage() {
     setSaving(false)
   }
 
-  const logout = async () => {
+  const logout = () => {
     setProblem(null)
-    setLeaving(true)
-    try {
-      await logoutRequest()
-    } catch (error) {
-      // Already signed out (401) is fine; anything else keeps the student here with a message.
-      if (!(error instanceof ApiError && error.status === 401)) {
-        setProblem('logoutFailed')
-        setLeaving(false)
-        return
-      }
-    }
-    leaveTo('/')
+    void signOut()
   }
 
   const submit = (event: FormEvent<HTMLFormElement>, version: string) => {
@@ -121,16 +113,23 @@ export function AcceptDocumentsPage() {
     void accept(version)
   }
 
-  const catalog = state.status === 'success' && state.data.pending ? state.data.catalog : null
+  const shownProblem = problem ?? (logoutFailed ? 'logoutFailed' : null)
+  const catalog = state.status === 'success' && pending ? state.data : null
+  const loadingNow = state.status === 'loading' || sessionLoading
+  const failedNow = state.status === 'error' || sessionUnavailable
+  const retryAll = () => {
+    retry()
+    void refresh()
+  }
   const date = catalog ? formatPublishedDate(catalog.publishedAt) : null
 
   return (
     <section className="container accept">
       <h1 className="accept__title">{es.acceptDocuments.title}</h1>
 
-      {(state.status === 'loading' || (state.status === 'error' && !sessionExpired)) && (
-        <div aria-busy={state.status === 'loading'}>
-          {state.status === 'loading' && (
+      {(loadingNow || failedNow) && (
+        <div aria-busy={loadingNow}>
+          {loadingNow && (
             <>
               <p className="visually-hidden" role="status">
                 {es.acceptDocuments.loading}
@@ -142,8 +141,8 @@ export function AcceptDocumentsPage() {
               </div>
             </>
           )}
-          {state.status === 'error' && (
-            <ErrorNotice message={es.acceptDocuments.errorMessage} onRetry={retry} />
+          {!loadingNow && failedNow && (
+            <ErrorNotice message={es.acceptDocuments.errorMessage} onRetry={retryAll} />
           )}
         </div>
       )}
@@ -187,15 +186,15 @@ export function AcceptDocumentsPage() {
               type="checkbox"
               checked={checked}
               aria-invalid={problem === 'mustAccept' || undefined}
-              aria-describedby={problem ? problemId : undefined}
+              aria-describedby={shownProblem ? problemId : undefined}
               onChange={(event) => setChecked(event.target.checked)}
             />
             {es.acceptDocuments.checkbox}
           </label>
 
-          {problem && (
+          {shownProblem && (
             <p id={problemId} className="accept__problem" role="alert">
-              {es.acceptDocuments[problem]}
+              {es.acceptDocuments[shownProblem]}
             </p>
           )}
 
@@ -203,7 +202,7 @@ export function AcceptDocumentsPage() {
             <Button type="submit" disabled={saving || leaving}>
               {saving ? es.acceptDocuments.saving : es.acceptDocuments.submit}
             </Button>
-            <Button variant="quiet" disabled={leaving} onClick={() => void logout()}>
+            <Button variant="quiet" disabled={leaving} onClick={logout}>
               {leaving ? es.acceptDocuments.loggingOut : es.acceptDocuments.logout}
             </Button>
           </div>

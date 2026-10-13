@@ -42,6 +42,95 @@ export const es = {
     network: 'No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.',
   },
 
+  // ---- Identity and consent (spec 001) ----
+  identity: {
+    nav: {
+      logout: 'Cerrar sesión',
+    },
+    form: {
+      emailLabel: 'Correo',
+      passwordLabel: 'Contraseña',
+      show: 'Mostrar',
+      hide: 'Ocultar',
+      showLabel: 'Mostrar contraseña',
+      hideLabel: 'Ocultar contraseña',
+      errorMark: '!',
+      fieldInvalid: 'Revisa este campo.',
+      reviewFields: 'Revisa los campos marcados e inténtalo de nuevo.',
+      newTabHint: 'Los enlaces se abren en otra pestaña: así no pierdes lo que escribiste.',
+    },
+    register: {
+      title: 'Crea tu cuenta',
+      lead: 'Con tu cuenta ves qué vacantes encajan contigo y ensayas entrevistas con DORA, nuestra asistente de inteligencia artificial.',
+      passwordHint: 'Usa al menos 8 caracteres, con una letra y un número.',
+      submit: 'Crear mi cuenta',
+      submitting: 'Creando tu cuenta…',
+      haveAccount: '¿Ya tienes cuenta?',
+      goToLogin: 'Ingresar',
+      emailTaken: 'Ya existe una cuenta con este correo.',
+      emailTakenAction: 'Ingresar con esa cuenta',
+      versionOutdated:
+        'Los documentos legales cambiaron mientras escribías. Lee el texto actualizado y vuelve a aceptarlo.',
+      tooManyRequests: 'Demasiados intentos, prueba más tarde.',
+    },
+    consent: {
+      sectionTitle: 'Antes de crear tu cuenta',
+      loading: 'Cargando el texto del consentimiento…',
+      loadError:
+        'No pudimos cargar el texto del consentimiento. Sin leerlo no puedes crear tu cuenta.',
+      summary: 'Lee qué datos usamos y para qué',
+      checkboxStart: 'Leí y acepto los ',
+      terms: 'Términos y Condiciones',
+      checkboxMiddle: ' y la ',
+      privacy: 'Política de Privacidad',
+      checkboxEnd: ', incluido el consentimiento para el uso de mis datos.',
+      opensInNewTab: '(se abre en otra pestaña)',
+    },
+    login: {
+      title: 'Ingresa a tu cuenta',
+      lead: 'Qué bueno verte de nuevo.',
+      continueHint: 'Ingresa para continuar donde estabas.',
+      submit: 'Ingresar',
+      submitting: 'Ingresando…',
+      forgot: '¿Olvidaste tu contraseña?',
+      noAccount: '¿Aún no tienes cuenta?',
+      goToRegister: 'Crear cuenta',
+      invalidCredentials:
+        'El correo o la contraseña no son correctos. Si fallaste varias veces, espera unos minutos antes de volver a intentarlo.',
+      tooManyRequests: 'Demasiados intentos, prueba más tarde.',
+      notices: {
+        expired: 'Tu sesión expiró. Ingresa de nuevo.',
+        signedOut: 'Cerraste sesión.',
+      },
+    },
+    recover: {
+      title: 'Recuperar tu cuenta',
+      body: 'Pronto podrás recuperar tu cuenta con tu correo.',
+      back: 'Volver a ingresar',
+    },
+    aside: {
+      title: 'Tú decides. La empresa decide.',
+      body: 'Talenti te muestra qué vacantes encajan contigo y por qué. A cuáles postular lo eliges tú; a quién contactar lo elige cada empresa.',
+      privacy: 'Tus sesiones de práctica con DORA son privadas: nadie más las ve.',
+    },
+    dashboard: {
+      welcomeTitle: 'Tu cuenta está lista',
+      welcomeBody: 'Ya puedes explorar las oportunidades.',
+      greeting: (email: string) => `Hola, ${email}`,
+      studentLead: 'Aquí irás encontrando tu perfil, tus postulaciones y tus sesiones de práctica.',
+      explore: 'Ver oportunidades',
+      noScreensTitle: 'Esta cuenta aún no tiene pantallas',
+      noScreensBody: 'Por ahora solo puedes cerrar la sesión o recorrer las secciones públicas.',
+      logout: 'Cerrar sesión',
+      loggingOut: 'Cerrando sesión…',
+      logoutFailed: 'No pudimos cerrar tu sesión. Inténtalo de nuevo.',
+    },
+    guard: {
+      loading: 'Comprobando tu sesión…',
+      unavailable: 'No pudimos comprobar tu sesión.',
+    },
+  },
+
   // ---- Reusable pieces ----
   ai: {
     label: 'DORA · inteligencia artificial',
@@ -183,7 +272,7 @@ export const es = {
     stagesNext: ['Examen técnico', 'Entrevista', 'Revisión de la empresa'] as readonly string[],
     apply: 'Postular',
     applyLoginNotice: 'Inicia sesión para ver tu compatibilidad',
-    applyDisabled: 'Postular: disponible pronto',
+    applySoon: 'Próximamente',
     closedTitle: 'Esta vacante ya no está abierta',
     closedHint: 'Puedes mirar otras vacantes que sí lo están.',
     seeOthers: 'Ver otras vacantes',

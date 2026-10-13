@@ -5,8 +5,19 @@ import { es } from '../../i18n/es'
 import { mockBackend, VACANCY_IDS } from '../../test/fakeBackend'
 import { renderApp } from '../../test/renderApp'
 
-vi.mock('../../session/useSession', () => ({ useSession: vi.fn(() => ({ isStudent: false })) }))
+vi.mock('../../session/useSession', async () => {
+  const { visitorSession } = await import('../../session/sessionContext')
+  return { useSession: vi.fn(() => visitorSession) }
+})
+import { visitorSession, type SessionState } from '../../session/sessionContext'
 import { useSession } from '../../session/useSession'
+
+const signedIn: SessionState = {
+  ...visitorSession,
+  status: 'authenticated',
+  user: { id: '1', email: 'ana.prueba@example.test', role: 'STUDENT' },
+  isStudent: true,
+}
 
 const FIRST = VACANCY_IDS[0] as string // Practicante Backend Java, Andes Tech, remote
 const title = () => screen.findByRole('heading', { level: 1, name: 'Practicante Backend Java' })
@@ -151,19 +162,20 @@ describe('"Postular" and the session (004-22)', () => {
     expect(screen.queryByText(/% de compatibilidad/)).not.toBeInTheDocument()
   })
 
-  it('with a student session shows the disabled button and no notice', async () => {
-    vi.mocked(useSession).mockReturnValue({ isStudent: true })
+  it('with a session shows "Postular" turned off with the note "Próximamente" and no sign-in notice', async () => {
+    vi.mocked(useSession).mockReturnValue(signedIn)
     try {
       mockBackend()
       renderApp(`/oportunidades/${FIRST}`)
       await title()
 
-      const button = screen.getByRole('button', { name: es.vacancyDetail.applyDisabled })
+      const button = screen.getByRole('button', { name: es.vacancyDetail.apply })
       expect(button).toBeDisabled()
+      expect(button).toHaveAccessibleDescription(es.vacancyDetail.applySoon)
       expect(screen.queryByRole('link', { name: es.vacancyDetail.apply })).not.toBeInTheDocument()
       expect(screen.queryByText(es.vacancyDetail.applyLoginNotice)).not.toBeInTheDocument()
     } finally {
-      vi.mocked(useSession).mockReturnValue({ isStudent: false })
+      vi.mocked(useSession).mockReturnValue(visitorSession)
     }
   })
 })

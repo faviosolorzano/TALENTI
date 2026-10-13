@@ -4,12 +4,11 @@ import { es } from '../i18n/es'
  * Minimal API client. Calls `/api/v1/...` with the session cookie and, for requests that
  * change data, sends the CSRF token read from the cookie.
  *
- * Not used by any screen yet.
- *
- * PENDING CONTRACT (CSRF): the cookie and header names below are a PROVISIONAL guess, not an
- * agreed contract. Spec 001 (identity and consent) will close it: the backend is expected to
- * use `CookieCsrfTokenRepository` with a handler for single-page apps. When that spec is
- * approved, confirm or change the two names here and update the tests.
+ * CSRF contract (spec 001, confirmed): the backend uses `CookieCsrfTokenRepository`. The token
+ * lives in the `XSRF-TOKEN` cookie and goes back in the `X-XSRF-TOKEN` header on every request
+ * that changes data. It ROTATES on sign-up, sign-in and sign-out, so it is read from the cookie
+ * again before EACH request, never kept in memory. Without the cookie (first visit) it is asked
+ * for with `GET /auth/csrf`; a 403 `csrf-invalid` is retried once with a fresh token.
  */
 
 export const API_BASE_PATH = '/api/v1'
@@ -17,6 +16,8 @@ export const CSRF_COOKIE_NAME = 'XSRF-TOKEN'
 export const CSRF_HEADER_NAME = 'X-XSRF-TOKEN'
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+const CSRF_ENDPOINT = '/auth/csrf'
+const CSRF_INVALID_CODE = 'csrf-invalid'
 
 /** Error body format of the backend (Problem Details, RFC 9457). */
 export interface ProblemDetails {
@@ -71,7 +72,35 @@ export interface ApiRequestOptions extends Omit<RequestInit, 'body' | 'credentia
  */
 export async function apiFetch<T = unknown>(
   path: string,
-  { json, headers, method = 'GET', ...init }: ApiRequestOptions = {},
+  options: ApiRequestOptions = {},
+): Promise<T> {
+  const method = (options.method ?? 'GET').toUpperCase()
+  const changesData = !SAFE_METHODS.has(method)
+
+  if (changesData && !readCookie(CSRF_COOKIE_NAME)) {
+    await requestCsrfToken(options.signal ?? undefined)
+  }
+
+  try {
+    return await send<T>(path, options)
+  } catch (error) {
+    // The token may be stale (another tab signed in or out): ask for a new one and retry ONCE.
+    if (changesData && error instanceof ApiError && error.problem?.code === CSRF_INVALID_CODE) {
+      await requestCsrfToken(options.signal ?? undefined)
+      return send<T>(path, options)
+    }
+    throw error
+  }
+}
+
+/** Leaves the `XSRF-TOKEN` cookie in the browser (public, read-only endpoint). */
+async function requestCsrfToken(signal?: AbortSignal): Promise<void> {
+  await send<void>(CSRF_ENDPOINT, { signal })
+}
+
+async function send<T>(
+  path: string,
+  { json, headers, method = 'GET', ...init }: ApiRequestOptions,
 ): Promise<T> {
   const finalHeaders = new Headers(headers)
   finalHeaders.set('Accept', 'application/json')
@@ -82,6 +111,7 @@ export async function apiFetch<T = unknown>(
 
   const upperMethod = method.toUpperCase()
   if (!SAFE_METHODS.has(upperMethod)) {
+    // Read again on every call: the token rotates.
     const csrfToken = readCookie(CSRF_COOKIE_NAME)
     if (csrfToken) finalHeaders.set(CSRF_HEADER_NAME, csrfToken)
   }
