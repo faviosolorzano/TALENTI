@@ -1,11 +1,8 @@
-import { ApiError } from '../../api/client'
-import { fetchProfile } from '../../api/profile'
+import type { ProfileResource } from './useProfileResource'
 import { Button } from '../../components/Button'
-import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { features } from '../../app/features'
 import { sessionPaths } from '../../session/sessionPaths'
-import { useSession } from '../../session/useSession'
 import { ProgressHeadline } from '../profile/ProgressHeadline'
 import { sectionOfItem, sectionPath } from '../profile/sections'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
@@ -19,7 +16,7 @@ const t = es.home.profile
  * else that is missing lives in /perfil. Until the profile slice is integrated it only says
  * "Próximamente" and calls nothing.
  */
-export function ProfileBlock() {
+export function ProfileBlock({ resource }: { resource: ProfileResource }) {
   if (!features.profile) {
     return (
       <HomeBlock
@@ -31,19 +28,10 @@ export function ProfileBlock() {
       </HomeBlock>
     )
   }
-  return <LiveProfileBlock />
+  return <LiveProfileBlock resource={resource} />
 }
 
-function LiveProfileBlock() {
-  const { refresh } = useSession()
-  const resource = useApiResource('home-profile', async (signal) => {
-    try {
-      return await fetchProfile(signal)
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) void refresh()
-      throw error
-    }
-  })
+function LiveProfileBlock({ resource }: { resource: ProfileResource }) {
   const { state } = resource
 
   if (state.status === 'loading') {

@@ -12,6 +12,7 @@
 }
 
 .home__title {
+  overflow-wrap: anywhere;
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
 }
@@ -27,6 +28,7 @@
   }
 
   .home__title {
+    overflow-wrap: anywhere;
     font-size: var(--font-size-4xl);
   }
 }
@@ -153,15 +155,6 @@
   position: absolute;
   inset: 0;
   border-radius: var(--radius-md);
-}
-
-.home-vacancy__link:focus-visible {
-  outline: none;
-}
-
-.home-vacancy__link:focus-visible::after {
-  outline: var(--focus-ring-width) solid var(--color-focus);
-  outline-offset: var(--focus-ring-offset);
 }
 
 .home-vacancy__meta {

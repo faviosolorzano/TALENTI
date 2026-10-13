@@ -2,9 +2,10 @@ import type { Completeness, CompletenessKey } from '../../api/profile'
 import { sessionPaths } from '../../session/sessionPaths'
 
 /** The four cards of /perfil, in the order they are shown (spec 006-14). */
-export type SectionKey = 'academic' | 'skills' | 'availability' | 'projects'
+export type SectionKey = 'about' | 'academic' | 'skills' | 'availability' | 'projects'
 
 export const SECTION_ORDER: readonly SectionKey[] = [
+  'about',
   'academic',
   'skills',
   'availability',
@@ -13,6 +14,7 @@ export const SECTION_ORDER: readonly SectionKey[] = [
 
 /** Value of `?seccion=` for each card (006-20). */
 const SECTION_PARAMS: Record<SectionKey, string> = {
+  about: 'sobre-ti',
   academic: 'academico',
   skills: 'habilidades',
   availability: 'disponibilidad',
@@ -26,6 +28,7 @@ export function sectionFromParam(value: string | null): SectionKey | null {
 
 /** The server measures five items; "Disponibilidad y preferencias" holds two of them. */
 const ITEMS_OF_SECTION: Record<SectionKey, readonly CompletenessKey[]> = {
+  about: ['ABOUT'],
   academic: ['ACADEMIC'],
   skills: ['SKILLS'],
   availability: ['AVAILABILITY', 'LOCATION'],
@@ -59,6 +62,8 @@ export function sectionDomId(section: SectionKey): string {
  */
 export const PROFILE_LIMITS = {
   maxProjects: 10,
+  displayNameMaxLength: 40,
+  aboutMaxLength: 500,
   careerMaxLength: 80,
   locationMaxLength: 60,
   projectNameMaxLength: 80,

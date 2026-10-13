@@ -6,6 +6,7 @@ import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
+import { AboutForm, AboutSummary } from './AboutSection'
 import { AcademicForm, AcademicSummary } from './AcademicSection'
 import { AvailabilityForm, AvailabilitySummary } from './AvailabilitySection'
 import { CvCard } from './CvCard'
@@ -27,6 +28,7 @@ import './ProfileScreen.css'
 const SAVED_VISIBLE_MS = 4000
 
 const TITLES: Record<SectionKey, string> = {
+  about: es.profile.about.title,
   academic: es.profile.academic.title,
   skills: es.profile.skills.title,
   availability: es.profile.availability.title,
@@ -97,6 +99,7 @@ function ProfileView({ initial }: { initial: Profile }) {
   // One stable callback per card, so the forms do not report again on every render.
   const dirtyReporters = useMemo(
     () => ({
+      about: (value: boolean) => reportDirty('about', value),
       academic: (value: boolean) => reportDirty('academic', value),
       skills: (value: boolean) => reportDirty('skills', value),
       availability: (value: boolean) => reportDirty('availability', value),
@@ -148,6 +151,16 @@ function ProfileView({ initial }: { initial: Profile }) {
   )
 
   const cards: Record<SectionKey, ReactNode> = {
+    about: card(
+      'about',
+      <AboutSummary profile={profile} />,
+      <AboutForm
+        profile={profile}
+        onSaved={(next) => saved('about', next)}
+        onCancel={() => closeSection('about')}
+        onDirtyChange={dirtyReporters.about}
+      />,
+    ),
     academic: card(
       'academic',
       <AcademicSummary profile={profile} />,

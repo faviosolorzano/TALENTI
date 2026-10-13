@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { Notice } from '../../components/Notice'
 import { es } from '../../i18n/es'
 import { ProfileBlock } from './ProfileBlock'
+import { useProfileResource } from './useProfileResource'
 import { ApplicationsBlock, PracticeBlock } from './SoonBlocks'
 import { VacanciesBlock } from './VacanciesBlock'
 import './StudentHome.css'
@@ -19,6 +20,12 @@ export function StudentHome() {
   const [welcome] = useState(
     () => (location.state as { welcome?: unknown } | null)?.welcome === true,
   )
+
+  const profile = useProfileResource()
+  // "Hola, {nombre}" only when the person gave a name; otherwise the neutral greeting (005-01).
+  const displayName =
+    profile.state.status === 'success' ? profile.state.data.about?.displayName : null
+  const title = displayName ? es.home.titleNamed(displayName) : es.home.title
 
   useEffect(() => {
     // Take the mark out of the history entry, so reloading the page does not show it again.
@@ -37,12 +44,12 @@ export function StudentHome() {
       )}
 
       <div className="home__head">
-        <h1 className="home__title">{es.home.title}</h1>
+        <h1 className="home__title">{title}</h1>
         <p className="home__lead">{es.home.lead}</p>
       </div>
 
       <div className="home__grid">
-        <ProfileBlock />
+        <ProfileBlock resource={profile} />
         <VacanciesBlock />
         <div className="home__side">
           <ApplicationsBlock />

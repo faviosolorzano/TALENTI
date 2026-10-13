@@ -8,7 +8,8 @@ import type { Modality } from './vacancies'
  */
 
 /** The five items the server uses to measure progress (RN-11). */
-export type CompletenessKey = 'ACADEMIC' | 'SKILLS' | 'AVAILABILITY' | 'PROJECTS' | 'LOCATION'
+export type CompletenessKey =
+  'ACADEMIC' | 'SKILLS' | 'AVAILABILITY' | 'PROJECTS' | 'LOCATION' | 'ABOUT'
 
 export interface CompletenessItem {
   key: CompletenessKey
@@ -43,6 +44,7 @@ export interface ProfileProject {
 }
 
 export interface Profile {
+  about: { displayName: string | null; about: string | null }
   academic: { career: string | null; institute: string | null; cycle: number | null }
   skills: ProfileSkill[]
   availability: {
@@ -67,6 +69,11 @@ export interface CatalogSkill {
  * else goes as the typed text so that the SERVER says it is not valid (422 `invalid`).
  */
 export type TypedNumber = number | string | null
+
+export interface AboutInput {
+  displayName: string
+  about: string
+}
 
 export interface AcademicInput {
   career: string
@@ -95,6 +102,9 @@ export const fetchProfile = (signal?: AbortSignal) => apiFetch<Profile>('/profil
 
 export const fetchSkillCatalog = (signal?: AbortSignal) =>
   apiFetch<CatalogSkill[]>('/skills', { signal })
+
+export const saveAbout = (input: AboutInput) =>
+  apiFetch<Profile>('/profile/about', { method: 'PUT', json: input })
 
 export const saveAcademic = (input: AcademicInput) =>
   apiFetch<Profile>('/profile/academic', { method: 'PUT', json: input })

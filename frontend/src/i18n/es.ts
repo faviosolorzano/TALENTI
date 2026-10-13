@@ -120,9 +120,7 @@ export const es = {
     },
     dashboard: {
       welcomeTitle: 'Tu cuenta está lista',
-      welcomeBody: 'Ya puedes explorar las oportunidades.',
       greeting: (email: string) => `Hola, ${email}`,
-      studentLead: 'Aquí irás encontrando tu perfil, tus postulaciones y tus sesiones de práctica.',
       explore: 'Ver oportunidades',
       noScreensTitle: 'Esta cuenta aún no tiene pantallas',
       noScreensBody: 'Por ahora solo puedes cerrar la sesión o recorrer las secciones públicas.',
@@ -139,6 +137,7 @@ export const es = {
   // ---- Student home (spec 005) ----
   home: {
     title: 'Hola de nuevo',
+    titleNamed: (name: string) => `Hola, ${name}`,
     lead: 'Esto es lo importante hoy.',
     loading: 'Cargando tu inicio…',
     welcomeTitle: 'Tu cuenta está lista',
@@ -204,6 +203,7 @@ export const es = {
       AVAILABILITY: 'Indica tu disponibilidad',
       PROJECTS: 'Agrega un proyecto',
       LOCATION: 'Indica tu ciudad',
+      ABOUT: 'Cuéntanos sobre ti',
     } as const,
     sectionStatus: {
       done: 'Completo',
@@ -221,6 +221,16 @@ export const es = {
     },
     saveFailed: 'No pudimos guardar los cambios. Lo que escribiste sigue aquí: inténtalo de nuevo.',
     reviewFields: 'Revisa los campos marcados e inténtalo de nuevo.',
+    about: {
+      title: 'Sobre ti',
+      empty: 'Aún no te presentas.',
+      displayName: 'Cómo quieres que te llamemos',
+      displayNameHint: 'Un nombre o apodo, de 2 a 40 caracteres. Es opcional.',
+      about: 'Presentación',
+      aboutHint: 'Cuenta en pocas líneas quién eres y qué buscas. Es opcional.',
+      counter: (used: number, max: number) => `${used} de ${max} caracteres`,
+      notSet: 'Sin indicar',
+    },
     academic: {
       title: 'Datos académicos',
       empty: 'Aún no cuentas qué estudias.',
