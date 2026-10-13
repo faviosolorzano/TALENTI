@@ -128,11 +128,11 @@ class VacancyCacheAndSecurityTests extends VacancyIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("004-14: cualquier otra ruta de vacancy sigue exigiendo sesión (001-13)")
+	@DisplayName("004-14: cualquier otra ruta de vacancy sigue exigiendo sesión (001-13); GET /skills es público desde 006-02, no sus subrutas")
 	void t004_14_otherRoutesRequireSession() {
 		for (String route : List.of("/api/v1/vacancies/featured/otra", "/api/v1/vacancies/" + BACKEND_JAVA + "/requirements",
 				"/api/v1/vacancies/" + BACKEND_JAVA + "/applications", "/api/v1/companies",
-				"/api/v1/companies/" + ANDES_TECH, "/api/v1/skills")) {
+				"/api/v1/companies/" + ANDES_TECH, "/api/v1/skills/java")) {
 			Response response = client().get(route);
 
 			assertThat(response.status()).as(route).isEqualTo(401);

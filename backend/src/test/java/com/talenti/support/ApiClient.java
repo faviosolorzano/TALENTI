@@ -126,6 +126,14 @@ public final class ApiClient {
 		return send(method, path, body, cookies.get("XSRF-TOKEN"), Map.of());
 	}
 
+	/**
+	 * Escritura con el método dado y el token CSRF indicado tal cual (nulo = sin cabecera). Para probar que una ruta
+	 * rechaza una escritura sin token o con uno falso, sea PUT, POST o DELETE.
+	 */
+	public Response writeWithToken(String method, String path, Object body, String csrfToken) {
+		return send(method, path, body, csrfToken, Map.of());
+	}
+
 	public Response postWithoutCsrf(String path, Object body) {
 		return send("POST", path, body, false);
 	}
