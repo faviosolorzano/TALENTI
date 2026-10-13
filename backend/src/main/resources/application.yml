@@ -75,6 +75,20 @@ talenti:
     # Tiempo máximo de cada consulta de la búsqueda de vacantes (spec 004). Al agotarse, la petición responde 503
     # search-timeout en vez de ocupar la base de datos. Formato de duración de Spring (por ejemplo 5s).
     search-timeout: 5s
+  profile:
+    # Perfil del estudiante (spec 006, RN-14): todo parámetro de la regla vive aquí, no en el código.
+    max-projects: 10            # proyectos por perfil (006-08)
+    max-cycle: 10               # ciclo de 1 a este valor (006-05)
+    completeness:
+      # Avance del perfil (RN-11, 006-09): todo o nada por ítem. Los pesos deben sumar 100 (si no, el arranque falla).
+      weights:
+        academic: 20            # carrera, instituto y ciclo
+        skills: 25              # al menos min-skills habilidades
+        availability: 20        # horas por semana y al menos min-modalities modalidades
+        projects: 25            # al menos 1 proyecto
+        location: 10            # ubicación
+      min-skills: 3
+      min-modalities: 1
   demo-data:
     # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
     # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.
