@@ -230,15 +230,17 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   })
 
   // T8
-  it('"Cerrar sesión" signs out and leaves to the home page', async () => {
+  it('"Cerrar sesión" signs out and leaves to the sign-in page saying so', async () => {
     const api = mockLegalApi({ pending: true })
     open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
     await userEvent.click(logoutButton())
 
-    await waitFor(() => expect(where()).toBe('/'))
+    await waitFor(() => expect(where()).toBe('/ingresar'))
     expect(api.calls()).toContain('POST /api/v1/auth/logout')
+    // Same destination and message as the header and the panel (the shared sign-out).
+    expect(await screen.findByText(es.identity.login.notices.signedOut)).toBeInTheDocument()
   })
 
   // M2: a stale CSRF token (403) is retried once with a new token
@@ -282,7 +284,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
 
     await userEvent.click(logoutButton())
 
-    await waitFor(() => expect(where()).toBe('/'))
+    await waitFor(() => expect(where()).toBe('/ingresar'))
     expect(api.calls().filter((call) => call === 'POST /api/v1/auth/logout')).toHaveLength(2)
   })
 
@@ -298,7 +300,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     const again = logoutButton()
     expect(again).toBeEnabled()
     await userEvent.click(again)
-    await waitFor(() => expect(where()).toBe('/'))
+    await waitFor(() => expect(where()).toBe('/ingresar'))
     expect(api.calls().filter((call) => call === 'POST /api/v1/auth/logout')).toHaveLength(3)
   })
 
@@ -351,7 +353,7 @@ describe('Session shared with the rest of the app (no page reload)', () => {
 
     await userEvent.click(logoutButton())
 
-    await waitFor(() => expect(where()).toBe('/'))
+    await waitFor(() => expect(where()).toBe('/ingresar'))
     expect(
       await within(screen.getByRole('banner')).findByRole('link', { name: es.nav.register }),
     ).toBeVisible()

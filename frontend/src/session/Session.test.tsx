@@ -121,9 +121,10 @@ describe('Private routes (001-13, 001-14)', () => {
     renderAppWithSession('/panel')
     const user = userEvent.setup()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.identity.guard.unavailable)
+    const main = screen.getByRole('main')
+    expect(await within(main).findByRole('alert')).toHaveTextContent(es.identity.guard.unavailable)
     backend.setOptions({ offline: false })
-    await user.click(screen.getByRole('button', { name: es.common.retry }))
+    await user.click(within(main).getByRole('button', { name: es.common.retry }))
 
     await panelTitle()
   })
@@ -380,8 +381,12 @@ describe('Nothing secret is kept in the browser (RNF-01 to 05)', () => {
     const logged = JSON.stringify(consoleCalls)
     expect(logged).not.toContain(EMAIL)
     expect(logged).not.toContain(PASSWORD)
-    // The session lives in the (HttpOnly) cookie, not in anything the page can read.
-    expect(document.cookie).not.toMatch(/JSESSIONID|password/i)
+    // The only cookie the page can read is the CSRF token: the session is HttpOnly and the
+    // password never goes into a cookie.
+    expect(document.cookie.split('; ').map((cookie) => cookie.split('=')[0])).toEqual([
+      'XSRF-TOKEN',
+    ])
+    expect(document.cookie).not.toContain(PASSWORD)
     vi.restoreAllMocks()
   })
 })

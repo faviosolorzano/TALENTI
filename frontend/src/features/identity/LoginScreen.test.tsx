@@ -40,7 +40,7 @@ describe('Sign-in form (001-22, 001-23)', () => {
   it('has labelled fields with the right autocomplete and a show/hide button', async () => {
     const { user } = await openLogin()
 
-    expect(emailField()).toHaveAttribute('autocomplete', 'email')
+    expect(emailField()).toHaveAttribute('autocomplete', 'username')
     expect(passwordField()).toHaveAttribute('autocomplete', 'current-password')
     expect(passwordField()).toHaveAttribute('type', 'password')
     await user.click(screen.getByRole('button', { name: es.identity.form.showLabel }))

@@ -1096,7 +1096,9 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     await expect(page.getByRole('alert')).toContainText('necesitas aceptar los documentos nuevos')
   })
 
-  test('T8: "Cerrar sesión" is always there and leaves to the home page', async ({ page }) => {
+  test('T8: "Cerrar sesión" is always there and leaves to the sign-in page saying so', async ({
+    page,
+  }) => {
     await pendingStudent(page)
     let loggedOut = false
     await page.route('**/api/v1/auth/logout', (route) => {
@@ -1105,7 +1107,8 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     })
     await page.goto('/aceptar-documentos')
     await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(/\/ingresar$/)
+    await expect(page.getByText('Cerraste sesión.')).toBeVisible()
     expect(loggedOut).toBe(true)
   })
 

@@ -52,6 +52,8 @@ export interface FakeIdentityOptions {
   lockAfterFailures?: number
   /** Every sign-in or sign-up answers 429, like the per-origin rate limit. */
   rateLimited?: boolean
+  /** Only `GET /auth/me` fails (500); sign-out, sign-in and the rest still work. */
+  meFails?: boolean
   /** Nothing answers: a network failure. */
   offline?: boolean
 }
@@ -145,6 +147,7 @@ export function mockIdentityBackend(initial: FakeIdentityOptions = {}): FakeIden
         : json(200, options.legal ?? SAMPLE_LEGAL)
     }
     if (method === 'GET' && path === '/auth/me') {
+      if (options.meFails) return problem(500, 'internal-error')
       if (session) {
         const account = accounts()[session]
         return json(200, {

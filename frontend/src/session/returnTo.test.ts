@@ -72,6 +72,22 @@ describe('returnTo accepts only internal routes (spec 001, edge cases)', () => {
     expect(safeReturnTo(route)).toBeNull()
   })
 
+  it('returns the NORMALIZED route (what the browser would open), not the raw text', () => {
+    expect(safeReturnTo('/a/./b?x=1#h')).toBe('/a/b?x=1#h')
+    expect(safeReturnTo('/oportunidades/../panel')).toBe('/panel')
+    expect(safeReturnTo('/%2e/panel')).toBe('/panel')
+  })
+
+  it('never returns something that starts with "//" or leaves the site', () => {
+    for (const value of ['/..//evil.com', '/.//evil.com', '/%2e%2e//evil.com', '/x/..//evil.com']) {
+      const result = safeReturnTo(value)
+      if (result !== null) {
+        expect(result.startsWith('//')).toBe(false)
+        expect(new URL(result, 'http://talenti.invalid').origin).toBe('http://talenti.invalid')
+      }
+    }
+  })
+
   it('does not treat a similar name as a loop', () => {
     expect(safeReturnTo('/ingresaremos')).toBe('/ingresaremos')
   })

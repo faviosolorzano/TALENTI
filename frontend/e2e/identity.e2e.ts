@@ -760,7 +760,8 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
 
     await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
 
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(/\/ingresar$/)
+    await expect(page.getByText('Cerraste sesión.')).toBeVisible()
     await expect(page.getByRole('banner').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
     expect(
       await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload),
@@ -775,5 +776,62 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
     await page.goto('/aceptar-documentos?returnTo=%2Foportunidades')
     await expect(loginTitle(page)).toBeVisible()
     expect(new URL(page.url()).searchParams.get('returnTo')).toBe('/oportunidades')
+  })
+})
+
+test.describe('Session that cannot be checked (M1, M2)', () => {
+  test('with /auth/me failing, the header says so and keeps "Cerrar sesión" and "Reintentar", without "Ingresar" or "Crear cuenta"', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 800 })
+    await page.route('**/api/v1/auth/me', (route) => route.fulfill({ status: 500, body: '{}' }))
+    await page.goto('/')
+
+    const banner = page.getByRole('banner')
+    await expect(banner.getByText('No pudimos comprobar tu sesión.')).toBeVisible()
+    await expect(banner.getByRole('button', { name: 'Reintentar' })).toBeVisible()
+    await expect(banner.getByRole('link', { name: 'Crear cuenta' })).toHaveCount(0)
+    await expect(banner.getByRole('link', { name: 'Ingresar' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Menú' }).click()
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Navegación principal' })
+        .getByRole('button', { name: 'Cerrar sesión' }),
+    ).toBeVisible()
+    expect(await seriousViolations(page)).toEqual([])
+  })
+
+  test('a private page with /auth/me failing offers "Reintentar" and "Cerrar sesión"', async ({
+    page,
+  }) => {
+    await page.route('**/api/v1/auth/me', (route) => route.fulfill({ status: 500, body: '{}' }))
+    await page.goto('/panel')
+
+    const main = page.getByRole('main')
+    await expect(main.getByText('No pudimos comprobar tu sesión.')).toBeVisible()
+    await expect(main.getByRole('button', { name: 'Reintentar' })).toBeVisible()
+    await main.getByRole('button', { name: 'Cerrar sesión' }).click()
+    await expect(loginTitle(page)).toBeVisible()
+  })
+
+  test('a failed sign-out from the header shows a visible note', async ({ page }) => {
+    expect(await loginViaApi(page, account.email, account.password)).toBe(200)
+    await page.goto('/oportunidades')
+    const banner = page.getByRole('banner')
+    await expect(banner.getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await page.route('**/api/v1/auth/logout', (route) => route.abort())
+
+    await banner.getByRole('button', { name: 'Cerrar sesión' }).click()
+
+    const note = banner.getByRole('alert')
+    await expect(note).toBeVisible()
+    await expect(note).toHaveText('No pudimos cerrar tu sesión. Inténtalo de nuevo.')
+    // Another page: the note goes away.
+    await banner.getByRole('link', { name: 'Mi panel' }).click()
+    await expect(panelTitle(page)).toBeVisible()
+    await expect(banner.getByRole('alert')).toHaveCount(0)
+
+    await page.unroute('**/api/v1/auth/logout')
+    await logoutViaPanel(page)
   })
 })

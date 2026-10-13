@@ -86,7 +86,7 @@ function withoutComments(file: string): string {
 
 describe('Texts and storage in the identity screens', () => {
   const dir = import.meta.dirname
-  const shared = ['TextField', 'PasswordField', 'CheckboxField', 'Notice'].map((name) =>
+  const shared = ['TextField', 'PasswordField', 'CheckboxField', 'Notice', 'Header'].map((name) =>
     join(dir, '..', '..', 'components', `${name}.tsx`),
   )
   const components = [...readdirSync(dir).map((file) => join(dir, file)), ...shared].filter(
@@ -113,6 +113,7 @@ describe('Texts and storage in the identity screens', () => {
     const files = [
       ...components,
       join(dir, '..', '..', 'session', 'SessionProvider.tsx'),
+      join(dir, '..', '..', 'session', 'useSignOut.ts'),
       join(dir, '..', '..', 'api', 'identity.ts'),
     ]
     const offenders = files.filter((file) =>
