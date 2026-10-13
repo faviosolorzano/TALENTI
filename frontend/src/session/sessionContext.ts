@@ -20,8 +20,6 @@ export interface SessionState {
   /** The backend says a newer version of the legal documents must be accepted. */
   legalAcceptancePending: boolean
   notice: SessionNotice
-  /** The last attempt to sign out failed (the person is still signed in). */
-  signOutFailed: boolean
   /** Asks the server who is signed in. `onlyIfStale` skips the call if it was just made. */
   refresh: (options?: { onlyIfStale?: boolean }) => Promise<void>
   /** Signs out on the server. Resolves `true` when the person is now a visitor. */
@@ -35,7 +33,6 @@ export const visitorSession: SessionState = {
   isStudent: false,
   legalAcceptancePending: false,
   notice: null,
-  signOutFailed: false,
   refresh: () => Promise.resolve(),
   signOut: () => Promise.resolve(true),
 }

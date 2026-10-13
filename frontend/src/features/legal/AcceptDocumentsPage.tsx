@@ -7,6 +7,7 @@ import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { loginPathWithReturn } from '../../session/returnTo'
 import { useSession } from '../../session/useSession'
+import { useSignOut } from '../../session/useSignOut'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import { DraftNotice } from './DraftNotice'
 import { formatPublishedDate } from './format'
@@ -14,7 +15,7 @@ import { DEFAULT_RETURN_PATH, LEGAL_PATHS, safeReturnTo } from './paths'
 import '../vacancies/Skeletons.css'
 import './AcceptDocumentsPage.css'
 
-type Problem = 'mustAccept' | 'outdated' | 'failed' | 'logoutFailed'
+type Problem = 'mustAccept' | 'outdated' | 'failed'
 
 /**
  * `/aceptar-documentos` (002-18, 002-19): the Terms or the Privacy Policy changed since the
@@ -35,7 +36,8 @@ export function AcceptDocumentsPage() {
   const [checked, setChecked] = useState(false)
   const [problem, setProblem] = useState<Problem | null>(null)
   const [saving, setSaving] = useState(false)
-  const [leaving, setLeaving] = useState(false)
+  // The same "Cerrar sesión" as the header and the panel: same destination, same message.
+  const { signOut, pending: leaving, failed: logoutFailed } = useSignOut()
   const checkboxRef = useRef<HTMLInputElement>(null)
   const problemId = useId()
   const { refresh } = session
@@ -101,16 +103,9 @@ export function AcceptDocumentsPage() {
     setSaving(false)
   }
 
-  const logout = async () => {
+  const logout = () => {
     setProblem(null)
-    setLeaving(true)
-    // Already signed out (401) counts as done; any other failure keeps the student here.
-    if (await session.signOut()) {
-      navigate('/', { replace: true })
-      return
-    }
-    setProblem('logoutFailed')
-    setLeaving(false)
+    void signOut()
   }
 
   const submit = (event: FormEvent<HTMLFormElement>, version: string) => {
@@ -118,6 +113,7 @@ export function AcceptDocumentsPage() {
     void accept(version)
   }
 
+  const shownProblem = problem ?? (logoutFailed ? 'logoutFailed' : null)
   const catalog = state.status === 'success' && pending ? state.data : null
   const loadingNow = state.status === 'loading' || sessionLoading
   const failedNow = state.status === 'error' || sessionUnavailable
@@ -190,15 +186,15 @@ export function AcceptDocumentsPage() {
               type="checkbox"
               checked={checked}
               aria-invalid={problem === 'mustAccept' || undefined}
-              aria-describedby={problem ? problemId : undefined}
+              aria-describedby={shownProblem ? problemId : undefined}
               onChange={(event) => setChecked(event.target.checked)}
             />
             {es.acceptDocuments.checkbox}
           </label>
 
-          {problem && (
+          {shownProblem && (
             <p id={problemId} className="accept__problem" role="alert">
-              {es.acceptDocuments[problem]}
+              {es.acceptDocuments[shownProblem]}
             </p>
           )}
 
@@ -206,7 +202,7 @@ export function AcceptDocumentsPage() {
             <Button type="submit" disabled={saving || leaving}>
               {saving ? es.acceptDocuments.saving : es.acceptDocuments.submit}
             </Button>
-            <Button variant="quiet" disabled={leaving} onClick={() => void logout()}>
+            <Button variant="quiet" disabled={leaving} onClick={logout}>
               {leaving ? es.acceptDocuments.loggingOut : es.acceptDocuments.logout}
             </Button>
           </div>

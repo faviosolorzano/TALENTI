@@ -96,7 +96,7 @@ export function LoginScreen() {
           label={es.identity.form.emailLabel}
           type="email"
           name="email"
-          autoComplete="email"
+          autoComplete="username"
           inputMode="email"
           autoCapitalize="off"
           spellCheck={false}

@@ -153,3 +153,16 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* A line under the bar: the session could not be checked, or signing out failed */
+.header__note {
+  flex-basis: 100%;
+  padding-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.header__note--error {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}

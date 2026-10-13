@@ -15,7 +15,7 @@ import './DashboardScreen.css'
 export function DashboardScreen() {
   const session = useSession()
   const location = useLocation()
-  const { signOut, pending } = useSignOut()
+  const { signOut, pending, failed } = useSignOut()
   const justRegistered = (location.state as { welcome?: unknown } | null)?.welcome === true
   const email = session.user?.email ?? ''
 
@@ -41,7 +41,7 @@ export function DashboardScreen() {
         </Notice>
       )}
 
-      {session.signOutFailed && (
+      {failed && (
         <Notice tone="error" announce="alert">
           <p>{es.identity.dashboard.logoutFailed}</p>
         </Notice>

@@ -54,7 +54,8 @@ function looksExternal(text: string): boolean {
  * Accepts ONLY a route inside this app (spec 001, edge cases). Returns the value when it is
  * safe, or `null`: the caller then uses the default destination.
  *
- * Rejected: not a string, empty, too long, not starting with "/", "//" at the start, any
+ * Returns the NORMALIZED route (path, query and hash of the resolved address), never the raw
+ * text. Rejected: not a string, empty, too long, not starting with "/", "//" at the start, any
  * backslash (browsers read it as "/"), control characters, another origin once parsed, the
  * same tricks written encoded ("/%5Cevil.com", "/%2F/evil.com"), and the sign-in/sign-up
  * pages (a loop).
@@ -79,7 +80,17 @@ export function safeReturnTo(raw: string | null | undefined): string | null {
   }
   if (parsed.origin !== FAKE_ORIGIN) return null
   if (isLoop(parsed.pathname)) return null
-  return raw
+
+  // What a browser would really navigate to: dot segments resolved. "/..//evil.com" becomes
+  // "//evil.com", which would leave the site, so the SAME checks run on the normalized form.
+  const normalized = `${parsed.pathname}${parsed.search}${parsed.hash}`
+  if (!normalized.startsWith('/') || looksExternal(normalized)) return null
+  try {
+    if (looksExternal(decodeURIComponent(normalized))) return null
+  } catch {
+    return null
+  }
+  return normalized
 }
 
 /** The sign-in address that comes back to `target` afterwards (if it is a safe route). */

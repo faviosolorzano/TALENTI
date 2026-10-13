@@ -11,6 +11,9 @@ import './Header.css'
 /** Scroll distance (px) after which the header shows its bottom line. */
 const SCROLLED_AFTER = 8
 
+/** After this many ms without an answer about the session, "Cerrar sesión" is offered anyway. */
+const SLOW_SESSION_MS = 1500
+
 /**
  * Fixed header. It shows a bottom line once the page scrolls more than 8 px. Under tablet
  * width the menu folds into the "Menú" button (`aria-expanded`, `aria-controls`); it closes
@@ -19,7 +22,8 @@ const SCROLLED_AFTER = 8
 export function Header() {
   const menuId = useId()
   const session = useSession()
-  const { signOut, pending: signingOut } = useSignOut()
+  const { signOut, pending: signingOut, failed: signOutFailed } = useSignOut()
+  const [slow, setSlow] = useState(false)
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(() => window.scrollY > SCROLLED_AFTER)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -31,6 +35,13 @@ export function Header() {
     window.addEventListener('scroll', update, { passive: true })
     return () => window.removeEventListener('scroll', update)
   }, [])
+
+  // The first answer about the session is slow: do not leave a signed-in person without a way out.
+  useEffect(() => {
+    if (session.status !== 'loading') return
+    const timer = setTimeout(() => setSlow(true), SLOW_SESSION_MS)
+    return () => clearTimeout(timer)
+  }, [session.status])
 
   useEffect(() => {
     if (!open) return
@@ -55,6 +66,10 @@ export function Header() {
   }
 
   const closeMenu = () => setOpen(false)
+  const status = session.status
+  const unavailable = status === 'unavailable'
+  // "Cerrar sesión" does not depend on `GET /auth/me`: it is offered whenever a session may exist.
+  const canSignOut = status === 'authenticated' || unavailable || (status === 'loading' && slow)
   const logout = () => {
     closeMenu()
     void signOut()
@@ -104,26 +119,26 @@ export function Header() {
               </Link>
             </li>
             {/* Only in the folded menu: on wide screens the account actions sit on the right. */}
-            {session.status === 'authenticated' && (
-              <>
-                <li className="header__list-login">
-                  <NavLink className="header__link" to={sessionPaths.dashboard} onClick={closeMenu}>
-                    {es.nav.dashboard}
-                  </NavLink>
-                </li>
-                <li className="header__list-login">
-                  <button
-                    type="button"
-                    className="header__link header__link--button"
-                    disabled={signingOut}
-                    onClick={logout}
-                  >
-                    {es.identity.nav.logout}
-                  </button>
-                </li>
-              </>
+            {status === 'authenticated' && (
+              <li className="header__list-login">
+                <NavLink className="header__link" to={sessionPaths.dashboard} onClick={closeMenu}>
+                  {es.nav.dashboard}
+                </NavLink>
+              </li>
             )}
-            {(session.status === 'visitor' || session.status === 'unavailable') && (
+            {canSignOut && (
+              <li className="header__list-login">
+                <button
+                  type="button"
+                  className="header__link header__link--button"
+                  disabled={signingOut}
+                  onClick={logout}
+                >
+                  {es.identity.nav.logout}
+                </button>
+              </li>
+            )}
+            {status === 'visitor' && (
               <li className="header__list-login">
                 <NavLink className="header__link" to="/ingresar" onClick={closeMenu}>
                   {es.nav.login}
@@ -134,23 +149,28 @@ export function Header() {
         </nav>
 
         <div className="header__actions">
-          {session.status === 'authenticated' && (
-            <>
-              <Button
-                className="header__login"
-                variant="quiet"
-                size="sm"
-                disabled={signingOut}
-                onClick={logout}
-              >
-                {es.identity.nav.logout}
-              </Button>
-              <Button size="sm" to={sessionPaths.dashboard} onClick={closeMenu}>
-                {es.nav.dashboard}
-              </Button>
-            </>
+          {canSignOut && (
+            <Button
+              className="header__login"
+              variant="quiet"
+              size="sm"
+              disabled={signingOut}
+              onClick={logout}
+            >
+              {es.identity.nav.logout}
+            </Button>
           )}
-          {(session.status === 'visitor' || session.status === 'unavailable') && (
+          {status === 'authenticated' && (
+            <Button size="sm" to={sessionPaths.dashboard} onClick={closeMenu}>
+              {es.nav.dashboard}
+            </Button>
+          )}
+          {unavailable && (
+            <Button size="sm" onClick={() => void session.refresh()}>
+              {es.common.retry}
+            </Button>
+          )}
+          {status === 'visitor' && (
             <>
               <Button
                 className="header__login"
@@ -168,13 +188,6 @@ export function Header() {
           )}
         </div>
 
-        {/* A failed sign-out must not be silent. */}
-        {session.signOutFailed && (
-          <p className="visually-hidden" role="alert">
-            {es.identity.dashboard.logoutFailed}
-          </p>
-        )}
-
         <button
           ref={buttonRef}
           type="button"
@@ -185,6 +198,18 @@ export function Header() {
         >
           {es.nav.menu}
         </button>
+
+        {/* Visible notes under the bar: the session could not be checked / sign-out failed. */}
+        {unavailable && (
+          <p className="header__note" role="status">
+            {es.identity.guard.unavailable}
+          </p>
+        )}
+        {signOutFailed && (
+          <p className="header__note header__note--error" role="alert">
+            {es.identity.dashboard.logoutFailed}
+          </p>
+        )}
       </div>
     </header>
   )

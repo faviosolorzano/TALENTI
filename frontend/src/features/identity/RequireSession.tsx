@@ -1,9 +1,12 @@
 import { useEffect, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
+import { Button } from '../../components/Button'
+import { Notice } from '../../components/Notice'
 import { es } from '../../i18n/es'
 import { acceptDocumentsPath } from '../legal/paths'
 import { loginPathWithReturn } from '../../session/returnTo'
 import { useSession } from '../../session/useSession'
+import { useSignOut } from '../../session/useSignOut'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import '../vacancies/Skeletons.css'
 import './RequireSession.css'
@@ -18,6 +21,23 @@ export function RequireSession({ children }: { children: ReactNode }) {
   const session = useSession()
   const location = useLocation()
   const { refresh } = session
+  const { signOut, pending: signingOut, failed: signOutFailed } = useSignOut()
+
+  // "Cerrar sesión" never depends on the check of the session (`GET /auth/me`).
+  const signOutAction = (
+    <div className="guard__actions">
+      {signOutFailed && (
+        <Notice tone="error" announce="alert">
+          <p>{es.identity.dashboard.logoutFailed}</p>
+        </Notice>
+      )}
+      <div>
+        <Button variant="quiet" disabled={signingOut} onClick={() => void signOut()}>
+          {signingOut ? es.identity.dashboard.loggingOut : es.identity.dashboard.logout}
+        </Button>
+      </div>
+    </div>
+  )
 
   useEffect(() => {
     // `onlyIfStale`: the first check of the app (or one just made) is not repeated.
@@ -36,6 +56,7 @@ export function RequireSession({ children }: { children: ReactNode }) {
           <span className="skeleton skeleton--line" />
           <span className="skeleton skeleton--line skeleton--short" />
         </div>
+        {signOutAction}
       </div>
     )
   }
@@ -48,6 +69,7 @@ export function RequireSession({ children }: { children: ReactNode }) {
           message={es.identity.guard.unavailable}
           onRetry={() => void session.refresh()}
         />
+        {signOutAction}
       </div>
     )
   }

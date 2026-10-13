@@ -12,7 +12,6 @@ interface Core {
   user: SessionUser | null
   legalAcceptancePending: boolean
   notice: SessionNotice
-  signOutFailed: boolean
 }
 
 type Update = (previous: Core) => Core
@@ -22,7 +21,6 @@ const INITIAL: Core = {
   user: null,
   legalAcceptancePending: false,
   notice: null,
-  signOutFailed: false,
 }
 
 /** Asks the server who is signed in and returns the change to make (it changes nothing itself). */
@@ -34,7 +32,6 @@ async function checkSession(): Promise<Update> {
       user: { id: me.id, email: me.email, role: me.role },
       legalAcceptancePending: me.legalAcceptancePending,
       notice: null,
-      signOutFailed: false,
     })
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
@@ -45,7 +42,6 @@ async function checkSession(): Promise<Update> {
         legalAcceptancePending: false,
         // Keep "signed out" if that is why they are here; an expired cookie replaces it.
         notice: expired ? 'expired' : previous.notice,
-        signOutFailed: false,
       })
     }
     // Could not check: do not pretend to know. A person already shown as signed in stays so.
@@ -87,10 +83,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         (error: unknown) => error instanceof ApiError && error.status === 401,
       )
       .then((done) => {
-        if (!done) {
-          setCore((previous) => ({ ...previous, signOutFailed: true }))
-          return false
-        }
+        if (!done) return false
         lastRequest.current += 1 // an older `me` answer must not bring the person back in
         lastCheckedAt.current = Date.now()
         setCore({
@@ -98,7 +91,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           user: null,
           legalAcceptancePending: false,
           notice: 'signedOut',
-          signOutFailed: false,
         })
         return true
       })

@@ -11,3 +11,10 @@
   gap: var(--space-3);
   max-width: var(--form-card-width);
 }
+
+.guard__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  max-width: var(--form-card-width);
+}
