@@ -236,7 +236,7 @@ test.describe('Sign-up, sign-out and sign-in (001-01, 001-12, 001-13)', () => {
   }) => {
     await openRegister(page)
     await page.getByText('Lee qué datos usamos y para qué').click()
-    await expect(page.getByText(/^Versión v\d+, publicada el /)).toBeVisible()
+    await expect(page.getByText(/^Versión v\d+ · Publicada el /)).toBeVisible()
     for (const heading of [
       'Qué datos recogemos',
       'Para qué los usamos',
@@ -248,7 +248,7 @@ test.describe('Sign-up, sign-out and sign-in (001-01, 001-12, 001-13)', () => {
 
     // What was typed is kept: the links open ANOTHER tab.
     await emailField(page).fill('ana.conserva@example.test')
-    const terms = page.getByRole('link', { name: /Términos y Condiciones/ })
+    const terms = page.getByRole('main').getByRole('link', { name: /Términos y Condiciones/ })
     await expect(terms).toHaveAttribute('target', '_blank')
     await expect(terms).toHaveAccessibleName(/se abre en otra pestaña/)
     const [other] = await Promise.all([context.waitForEvent('page'), terms.click()])
@@ -649,5 +649,131 @@ test.describe('Keyboard only (001-22)', () => {
     await expect(emailField(page)).toBeFocused()
     await expect(emailField(page)).toHaveAccessibleDescription(/Este campo es obligatorio\./)
     await expect(passwordField(page)).toHaveAccessibleDescription(/Este campo es obligatorio\./)
+  })
+})
+
+test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 002-19)', () => {
+  /**
+   * A student with a real session whose legal acceptance is PENDING: only the answer of
+   * `GET /auth/me` is changed (the real data cannot produce an old version). Once the real
+   * `POST /legal/accept` answers 204 the answer says nothing is pending, like the server.
+   */
+  async function pendingStudent(page: Page) {
+    let accepted = false
+    page.on('response', (response) => {
+      if (
+        response.url().endsWith('/api/v1/legal/accept') &&
+        response.request().method() === 'POST' &&
+        response.status() === 204
+      ) {
+        accepted = true
+      }
+    })
+    await page.route('**/api/v1/auth/me', async (route) => {
+      const real = await route.fetch()
+      const body = (await real.json()) as Record<string, unknown>
+      await route.fulfill({
+        response: real,
+        json: { ...body, legalAcceptancePending: !accepted },
+      })
+    })
+  }
+
+  test('002-09: both links of the sign-up box open /terminos and /privacidad in another tab, saying so, and what was typed stays', async ({
+    page,
+    context,
+  }) => {
+    await openRegister(page)
+    await emailField(page).fill('ana.conserva@example.test')
+    await passwordField(page).fill(PASSWORD)
+
+    for (const [name, path] of [
+      ['Términos y Condiciones', '/terminos'],
+      ['Política de Privacidad', '/privacidad'],
+    ] as const) {
+      const link = page.getByRole('main').getByRole('link', { name: new RegExp(name) })
+      await expect(link).toHaveAttribute('href', path)
+      await expect(link).toHaveAttribute('target', '_blank')
+      await expect(link).toHaveAccessibleName(`${name} (se abre en otra pestaña)`)
+      const [other] = await Promise.all([context.waitForEvent('page'), link.click()])
+      await other.waitForLoadState()
+      expect(new URL(other.url()).pathname).toBe(path)
+      await expect(other.getByRole('heading', { level: 1 })).toBeVisible()
+      await other.close()
+    }
+    await expect(page).toHaveURL(/\/registro$/)
+    await expect(emailField(page)).toHaveValue('ana.conserva@example.test')
+    await expect(passwordField(page)).toHaveValue(PASSWORD)
+  })
+
+  test('a student with a pending acceptance goes /panel -> /aceptar-documentos -> accepts -> back to /panel, without reloading the page', async ({
+    page,
+  }) => {
+    expect(await loginViaApi(page, account.email, account.password)).toBe(200)
+    await pendingStudent(page)
+    await page.goto('/oportunidades')
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    // A mark that a full page load would erase.
+    await page.evaluate(() => {
+      ;(window as unknown as { __noReload: boolean }).__noReload = true
+    })
+
+    // The private page sends the student to the acceptance screen, remembering where from.
+    await page.getByRole('banner').getByRole('link', { name: 'Mi panel' }).click()
+    await expect(page).toHaveURL(/\/aceptar-documentos\?returnTo=%2Fpanel$/)
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Actualizamos nuestros documentos' }),
+    ).toBeVisible()
+    await expect(page.getByRole('checkbox')).not.toBeChecked()
+
+    // Without the box it does not continue; with it, it accepts (for real) and returns.
+    await page.getByRole('button', { name: 'Aceptar y continuar' }).click()
+    await expect(page.getByRole('main').getByRole('alert')).toBeVisible()
+    await expect(page).toHaveURL(/\/aceptar-documentos/)
+    await page.getByRole('checkbox').check()
+    const accepted = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/legal/accept') && response.request().method() === 'POST',
+    )
+    await page.getByRole('button', { name: 'Aceptar y continuar' }).click()
+    expect((await accepted).status()).toBe(204)
+
+    await expect(panelTitle(page)).toBeVisible()
+    expect(new URL(page.url()).pathname).toBe('/panel')
+    expect(
+      await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload),
+    ).toBe(true)
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await logoutViaPanel(page)
+  })
+
+  test('"Cerrar sesión" from /aceptar-documentos ends the session and shows the visitor links, without reloading', async ({
+    page,
+  }) => {
+    expect(await loginViaApi(page, account.email, account.password)).toBe(200)
+    await pendingStudent(page)
+    await page.goto('/aceptar-documentos?returnTo=%2Fpanel')
+    await expect(page.getByRole('checkbox')).toBeVisible()
+    await page.evaluate(() => {
+      ;(window as unknown as { __noReload: boolean }).__noReload = true
+    })
+
+    await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
+
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
+    expect(
+      await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload),
+    ).toBe(true)
+    await page.unroute('**/api/v1/auth/me')
+    expect((await page.request.get('/api/v1/auth/me')).status()).toBe(401)
+  })
+
+  test('with no session /aceptar-documentos leads to sign-in and comes back after signing in', async ({
+    page,
+  }) => {
+    await page.goto('/aceptar-documentos?returnTo=%2Foportunidades')
+    await expect(loginTitle(page)).toBeVisible()
+    expect(new URL(page.url()).searchParams.get('returnTo')).toBe('/oportunidades')
   })
 })
