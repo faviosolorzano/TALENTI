@@ -1,27 +1,39 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { es } from '../../i18n/es'
 import { mockLegalApi, sampleCatalog } from '../../test/fakeLegal'
-import { renderApp } from '../../test/renderApp'
-import { leaveTo } from './navigation'
+import { renderAppWithSession } from '../../test/renderApp'
 import { acceptDocumentsPath, safeReturnTo } from './paths'
-
-vi.mock('./navigation', () => ({ leaveTo: vi.fn() }))
 
 const heading = () => screen.findByRole('heading', { level: 1, name: es.acceptDocuments.title })
 const checkbox = () => screen.getByRole('checkbox', { name: es.acceptDocuments.checkbox })
 const submit = () => screen.getByRole('button', { name: es.acceptDocuments.submit })
 
+let router: ReturnType<typeof renderAppWithSession>['router']
+/** Renders the app with the real session provider, at `path`. */
+function open(path: string) {
+  const view = renderAppWithSession(path)
+  router = view.router
+  return view
+}
+/** Where the app is now: path and query. */
+const where = () => router.state.location.pathname + router.state.location.search
+const stillHere = () => expect(router.state.location.pathname).toBe('/aceptar-documentos')
+/** The alert of the page itself (the header also has a hidden one for a failed sign-out). */
+const logoutButton = () =>
+  within(screen.getByRole('main')).getByRole('button', { name: es.acceptDocuments.logout })
+const pageAlert = () => within(screen.getByRole('main')).findByRole('alert')
+
 beforeEach(() => {
-  vi.mocked(leaveTo).mockClear()
+  router = undefined as never
 })
 
 describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   // 002-18
   it('002-18: says the documents changed and shows the version, the date and the links to the texts', async () => {
     mockLegalApi({ pending: true })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await heading()
     await screen.findByText('Versión v1 · Publicada el 11 de octubre de 2026')
 
@@ -38,7 +50,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   // 002-02 (same rule on this screen)
   it('002-02: says the date is pending when the backend has none, and invents none', async () => {
     mockLegalApi({ pending: true, catalog: sampleCatalog({ publishedAt: null }) })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
 
     expect(await screen.findByText('Versión v1 · Fecha de publicación pendiente')).toBeVisible()
   })
@@ -46,27 +58,27 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   // 002-18 and T9
   it('002-18: starts with the box unticked and shows "Aceptar y continuar" and "Cerrar sesión"', async () => {
     mockLegalApi({ pending: true })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
     expect(checkbox()).not.toBeChecked()
     expect(submit()).toBeEnabled()
-    expect(screen.getByRole('button', { name: es.acceptDocuments.logout })).toBeEnabled()
+    expect(logoutButton()).toBeEnabled()
   })
 
   // 002-18
   it('002-18: shows nothing and goes on to the page asked for when nothing is pending', async () => {
     mockLegalApi({ pending: false })
-    renderApp('/aceptar-documentos?returnTo=%2Foportunidades')
+    open('/aceptar-documentos?returnTo=%2Foportunidades')
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/oportunidades'))
+    await waitFor(() => expect(where()).toBe('/oportunidades'))
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 
   // 002-19
   it('002-19: without the box ticked it does not continue and explains why', async () => {
     const api = mockLegalApi({ pending: true })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
     await userEvent.click(submit())
@@ -75,32 +87,32 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     expect(checkbox()).toHaveAttribute('aria-invalid', 'true')
     expect(checkbox()).toHaveFocus()
     expect(api.acceptBodies()).toEqual([])
-    expect(leaveTo).not.toHaveBeenCalled()
+    stillHere()
   })
 
   // 002-19
   it('002-19: sends the accepted version and goes back to the page asked for (returnTo)', async () => {
     const api = mockLegalApi({ pending: true })
-    renderApp('/aceptar-documentos?returnTo=%2Foportunidades%3Fq%3Djava')
+    open('/aceptar-documentos?returnTo=%2Foportunidades%3Fq%3Djava')
     await screen.findByRole('checkbox')
 
     await userEvent.click(checkbox())
     await userEvent.click(submit())
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/oportunidades?q=java'))
+    await waitFor(() => expect(where()).toBe('/oportunidades?q=java'))
     expect(api.acceptBodies()).toEqual([{ legalAccepted: true, legalVersion: 'v1' }])
   })
 
   // 002-19
   it('002-19: goes to the panel when there is no returnTo', async () => {
     mockLegalApi({ pending: true })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
     await userEvent.click(checkbox())
     await userEvent.click(submit())
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/panel'))
+    await waitFor(() => expect(where()).toBe('/panel'))
   })
 
   // 002-19
@@ -119,13 +131,13 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     '/\t/evil.example',
   ])('002-19: ignores an outside returnTo (%j) and goes to the panel', async (value) => {
     mockLegalApi({ pending: true })
-    renderApp(`/aceptar-documentos?returnTo=${encodeURIComponent(value)}`)
+    open(`/aceptar-documentos?returnTo=${encodeURIComponent(value)}`)
     await screen.findByRole('checkbox')
 
     await userEvent.click(checkbox())
     await userEvent.click(submit())
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/panel'))
+    await waitFor(() => expect(where()).toBe('/panel'))
   })
 
   it('shows "Guardando…" and disables the button while the request is in flight', async () => {
@@ -140,7 +152,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
       if (String(input).endsWith('/legal/accept')) await gate
       return original(input, init)
     })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
     await userEvent.click(checkbox())
 
@@ -149,7 +161,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     const busy = screen.getByRole('button', { name: es.acceptDocuments.saving })
     expect(busy).toBeDisabled()
     finish()
-    await waitFor(() => expect(leaveTo).toHaveBeenCalled())
+    await waitFor(() => expect(where()).not.toBe('/aceptar-documentos'))
   })
 
   // 001-03 / edge case: outdated version
@@ -160,7 +172,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
       acceptStatus: 409,
       catalog: () => sampleCatalog({ version: ++call === 1 ? 'v1' : 'v2' }),
     })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByText(/Versión v1/)
     await userEvent.click(checkbox())
 
@@ -170,25 +182,25 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(es.acceptDocuments.outdated)
     expect(checkbox()).not.toBeChecked()
     expect(api.acceptBodies()).toEqual([{ legalAccepted: true, legalVersion: 'v1' }])
-    expect(leaveTo).not.toHaveBeenCalled()
+    stillHere()
   })
 
   // 002-19
   it('002-19: on 422 explains that the documents must be accepted', async () => {
     mockLegalApi({ pending: true, acceptStatus: 422 })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
     await userEvent.click(checkbox())
 
     await userEvent.click(submit())
 
     expect(await screen.findByRole('alert')).toHaveTextContent(es.acceptDocuments.mustAccept)
-    expect(leaveTo).not.toHaveBeenCalled()
+    stillHere()
   })
 
   it('on a server error says it could not save and lets the student try again', async () => {
     mockLegalApi({ pending: true, acceptStatus: 500 })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
     await userEvent.click(checkbox())
 
@@ -201,15 +213,16 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   // 001-14: an expired session
   it('001-14: goes to the sign-in page, coming back here afterwards, when the session has expired', async () => {
     mockLegalApi({ pending: null })
-    const { router } = renderApp('/aceptar-documentos?returnTo=%2Fpanel')
+    open('/aceptar-documentos?returnTo=%2Fpanel')
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/ingresar'))
-    expect(router.state.location.search).toBe('?returnTo=%2Fpanel')
+    // The panel is where one goes anyway: no parameter needed.
+    expect(router.state.location.search).toBe('')
   })
 
   it('shows an error with "Reintentar" when the texts cannot be loaded', async () => {
     mockLegalApi({ pending: true, catalogStatus: 500 })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(es.acceptDocuments.errorMessage)
@@ -219,25 +232,25 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   // T8
   it('"Cerrar sesión" signs out and leaves to the home page', async () => {
     const api = mockLegalApi({ pending: true })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
-    await userEvent.click(screen.getByRole('button', { name: es.acceptDocuments.logout }))
+    await userEvent.click(logoutButton())
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/'))
+    await waitFor(() => expect(where()).toBe('/'))
     expect(api.calls()).toContain('POST /api/v1/auth/logout')
   })
 
   // M2: a stale CSRF token (403) is retried once with a new token
   it('on a 403 it asks for a new CSRF token and repeats the request once, then continues', async () => {
     const api = mockLegalApi({ pending: true, forbiddenFirst: 1 })
-    renderApp('/aceptar-documentos?returnTo=%2Fpanel')
+    open('/aceptar-documentos?returnTo=%2Fpanel')
     await screen.findByRole('checkbox')
     await userEvent.click(checkbox())
 
     await userEvent.click(submit())
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/panel'))
+    await waitFor(() => expect(where()).toBe('/panel'))
     expect(api.calls().filter((call) => call === 'POST /api/v1/legal/accept')).toHaveLength(2)
     const posts = api.calls().filter((call) => call.startsWith('POST') || call.endsWith('/csrf'))
     expect(posts.slice(-3)).toEqual([
@@ -249,7 +262,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
 
   it('on a second 403 it does not try again and shows the error', async () => {
     const api = mockLegalApi({ pending: true, forbiddenFirst: 5 })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
     await userEvent.click(checkbox())
 
@@ -257,55 +270,91 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(es.acceptDocuments.failed)
     expect(api.calls().filter((call) => call === 'POST /api/v1/legal/accept')).toHaveLength(2)
-    expect(leaveTo).not.toHaveBeenCalled()
+    stillHere()
     expect(submit()).toBeEnabled()
   })
 
   // T8 with a stale CSRF token
   it('"Cerrar sesión" also retries once after a 403 and then leaves', async () => {
     const api = mockLegalApi({ pending: true, forbiddenFirst: 1 })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
-    await userEvent.click(screen.getByRole('button', { name: es.acceptDocuments.logout }))
+    await userEvent.click(logoutButton())
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/'))
+    await waitFor(() => expect(where()).toBe('/'))
     expect(api.calls().filter((call) => call === 'POST /api/v1/auth/logout')).toHaveLength(2)
   })
 
   it('"Cerrar sesión" stays available after two 403: it says so and can be tried again', async () => {
     const api = mockLegalApi({ pending: true, forbiddenFirst: 2 })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
-    await userEvent.click(screen.getByRole('button', { name: es.acceptDocuments.logout }))
+    await userEvent.click(logoutButton())
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.acceptDocuments.logoutFailed)
-    expect(leaveTo).not.toHaveBeenCalled()
-    const again = screen.getByRole('button', { name: es.acceptDocuments.logout })
+    expect(await pageAlert()).toHaveTextContent(es.acceptDocuments.logoutFailed)
+    stillHere()
+    const again = logoutButton()
     expect(again).toBeEnabled()
     await userEvent.click(again)
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/'))
+    await waitFor(() => expect(where()).toBe('/'))
     expect(api.calls().filter((call) => call === 'POST /api/v1/auth/logout')).toHaveLength(3)
   })
 
   // T8
   it('says so, and stays on the screen, when signing out fails', async () => {
     mockLegalApi({ pending: true, logoutStatus: 500 })
-    renderApp('/aceptar-documentos')
+    open('/aceptar-documentos')
     await screen.findByRole('checkbox')
 
-    await userEvent.click(screen.getByRole('button', { name: es.acceptDocuments.logout }))
+    await userEvent.click(logoutButton())
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(es.acceptDocuments.logoutFailed)
-    expect(leaveTo).not.toHaveBeenCalled()
+    expect(await pageAlert()).toHaveTextContent(es.acceptDocuments.logoutFailed)
+    stillHere()
   })
 
   // 002-18: documents stay public
   it('002-18: does not block reading the documents', async () => {
     mockLegalApi({ pending: true })
-    renderApp('/terminos')
+    open('/terminos')
     await screen.findByRole('heading', { level: 1, name: 'Términos y Condiciones de Talenti' })
+  })
+})
+
+describe('Session shared with the rest of the app (no page reload)', () => {
+  it('after accepting, the session is read again and the private page opens without going back to this screen', async () => {
+    const api = mockLegalApi({ pending: true })
+    open('/panel')
+    await heading() // /panel sent the student here: the acceptance is pending
+    expect(where()).toBe('/aceptar-documentos?returnTo=%2Fpanel')
+    const before = api.calls().filter((call) => call === 'GET /api/v1/auth/me').length
+
+    await userEvent.click(await screen.findByRole('checkbox'))
+    await userEvent.click(submit())
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: es.pages.dashboard.title }),
+    ).toBeVisible()
+    expect(where()).toBe('/panel')
+    const after = api.calls().filter((call) => call === 'GET /api/v1/auth/me').length
+    expect(after).toBeGreaterThan(before)
+  })
+
+  it('after signing out the header shows the visitor links', async () => {
+    mockLegalApi({ pending: true })
+    open('/aceptar-documentos')
+    await screen.findByRole('checkbox')
+    expect(
+      within(screen.getByRole('banner')).queryByRole('link', { name: es.nav.register }),
+    ).not.toBeInTheDocument()
+
+    await userEvent.click(logoutButton())
+
+    await waitFor(() => expect(where()).toBe('/'))
+    expect(
+      await within(screen.getByRole('banner')).findByRole('link', { name: es.nav.register }),
+    ).toBeVisible()
   })
 })
 

@@ -225,6 +225,12 @@
   --chip-bar-width: 0.375rem; /* 6 px */
   --chip-bar-height: 0.875rem; /* 14 px */
 
+  /* ---- Forms (identity screens) ---- */
+  --form-card-width: 30rem; /* 480 px: sign-in and sign-up card */
+  --auth-aside-width: 26rem; /* 416 px: side message next to the form on wide screens */
+  --auth-mark-size: 20rem; /* 320 px: watermark inside the side panel */
+  --checkbox-size: var(--space-6); /* 24 px */
+
   /* ---- Focus ring ---- */
   --focus-ring-width: 3px;
   --focus-ring-offset: 3px;

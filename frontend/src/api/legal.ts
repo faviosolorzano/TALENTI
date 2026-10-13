@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, CSRF_COOKIE_NAME, readCookie } from './client'
+import { apiFetch } from './client'
 
 /** One section of a legal document. `heading` is empty for the text before the first heading. */
 export interface LegalSection {
@@ -72,46 +72,10 @@ export async function fetchLegalDocument(
 }
 
 /**
- * Minimal read of the session for the "new version of the documents" screen: only whether the
- * student still has to accept. The full session lives elsewhere (this screen does not depend
- * on it). Rejects with `ApiError` 401 when there is no session.
- */
-export async function fetchLegalAcceptancePending(signal?: AbortSignal): Promise<boolean> {
-  const me = await apiFetch<{ legalAcceptancePending?: boolean } | null>('/auth/me', { signal })
-  return me?.legalAcceptancePending === true
-}
-
-/** Asks for the CSRF cookie when the browser does not have it yet (`GET /auth/csrf`). */
-async function ensureCsrfCookie(): Promise<void> {
-  if (!readCookie(CSRF_COOKIE_NAME)) await apiFetch('/auth/csrf')
-}
-
-/**
- * Sends a POST. If the server answers 403 (the CSRF token was stale: it rotates when signing in
- * or out), it asks for a new token with `GET /auth/csrf` and repeats the request ONCE; a second
- * failure reaches the caller as it is.
- */
-async function postWithCsrfRetry(path: string, json?: unknown): Promise<void> {
-  await ensureCsrfCookie()
-  try {
-    await apiFetch(path, { method: 'POST', json })
-  } catch (error) {
-    if (!(error instanceof ApiError && error.status === 403)) throw error
-    await apiFetch('/auth/csrf')
-    await apiFetch(path, { method: 'POST', json })
-  }
-}
-
-/**
- * `POST /legal/accept` (001-30). The CSRF token rotates when signing in or out, so
- * `apiFetch` reads the cookie again on every call. Rejects with `ApiError`: 409 outdated
- * version, 422 not accepted, 401 no session.
+ * `POST /legal/accept` (001-30). `apiFetch` reads the CSRF token again on every call and, on a
+ * 403 `csrf-invalid`, asks for a new one and repeats the request once. Rejects with `ApiError`:
+ * 409 outdated version, 422 not accepted, 401 no session.
  */
 export async function acceptLegalDocuments(legalVersion: string): Promise<void> {
-  await postWithCsrfRetry('/legal/accept', { legalAccepted: true, legalVersion })
-}
-
-/** `POST /auth/logout` (T8: signing out is always available). */
-export async function logoutRequest(): Promise<void> {
-  await postWithCsrfRetry('/auth/logout')
+  await apiFetch('/legal/accept', { method: 'POST', json: { legalAccepted: true, legalVersion } })
 }

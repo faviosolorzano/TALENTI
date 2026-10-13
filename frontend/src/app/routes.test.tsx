@@ -33,12 +33,15 @@ describe('Routes', () => {
     expect(router.state.location.pathname).toBe('/ingresar')
   })
 
-  it('route /aceptar-documentos exists (provisional) so the redirect never lands on "not found"', () => {
-    renderApp('/aceptar-documentos')
+  it('route /aceptar-documentos is the real screen of the legal slice: a visitor is sent to sign in, not to "not found"', async () => {
+    const { router } = renderApp('/aceptar-documentos?returnTo=%2Foportunidades')
 
     expect(
-      screen.getByRole('heading', { level: 1, name: es.identity.acceptDocumentsProvisional.title }),
+      await screen.findByRole('heading', { level: 1, name: es.identity.login.title }),
     ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/ingresar')
+    expect(router.state.location.search).toBe('?returnTo=%2Foportunidades')
+    expect(screen.queryByText(es.placeholder.underConstruction)).not.toBeInTheDocument()
   })
 
   it('an unknown route shows the "page not found" screen with a way back home', () => {

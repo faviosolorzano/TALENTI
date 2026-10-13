@@ -101,6 +101,7 @@ export function mockLegalApi(options: FakeLegalOptions = {}): FakeLegalApi {
   const calls: string[] = []
   const acceptBodies: unknown[] = []
   let forbidden = options.forbiddenFirst ?? 0
+  let accepted = false
   const handler = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), 'http://localhost')
     const method = (init?.method ?? 'GET').toUpperCase()
@@ -119,7 +120,7 @@ export function mockLegalApi(options: FakeLegalOptions = {}): FakeLegalApi {
         id: '1',
         email: 'ana@example.org',
         role: 'STUDENT',
-        legalAcceptancePending: options.pending ?? true,
+        legalAcceptancePending: accepted ? false : (options.pending ?? true),
       })
     }
     const isGuardedPost =
@@ -127,11 +128,13 @@ export function mockLegalApi(options: FakeLegalOptions = {}): FakeLegalApi {
       (url.pathname === '/api/v1/legal/accept' || url.pathname === '/api/v1/auth/logout')
     if (isGuardedPost && forbidden > 0) {
       forbidden -= 1
-      return json(403, { title: 'Forbidden' })
+      return json(403, { code: 'csrf-invalid', title: 'Forbidden' })
     }
     if (method === 'POST' && url.pathname === '/api/v1/legal/accept') {
       acceptBodies.push(JSON.parse(String(init?.body ?? 'null')))
       const status = resolve(options.acceptStatus ?? 204)
+      // Like the server: once accepted, the next `GET /auth/me` has nothing pending.
+      if (status === 204) accepted = true
       return status === 204 ? json(204) : json(status, { title: 'error' })
     }
     if (method === 'POST' && url.pathname === '/api/v1/auth/logout') {

@@ -51,7 +51,7 @@ describe('Sign-up form (001-22, 001-26)', () => {
       [es.identity.consent.terms, '/terminos'],
       [es.identity.consent.privacy, '/privacidad'],
     ] as const) {
-      const link = screen.getByRole('link', { name: new RegExp(name) })
+      const link = within(screen.getByRole('main')).getByRole('link', { name: new RegExp(name) })
       expect(link).toHaveAttribute('href', href)
       expect(link).toHaveAttribute('target', '_blank')
       expect(link.getAttribute('rel')).toContain('noopener')
@@ -67,7 +67,7 @@ describe('Sign-up form (001-22, 001-26)', () => {
     expect(details).not.toHaveAttribute('open')
     await user.click(screen.getByText(es.identity.consent.summary))
     expect(details).toHaveAttribute('open')
-    expect(screen.getByText('Versión v1, publicada el 11 de octubre de 2026')).toBeInTheDocument()
+    expect(screen.getByText('Versión v1 · Publicada el 11 de octubre de 2026')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 3, name: 'Qué datos recogemos' })).toBeVisible()
     expect(
       screen.getByRole('heading', { level: 3, name: /proveedores externos de IA y voz/ }),

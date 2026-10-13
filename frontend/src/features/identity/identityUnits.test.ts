@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../api/client'
 import { es } from '../../i18n/es'
 import { loginErrors, registerErrors } from './errors'
-import { parseBlocks } from './markdownLite'
 
 const problem = (status: number, body: Record<string, unknown>) =>
   new ApiError(status, { status, ...body })
@@ -72,22 +71,6 @@ describe('Messages for a failed sign-in (001-09, 001-10, 001-11)', () => {
     expect(loginErrors(problem(429, { code: 'too-many-requests' })).general).toBe(
       'Demasiados intentos, prueba más tarde.',
     )
-  })
-})
-
-describe('Legal text in Markdown (the small subset)', () => {
-  it('splits paragraphs and "- " lists and joins wrapped lines', () => {
-    const blocks = parseBlocks('Primera línea\nsigue aquí.\n\n- Uno\n- Dos\n\nFinal.\n')
-    expect(blocks).toEqual([
-      { kind: 'paragraph', text: 'Primera línea sigue aquí.' },
-      { kind: 'list', items: ['Uno', 'Dos'] },
-      { kind: 'paragraph', text: 'Final.' },
-    ])
-  })
-
-  it('returns nothing for an empty text', () => {
-    expect(parseBlocks('')).toEqual([])
-    expect(parseBlocks('\n\n')).toEqual([])
   })
 })
 

@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router'
 import { es } from '../i18n/es'
+import { sessionPaths } from '../session/sessionPaths'
+import { useSession } from '../session/useSession'
+import { useSignOut } from '../session/useSignOut'
 import { Button } from './Button'
 import { Logo } from './Logo'
 import './Header.css'
@@ -15,6 +18,8 @@ const SCROLLED_AFTER = 8
  */
 export function Header() {
   const menuId = useId()
+  const session = useSession()
+  const { signOut, pending: signingOut } = useSignOut()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(() => window.scrollY > SCROLLED_AFTER)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -50,6 +55,10 @@ export function Header() {
   }
 
   const closeMenu = () => setOpen(false)
+  const logout = () => {
+    closeMenu()
+    void signOut()
+  }
 
   return (
     <header className="header" data-scrolled={scrolled || undefined}>
@@ -94,29 +103,77 @@ export function Header() {
                 {es.nav.dora}
               </Link>
             </li>
-            {/* Only in the folded menu: on wide screens "Ingresar" is a button on the right. */}
-            <li className="header__list-login">
-              <NavLink className="header__link" to="/ingresar" onClick={closeMenu}>
-                {es.nav.login}
-              </NavLink>
-            </li>
+            {/* Only in the folded menu: on wide screens the account actions sit on the right. */}
+            {session.status === 'authenticated' && (
+              <>
+                <li className="header__list-login">
+                  <NavLink className="header__link" to={sessionPaths.dashboard} onClick={closeMenu}>
+                    {es.nav.dashboard}
+                  </NavLink>
+                </li>
+                <li className="header__list-login">
+                  <button
+                    type="button"
+                    className="header__link header__link--button"
+                    disabled={signingOut}
+                    onClick={logout}
+                  >
+                    {es.identity.nav.logout}
+                  </button>
+                </li>
+              </>
+            )}
+            {(session.status === 'visitor' || session.status === 'unavailable') && (
+              <li className="header__list-login">
+                <NavLink className="header__link" to="/ingresar" onClick={closeMenu}>
+                  {es.nav.login}
+                </NavLink>
+              </li>
+            )}
           </ul>
         </nav>
 
         <div className="header__actions">
-          <Button
-            className="header__login"
-            variant="quiet"
-            size="sm"
-            to="/ingresar"
-            onClick={closeMenu}
-          >
-            {es.nav.login}
-          </Button>
-          <Button size="sm" to="/registro" onClick={closeMenu}>
-            {es.nav.register}
-          </Button>
+          {session.status === 'authenticated' && (
+            <>
+              <Button
+                className="header__login"
+                variant="quiet"
+                size="sm"
+                disabled={signingOut}
+                onClick={logout}
+              >
+                {es.identity.nav.logout}
+              </Button>
+              <Button size="sm" to={sessionPaths.dashboard} onClick={closeMenu}>
+                {es.nav.dashboard}
+              </Button>
+            </>
+          )}
+          {(session.status === 'visitor' || session.status === 'unavailable') && (
+            <>
+              <Button
+                className="header__login"
+                variant="quiet"
+                size="sm"
+                to="/ingresar"
+                onClick={closeMenu}
+              >
+                {es.nav.login}
+              </Button>
+              <Button size="sm" to="/registro" onClick={closeMenu}>
+                {es.nav.register}
+              </Button>
+            </>
+          )}
         </div>
+
+        {/* A failed sign-out must not be silent. */}
+        {session.signOutFailed && (
+          <p className="visually-hidden" role="alert">
+            {es.identity.dashboard.logoutFailed}
+          </p>
+        )}
 
         <button
           ref={buttonRef}

@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
-import type { LegalCatalog, Role } from '../api/identity'
+import type { Role } from '../api/identity'
+import type { LegalCatalog } from '../api/legal'
 
 /**
  * In-memory stand-in for the identity API of spec 001, for component tests. It imitates the

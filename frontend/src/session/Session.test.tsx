@@ -111,10 +111,7 @@ describe('Private routes (001-13, 001-14)', () => {
     })
     const { router } = renderAppWithSession('/panel')
 
-    await screen.findByRole('heading', {
-      level: 1,
-      name: es.identity.acceptDocumentsProvisional.title,
-    })
+    await screen.findByRole('heading', { level: 1, name: es.acceptDocuments.title })
     expect(router.state.location.pathname).toBe('/aceptar-documentos')
     expect(router.state.location.search).toBe('?returnTo=%2Fpanel')
   })

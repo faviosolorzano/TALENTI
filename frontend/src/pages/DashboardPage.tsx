@@ -1,6 +1,11 @@
-import { PlaceholderPage } from '../components/PlaceholderPage'
-import { es } from '../i18n/es'
+import { DashboardScreen } from '../features/identity/DashboardScreen'
+import { RequireSession } from '../features/identity/RequireSession'
 
+/** Private: without a session it leads to /ingresar (spec 001). */
 export function DashboardPage() {
-  return <PlaceholderPage title={es.pages.dashboard.title} />
+  return (
+    <RequireSession>
+      <DashboardScreen />
+    </RequireSession>
+  )
 }
