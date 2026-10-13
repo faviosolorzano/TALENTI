@@ -74,7 +74,7 @@ describe('Layout', () => {
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
     await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
 
-    expect(screen.getByRole('heading', { level: 1, name: es.pages.login.title })).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: es.identity.login.title })).toBeVisible()
   })
 
   it('updates the document title on every route change, not only on the placeholder pages', async () => {
@@ -113,7 +113,7 @@ describe('Layout', () => {
   })
 
   it('does not steal focus on the first load of the page', () => {
-    renderApp('/panel')
+    renderApp('/oportunidades')
 
     expect(screen.getByRole('main')).not.toHaveFocus()
   })

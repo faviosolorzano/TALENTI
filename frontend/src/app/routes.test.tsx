@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { es } from '../i18n/es'
 import { renderApp } from '../test/renderApp'
 
-describe('Provisional routes', () => {
+describe('Routes', () => {
   it('route / renders the informative landing page instead of the notice', () => {
     renderApp('/')
 
@@ -13,15 +13,32 @@ describe('Provisional routes', () => {
   })
 
   it.each([
-    ['/registro', es.pages.register.title],
-    ['/ingresar', es.pages.login.title],
-    ['/panel', es.pages.dashboard.title],
-  ])('route %s renders its page with the "under construction" notice', (path, title) => {
+    ['/registro', es.identity.register.title, es.pages.register.title],
+    ['/ingresar', es.identity.login.title, es.pages.login.title],
+    ['/recuperar-cuenta', es.identity.recover.title, es.identity.recover.title],
+  ])('route %s renders its real page (no "under construction" notice)', (path, heading, title) => {
     renderApp(path)
 
-    expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument()
-    expect(screen.getByText(es.placeholder.underConstruction)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
+    expect(screen.queryByText(es.placeholder.underConstruction)).not.toBeInTheDocument()
     expect(document.title).toBe(`${title} · ${es.app.name}`)
+  })
+
+  it('route /panel is private: a visitor is taken to /ingresar', async () => {
+    const { router } = renderApp('/panel')
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: es.identity.login.title }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/ingresar')
+  })
+
+  it('route /aceptar-documentos exists (provisional) so the redirect never lands on "not found"', () => {
+    renderApp('/aceptar-documentos')
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: es.identity.acceptDocumentsProvisional.title }),
+    ).toBeInTheDocument()
   })
 
   it('an unknown route shows the "page not found" screen with a way back home', () => {

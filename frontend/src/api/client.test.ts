@@ -110,4 +110,86 @@ describe('API client', () => {
 
     expect(failure).toMatchObject({ status: 500, message: es.errors.generic })
   })
+
+  describe('CSRF token (spec 001, 001-15)', () => {
+    const csrfCalls = () =>
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/auth/csrf'))
+    const clearCookie = () => {
+      document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
+
+    it('asks for the token with GET /auth/csrf when there is no cookie yet, then sends it', async () => {
+      clearCookie()
+      fetchMock.mockImplementation(async (url) => {
+        if (String(url).endsWith('/auth/csrf')) {
+          document.cookie = 'XSRF-TOKEN=nuevo; path=/'
+          return new Response(null, { status: 204 })
+        }
+        return jsonResponse({}, 201)
+      })
+
+      await apiFetch('/things', { method: 'POST', json: {} })
+
+      expect(csrfCalls()).toHaveLength(1)
+      const post = fetchMock.mock.calls.at(-1)!
+      expect(new Headers(post[1]?.headers).get(CSRF_HEADER_NAME)).toBe('nuevo')
+    })
+
+    it('does not ask for it when the cookie is there, nor on read requests', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({}))
+
+      await apiFetch('/things', { method: 'POST', json: {} })
+      clearCookie()
+      await apiFetch('/things')
+
+      expect(csrfCalls()).toHaveLength(0)
+    })
+
+    it('reads the cookie again before EVERY request: the token rotates', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({}))
+
+      await apiFetch('/auth/login', { method: 'POST', json: {} })
+      document.cookie = 'XSRF-TOKEN=rotado; path=/'
+      await apiFetch('/auth/logout', { method: 'POST' })
+
+      const tokens = fetchMock.mock.calls.map(([, init]) =>
+        new Headers(init?.headers).get(CSRF_HEADER_NAME),
+      )
+      expect(tokens).toEqual(['token-de-prueba', 'rotado'])
+    })
+
+    it('retries ONCE with a fresh token when the backend answers 403 csrf-invalid', async () => {
+      let posts = 0
+      fetchMock.mockImplementation(async (url) => {
+        if (String(url).endsWith('/auth/csrf')) {
+          document.cookie = 'XSRF-TOKEN=fresco; path=/'
+          return new Response(null, { status: 204 })
+        }
+        posts += 1
+        return posts === 1 ? jsonResponse({ code: 'csrf-invalid' }, 403) : jsonResponse({}, 201)
+      })
+
+      await expect(apiFetch('/things', { method: 'POST', json: {} })).resolves.toEqual({})
+
+      expect(posts).toBe(2)
+      const retry = fetchMock.mock.calls.at(-1)!
+      expect(new Headers(retry[1]?.headers).get(CSRF_HEADER_NAME)).toBe('fresco')
+    })
+
+    it('does not retry a second time, and does not retry other 403 answers', async () => {
+      fetchMock.mockImplementation(async (url) =>
+        String(url).endsWith('/auth/csrf')
+          ? new Response(null, { status: 204 })
+          : jsonResponse({ code: 'csrf-invalid' }, 403),
+      )
+      await expect(apiFetch('/things', { method: 'POST' })).rejects.toMatchObject({ status: 403 })
+      const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/things'))
+      expect(attempts).toHaveLength(2)
+
+      fetchMock.mockReset()
+      fetchMock.mockResolvedValue(jsonResponse({ code: 'access-denied' }, 403))
+      await expect(apiFetch('/things', { method: 'POST' })).rejects.toMatchObject({ status: 403 })
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+  })
 })
