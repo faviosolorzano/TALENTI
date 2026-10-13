@@ -2,6 +2,8 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { es } from '../../i18n/es'
+import { mockBackend } from '../../test/fakeBackend'
+import { mockProfileBackend } from '../../test/fakeProfile'
 import { clearCsrfCookie, mockIdentityBackend, SAMPLE_LEGAL } from '../../test/fakeIdentity'
 import { renderAppWithSession } from '../../test/renderApp'
 
@@ -11,6 +13,9 @@ const PASSWORD = 'Clave12345'
 afterEach(clearCsrfCookie)
 
 async function openRegister(options: Parameters<typeof mockIdentityBackend>[0] = {}) {
+  // The student Home that follows a sign-up loads the vacancies and the profile.
+  mockBackend()
+  mockProfileBackend()
   const backend = mockIdentityBackend(options)
   const view = renderAppWithSession('/registro')
   // The form is there from the start; wait until the consent text has loaded.
@@ -119,16 +124,17 @@ describe('Sign-up form (001-22, 001-26)', () => {
 })
 
 describe('Sign-up result (001-01, 001-02, 001-03, 001-04, 001-05)', () => {
-  it('001-01: sends the data and the current legal version, then opens the panel with "Tu cuenta está lista"', async () => {
-    const { backend, user } = await openRegister()
+  it('001-01 and 005-06: sends the data and the current legal version, then opens the Home with "Tu cuenta está lista"', async () => {
+    const { backend, router, user } = await openRegister()
 
     await fillAndSend(user)
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: es.pages.dashboard.title }),
-    ).toBeVisible()
-    expect(screen.getByText(es.identity.dashboard.welcomeTitle)).toBeInTheDocument()
-    expect(screen.getByText(es.identity.dashboard.greeting(EMAIL))).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: es.home.title })).toBeVisible()
+    expect(router.state.location.pathname).toBe('/')
+    expect(screen.getByText(es.home.welcomeTitle)).toBeInTheDocument()
+    expect(screen.queryByText(EMAIL, { exact: false })).not.toBeInTheDocument()
+    // Told once: the mark is taken out of the history entry, so reloading would not show it.
+    await waitFor(() => expect(router.state.location.state).toBeNull())
     const [call] = backend.calls('POST', '/auth/register')
     expect(call?.body).toEqual({
       email: EMAIL,
@@ -289,16 +295,16 @@ describe('Sign-up result (001-01, 001-02, 001-03, 001-04, 001-05)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(es.errors.network)
   })
 
-  it('a person who already has a session is taken to the panel', async () => {
+  it('a student who already has a session is taken to the Home', async () => {
+    mockBackend()
+    mockProfileBackend()
     mockIdentityBackend({
       signedInAs: EMAIL,
       accounts: { [EMAIL]: { password: PASSWORD, role: 'STUDENT' } },
     })
     renderAppWithSession('/registro')
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: es.pages.dashboard.title }),
-    ).toBeVisible()
+    expect(await screen.findByRole('heading', { level: 1, name: es.home.title })).toBeVisible()
   })
 })
 

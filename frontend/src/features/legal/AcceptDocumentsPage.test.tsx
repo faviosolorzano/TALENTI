@@ -104,7 +104,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   })
 
   // 002-19
-  it('002-19: goes to the panel when there is no returnTo', async () => {
+  it('002-19: goes to the Home when there is no returnTo (005-05)', async () => {
     mockLegalApi({ pending: true })
     open('/aceptar-documentos')
     await screen.findByRole('checkbox')
@@ -112,7 +112,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     await userEvent.click(checkbox())
     await userEvent.click(submit())
 
-    await waitFor(() => expect(where()).toBe('/panel'))
+    await waitFor(() => expect(where()).toBe('/'))
   })
 
   // 002-19
@@ -129,7 +129,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     '/./aceptar-documentos',
     '/ingresar',
     '/\t/evil.example',
-  ])('002-19: ignores an outside returnTo (%j) and goes to the panel', async (value) => {
+  ])('002-19: ignores an outside returnTo (%j) and goes to the Home', async (value) => {
     mockLegalApi({ pending: true })
     open(`/aceptar-documentos?returnTo=${encodeURIComponent(value)}`)
     await screen.findByRole('checkbox')
@@ -137,7 +137,7 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     await userEvent.click(checkbox())
     await userEvent.click(submit())
 
-    await waitFor(() => expect(where()).toBe('/panel'))
+    await waitFor(() => expect(where()).toBe('/'))
   })
 
   it('shows "Guardando…" and disables the button while the request is in flight', async () => {
@@ -246,13 +246,13 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
   // M2: a stale CSRF token (403) is retried once with a new token
   it('on a 403 it asks for a new CSRF token and repeats the request once, then continues', async () => {
     const api = mockLegalApi({ pending: true, forbiddenFirst: 1 })
-    open('/aceptar-documentos?returnTo=%2Fpanel')
+    open('/aceptar-documentos?returnTo=%2Foportunidades')
     await screen.findByRole('checkbox')
     await userEvent.click(checkbox())
 
     await userEvent.click(submit())
 
-    await waitFor(() => expect(where()).toBe('/panel'))
+    await waitFor(() => expect(where()).toBe('/oportunidades'))
     expect(api.calls().filter((call) => call === 'POST /api/v1/legal/accept')).toHaveLength(2)
     const posts = api.calls().filter((call) => call.startsWith('POST') || call.endsWith('/csrf'))
     expect(posts.slice(-3)).toEqual([
@@ -335,10 +335,9 @@ describe('Session shared with the rest of the app (no page reload)', () => {
     await userEvent.click(await screen.findByRole('checkbox'))
     await userEvent.click(submit())
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: es.pages.dashboard.title }),
-    ).toBeVisible()
-    expect(where()).toBe('/panel')
+    // /panel is a student's old address: it leads to the Home (005-04).
+    expect(await screen.findByRole('heading', { level: 1, name: es.home.title })).toBeVisible()
+    expect(where()).toBe('/')
     const after = api.calls().filter((call) => call === 'GET /api/v1/auth/me').length
     expect(after).toBeGreaterThan(before)
   })
