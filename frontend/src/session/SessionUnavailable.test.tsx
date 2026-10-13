@@ -6,7 +6,8 @@ import { clearCsrfCookie, holdNextRequest, mockIdentityBackend } from '../test/f
 import { renderAppWithSession } from '../test/renderApp'
 
 const EMAIL = 'ana.prueba@example.test'
-const STUDENT = { [EMAIL]: { password: 'Clave12345', role: 'STUDENT' as const } }
+// A company account: its page is still /panel (001-21), where these header tests look for "Mi panel".
+const COMPANY_ACCOUNT = { [EMAIL]: { password: 'Clave12345', role: 'COMPANY' as const } }
 
 afterEach(clearCsrfCookie)
 
@@ -16,7 +17,7 @@ const headerLogout = () =>
 
 describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
   it('unavailable: the header says so, offers "Reintentar" and "Cerrar sesión", and does NOT offer "Ingresar" or "Crear cuenta"', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT, meFails: true })
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY_ACCOUNT, meFails: true })
     renderAppWithSession('/')
     const banner = screen.getByRole('banner')
 
@@ -28,7 +29,11 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
   })
 
   it('unavailable: "Cerrar sesión" works (POST /auth/logout does not depend on /me) and leads to /ingresar', async () => {
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT, meFails: true })
+    const backend = mockIdentityBackend({
+      signedInAs: EMAIL,
+      accounts: COMPANY_ACCOUNT,
+      meFails: true,
+    })
     const { router } = renderAppWithSession('/')
     const user = userEvent.setup()
     await within(screen.getByRole('banner')).findByText(es.identity.guard.unavailable)
@@ -43,7 +48,11 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
   })
 
   it('unavailable: "Reintentar" in the header recovers the session when the server answers again', async () => {
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT, meFails: true })
+    const backend = mockIdentityBackend({
+      signedInAs: EMAIL,
+      accounts: COMPANY_ACCOUNT,
+      meFails: true,
+    })
     renderAppWithSession('/')
     const user = userEvent.setup()
     const banner = screen.getByRole('banner')
@@ -61,7 +70,11 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
   })
 
   it('a private page with the session unavailable offers "Reintentar" AND "Cerrar sesión"', async () => {
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT, meFails: true })
+    const backend = mockIdentityBackend({
+      signedInAs: EMAIL,
+      accounts: COMPANY_ACCOUNT,
+      meFails: true,
+    })
     renderAppWithSession('/panel')
     const user = userEvent.setup()
 
@@ -75,7 +88,7 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
   })
 
   it('while the first answer is slow, the private page already offers "Cerrar sesión"', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY_ACCOUNT })
     const held = holdNextRequest('/auth/me')
     renderAppWithSession('/panel')
 
@@ -92,7 +105,7 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
   })
 
   it('while the first answer is slow, the header offers "Cerrar sesión" after a moment (not at once, so visitors see no flash)', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY_ACCOUNT })
     const held = holdNextRequest('/auth/me')
     renderAppWithSession('/')
     const banner = screen.getByRole('banner')
@@ -110,7 +123,7 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
 
 describe('A failed sign-out from the header is visible (M2)', () => {
   async function signedInAt(path: string) {
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY_ACCOUNT })
     const view = renderAppWithSession(path)
     const banner = screen.getByRole('banner')
     await waitFor(() =>

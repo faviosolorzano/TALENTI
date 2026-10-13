@@ -16,7 +16,7 @@ export const LEGAL_PATHS = {
 export const ACCEPT_DOCUMENTS_PATH = sessionPaths.acceptDocuments
 
 /** Where to go after accepting when the address has no (valid) `returnTo`. */
-export const DEFAULT_RETURN_PATH = sessionPaths.dashboard
+export const DEFAULT_RETURN_PATH = sessionPaths.home
 
 export { safeReturnTo }
 

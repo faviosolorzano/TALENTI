@@ -1,0 +1,60 @@
+.tags__entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tags__entry .field__input {
+  flex: 1 1 var(--notice-message-basis);
+  width: auto;
+}
+
+.tags__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tags__item {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: var(--border-width-strong) solid var(--color-border-accent);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tint);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tags__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+}
+
+/* The remove button is a full touch target; negative margins keep the chip itself slim. */
+.tags__remove {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  margin-block: calc((var(--space-8) - var(--touch-target-min)) / 2);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-none);
+  cursor: pointer;
+  transition: color var(--duration-base);
+}
+
+.tags__remove:hover {
+  color: var(--color-danger);
+}

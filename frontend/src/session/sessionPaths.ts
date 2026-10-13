@@ -6,6 +6,8 @@
 export const sessionPaths = {
   home: '/',
   opportunities: '/oportunidades',
+  profile: '/perfil',
+  applications: '/postulaciones',
   register: '/registro',
   login: '/ingresar',
   recover: '/recuperar-cuenta',
@@ -16,3 +18,8 @@ export const sessionPaths = {
 
 /** Query parameter that carries the page to go back to after signing in or accepting. */
 export const RETURN_TO_PARAM = 'returnTo'
+
+/** Where a person lands after signing in without a `returnTo`: a student on the Home (005-05), others on /panel. */
+export function landingPathFor(role: string | undefined): string {
+  return role === 'STUDENT' ? sessionPaths.home : sessionPaths.dashboard
+}

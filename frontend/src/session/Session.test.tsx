@@ -3,17 +3,29 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { es } from '../i18n/es'
 import { mockBackend, VACANCY_IDS } from '../test/fakeBackend'
+import { mockProfileBackend } from '../test/fakeProfile'
 import { clearCsrfCookie, holdNextRequest, mockIdentityBackend } from '../test/fakeIdentity'
 import { renderAppWithSession } from '../test/renderApp'
 
 const EMAIL = 'ana.prueba@example.test'
 const PASSWORD = 'Clave12345'
 const STUDENT = { [EMAIL]: { password: PASSWORD, role: 'STUDENT' as const } }
+// A company has no screens yet: `/panel` is still its page (001-21), so the guard tests use it.
+const COMPANY = { [EMAIL]: { password: PASSWORD, role: 'COMPANY' as const } }
 
 afterEach(clearCsrfCookie)
 
 const panelTitle = () => screen.findByRole('heading', { level: 1, name: es.pages.dashboard.title })
 const loginTitle = () => screen.findByRole('heading', { level: 1, name: es.identity.login.title })
+const homeTitle = () => screen.findByRole('heading', { level: 1, name: es.home.title })
+/** The student Home has no "Cerrar sesión" in the page: it is in the header (005-07). */
+const headerLogout = () =>
+  within(screen.getByRole('banner')).getAllByRole('button', { name: es.identity.nav.logout })[0]!
+/** The fakes the student Home needs: vacancies and profile (the identity fake goes after them). */
+function mockStudentApis() {
+  mockBackend()
+  mockProfileBackend()
+}
 const dashboardLogout = () =>
   within(screen.getByRole('main')).getByRole('button', { name: es.identity.dashboard.logout })
 
@@ -29,7 +41,7 @@ describe('Private routes (001-13, 001-14)', () => {
   })
 
   it('shows a skeleton and announces it while the session is being checked', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     renderAppWithSession('/panel')
 
     const busy = document.querySelector('.guard[aria-busy="true"]')
@@ -40,22 +52,22 @@ describe('Private routes (001-13, 001-14)', () => {
     await panelTitle()
   })
 
-  it('shows the panel with the greeting to a student with a session', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
-    renderAppWithSession('/panel')
-
-    await panelTitle()
-    expect(screen.getByText(es.identity.dashboard.greeting(EMAIL))).toBeInTheDocument()
-    expect(dashboardLogout()).toBeInTheDocument()
-    // It is not a fresh sign-up: no "Tu cuenta está lista".
-    expect(screen.queryByText(es.identity.dashboard.welcomeTitle)).not.toBeInTheDocument()
-  })
-
-  it('001-25: with a session the navigation bar and the public sections are still there', async () => {
-    mockBackend()
+  it('005-04: a student who opens /panel is taken to the Home, without the e-mail on screen', async () => {
+    mockStudentApis()
     mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
     const { router } = renderAppWithSession('/panel')
-    await panelTitle()
+
+    await homeTitle()
+    expect(router.state.location.pathname).toBe('/')
+    expect(screen.queryByText(EMAIL, { exact: false })).not.toBeInTheDocument()
+    // It is not a fresh sign-up: no "Tu cuenta está lista".
+    expect(screen.queryByText(es.home.welcomeTitle)).not.toBeInTheDocument()
+  })
+  it('001-25 and 005-07: with a session the navigation bar is there and the session does not end', async () => {
+    mockStudentApis()
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    const { router } = renderAppWithSession('/')
+    await homeTitle()
     const user = userEvent.setup()
 
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
@@ -65,15 +77,13 @@ describe('Private routes (001-13, 001-14)', () => {
       await screen.findByRole('heading', { level: 1, name: es.opportunities.title }),
     ).toBeVisible()
     expect(router.state.location.pathname).toBe('/oportunidades')
-    // And the session did not end.
-    expect(
-      within(screen.getByRole('banner')).getAllByRole('link', { name: es.nav.dashboard }).length,
-    ).toBeGreaterThan(0)
+    // And the session did not end: the student's menu is still there.
+    expect(within(nav).getByRole('link', { name: es.nav.myProfile })).toBeInTheDocument()
+    expect(headerLogout()).toBeInTheDocument()
   })
-
   it('001-14: a session that expired while the tab was idle takes to /ingresar with "Tu sesión expiró"', async () => {
     mockBackend()
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     const { router } = renderAppWithSession('/panel')
     await panelTitle()
     const user = userEvent.setup()
@@ -117,7 +127,7 @@ describe('Private routes (001-13, 001-14)', () => {
   })
 
   it('if the session cannot be checked it says so and lets the person retry', async () => {
-    const backend = mockIdentityBackend({ offline: true, signedInAs: EMAIL, accounts: STUDENT })
+    const backend = mockIdentityBackend({ offline: true, signedInAs: EMAIL, accounts: COMPANY })
     renderAppWithSession('/panel')
     const user = userEvent.setup()
 
@@ -149,7 +159,7 @@ describe('Roles without screens (001-21)', () => {
 
 describe('Sign-out (001-12)', () => {
   it('signs out on the server, goes to /ingresar saying so and the panel asks to sign in again', async () => {
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     const { router } = renderAppWithSession('/panel')
     await panelTitle()
     const user = userEvent.setup()
@@ -168,7 +178,7 @@ describe('Sign-out (001-12)', () => {
   })
 
   it('sends the CSRF token that is in the cookie NOW, also after it rotated on sign-in and sign-out', async () => {
-    const backend = mockIdentityBackend({ accounts: STUDENT })
+    const backend = mockIdentityBackend({ accounts: COMPANY })
     renderAppWithSession('/ingresar')
     const user = userEvent.setup()
     await loginTitle()
@@ -199,7 +209,7 @@ describe('Sign-out (001-12)', () => {
   })
 
   it('turns the button off while signing out', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     renderAppWithSession('/panel')
     await panelTitle()
     const user = userEvent.setup()
@@ -216,7 +226,7 @@ describe('Sign-out (001-12)', () => {
   })
 
   it('if the server cannot be reached the person stays in and is told', async () => {
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     renderAppWithSession('/panel')
     await panelTitle()
     const user = userEvent.setup()
@@ -247,7 +257,7 @@ describe('Header with and without a session (003-09)', () => {
   })
 
   it('with a session it shows "Mi panel" and "Cerrar sesión", also inside the folded menu', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     renderAppWithSession('/')
     const banner = screen.getByRole('banner')
 
@@ -267,7 +277,7 @@ describe('Header with and without a session (003-09)', () => {
   })
 
   it('shows neither group while the session is being checked (no flash of "Ingresar")', async () => {
-    mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     renderAppWithSession('/')
     const banner = screen.getByRole('banner')
 
@@ -281,7 +291,7 @@ describe('Header with and without a session (003-09)', () => {
   })
 
   it('"Cerrar sesión" from the folded menu signs out and leads to /ingresar', async () => {
-    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
+    const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     const { router } = renderAppWithSession('/')
     const user = userEvent.setup()
     const banner = screen.getByRole('banner')
@@ -358,6 +368,7 @@ describe('Nothing secret is kept in the browser (RNF-01 to 05)', () => {
       })
     }
     const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    mockStudentApis()
     mockIdentityBackend()
     renderAppWithSession('/registro')
     const user = userEvent.setup()
@@ -367,13 +378,13 @@ describe('Nothing secret is kept in the browser (RNF-01 to 05)', () => {
     await user.type(screen.getByLabelText(es.identity.form.passwordLabel), PASSWORD)
     await user.click(screen.getByRole('checkbox', { name: /Leí y acepto/ }))
     await user.click(screen.getByRole('button', { name: es.identity.register.submit }))
-    await panelTitle()
-    await user.click(dashboardLogout())
+    await homeTitle()
+    await user.click(headerLogout())
     await loginTitle()
     await user.type(screen.getByLabelText(es.identity.form.emailLabel), EMAIL)
     await user.type(screen.getByLabelText(es.identity.form.passwordLabel), PASSWORD)
     await user.click(screen.getByRole('button', { name: es.identity.login.submit }))
-    await panelTitle()
+    await homeTitle()
 
     expect(setItem).not.toHaveBeenCalled()
     expect(localStorage.length).toBe(0)

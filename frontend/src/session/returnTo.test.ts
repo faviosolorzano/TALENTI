@@ -100,7 +100,8 @@ describe('loginPathWithReturn', () => {
     )
   })
 
-  it('leaves out the parameter for the panel (it is where one goes anyway) and for unsafe routes', () => {
+  it('leaves out the parameter for the Home and the panel (where one goes anyway) and for unsafe routes', () => {
+    expect(loginPathWithReturn('/')).toBe('/ingresar')
     expect(loginPathWithReturn('/panel')).toBe('/ingresar')
     expect(loginPathWithReturn('//malo.example')).toBe('/ingresar')
   })

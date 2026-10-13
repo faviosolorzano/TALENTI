@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router'
+import { features } from '../app/features'
 import { es } from '../i18n/es'
 import { sessionPaths } from '../session/sessionPaths'
 import { useSession } from '../session/useSession'
@@ -10,6 +11,30 @@ import './Header.css'
 
 /** Scroll distance (px) after which the header shows its bottom line. */
 const SCROLLED_AFTER = 8
+
+/**
+ * A menu entry that is not available yet ("Próximamente"): it is drawn disabled, goes nowhere
+ * and a note tied to it with `aria-describedby` says why (005-07).
+ */
+function SoonItem({ label }: { label: string }) {
+  const noteId = useId()
+  return (
+    <>
+      <span
+        className="header__link header__link--soon"
+        role="link"
+        aria-disabled="true"
+        aria-describedby={noteId}
+      >
+        {label}
+        <span className="header__soon">{es.nav.soon}</span>
+      </span>
+      <span id={noteId} className="visually-hidden">
+        {es.nav.soonNote}
+      </span>
+    </>
+  )
+}
 
 /** After this many ms without an answer about the session, "Cerrar sesión" is offered anyway. */
 const SLOW_SESSION_MS = 1500
@@ -67,6 +92,8 @@ export function Header() {
 
   const closeMenu = () => setOpen(false)
   const status = session.status
+  // A student has their own menu (005-07); other roles keep the public one plus "Mi panel".
+  const student = session.isStudent
   const unavailable = status === 'unavailable'
   // "Cerrar sesión" does not depend on `GET /auth/me`: it is offered whenever a session may exist.
   const canSignOut = status === 'authenticated' || unavailable || (status === 'loading' && slow)
@@ -100,26 +127,54 @@ export function Header() {
                 {es.nav.opportunities}
               </NavLink>
             </li>
-            <li>
-              <Link
-                className="header__link"
-                to={{ pathname: '/', hash: 'como-funciona' }}
-                onClick={closeMenu}
-              >
-                {es.nav.how}
-              </Link>
-            </li>
-            <li>
-              <Link
-                className="header__link"
-                to={{ pathname: '/', hash: 'dora' }}
-                onClick={closeMenu}
-              >
-                {es.nav.dora}
-              </Link>
-            </li>
+            {student ? (
+              <>
+                <li>
+                  <NavLink className="header__link" to={sessionPaths.profile} onClick={closeMenu}>
+                    {es.nav.myProfile}
+                  </NavLink>
+                </li>
+                <li>
+                  {features.applications ? (
+                    <NavLink
+                      className="header__link"
+                      to={sessionPaths.applications}
+                      onClick={closeMenu}
+                    >
+                      {es.nav.myApplications}
+                    </NavLink>
+                  ) : (
+                    <SoonItem label={es.nav.myApplications} />
+                  )}
+                </li>
+                <li>
+                  <SoonItem label={es.nav.dora} />
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link
+                    className="header__link"
+                    to={{ pathname: '/', hash: 'como-funciona' }}
+                    onClick={closeMenu}
+                  >
+                    {es.nav.how}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="header__link"
+                    to={{ pathname: '/', hash: 'dora' }}
+                    onClick={closeMenu}
+                  >
+                    {es.nav.dora}
+                  </Link>
+                </li>
+              </>
+            )}
             {/* Only in the folded menu: on wide screens the account actions sit on the right. */}
-            {status === 'authenticated' && (
+            {status === 'authenticated' && !student && (
               <li className="header__list-login">
                 <NavLink className="header__link" to={sessionPaths.dashboard} onClick={closeMenu}>
                   {es.nav.dashboard}
@@ -160,7 +215,7 @@ export function Header() {
               {es.identity.nav.logout}
             </Button>
           )}
-          {status === 'authenticated' && (
+          {status === 'authenticated' && !student && (
             <Button size="sm" to={sessionPaths.dashboard} onClick={closeMenu}>
               {es.nav.dashboard}
             </Button>

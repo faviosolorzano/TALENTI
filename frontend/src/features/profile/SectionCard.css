@@ -1,0 +1,158 @@
+.card.section-card {
+  padding: 0;
+  box-shadow: var(--shadow-sm);
+  scroll-margin-top: var(--scroll-offset);
+  transition:
+    border-color var(--duration-slow) var(--easing-standard),
+    box-shadow var(--duration-slow) var(--easing-standard);
+}
+
+/* The card being edited stands out from the others */
+.card.section-card[data-open] {
+  border-color: var(--color-border-accent);
+  box-shadow: var(--shadow-md);
+}
+
+.section-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+}
+
+@media (min-width: 32.5rem) {
+  .section-card__head {
+    padding: var(--space-5) var(--space-6);
+  }
+}
+
+/* Done / pending mark */
+.section-card__tick {
+  position: relative;
+  flex: none;
+  width: var(--tick-size);
+  height: var(--tick-size);
+  border: var(--border-width-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  transition:
+    background-color var(--duration-slow) var(--easing-standard),
+    border-color var(--duration-slow) var(--easing-standard);
+}
+
+.section-card[data-done] .section-card__tick {
+  border-color: var(--color-success);
+  background: var(--color-success);
+}
+
+.section-card[data-done] .section-card__tick::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--space-2);
+  height: var(--space-3);
+  border: solid var(--color-text-inverse);
+  border-width: 0 var(--border-width-accent) var(--border-width-accent) 0;
+  transform: translate(-50%, -62%) rotate(45deg);
+  animation: tick-pop var(--duration-slow) var(--easing-standard) both;
+}
+
+@keyframes tick-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -62%) rotate(45deg) scale(0.4);
+  }
+}
+
+.section-card__heading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.section-card__title {
+  flex: 1 1 100%;
+  font-size: var(--font-size-subtitle);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 32.5rem) {
+  .section-card__title {
+    flex: 0 1 auto;
+    font-size: var(--font-size-xl);
+  }
+}
+
+.section-card__status {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-tag);
+  line-height: var(--line-height-none);
+  white-space: nowrap;
+}
+
+.section-card__status[data-done] {
+  border-color: var(--color-success);
+  background: var(--color-success-soft);
+  color: var(--color-text);
+}
+
+/* "Guardado": always in the page (a live region); it only has text for a moment */
+.section-card__saved {
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  animation: saved-in var(--duration-slow) var(--easing-standard) both;
+}
+
+.section-card__saved:empty {
+  display: none;
+}
+
+@keyframes saved-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+.section-card__edit {
+  flex: none;
+}
+
+/* Read mode: the summary hangs under the title */
+.section-card__body {
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+@media (min-width: 32.5rem) {
+  .section-card__body {
+    padding: 0 var(--space-6) var(--space-6);
+  }
+
+  .section-card__body[data-mode='read'] {
+    padding-left: calc(var(--space-6) + var(--tick-size) + var(--space-4));
+  }
+}
+
+/* Edit mode: a line separates the form from the title, and the form slides in */
+.section-card__body[data-mode='edit'] {
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+  animation: section-enter var(--duration-slow) var(--easing-standard) both;
+}
+
+@keyframes section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-2)));
+  }
+}

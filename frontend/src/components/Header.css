@@ -99,7 +99,30 @@
 }
 
 .header__link[aria-current='page'] {
+  background: var(--color-bg-tint);
   color: var(--color-text);
+}
+
+/* An entry that is not available yet: drawn quiet, with its tag, and it goes nowhere */
+.header__link--soon {
+  gap: var(--space-2);
+  cursor: not-allowed;
+}
+
+.header__link--soon:hover {
+  background: none;
+  color: var(--color-text-muted);
+}
+
+.header__soon {
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-tag);
+  line-height: var(--line-height-none);
+  white-space: nowrap;
 }
 
 /* Wide: the menu opens up into a row and "Ingresar" becomes a button on the right. */

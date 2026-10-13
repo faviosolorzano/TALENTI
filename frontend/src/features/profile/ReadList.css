@@ -1,0 +1,45 @@
+/* Read mode of the cards: label and value pairs, and the invitation of an empty card */
+.read-empty {
+  color: var(--color-text-muted);
+}
+
+.read-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+@media (min-width: 40rem) {
+  .read-list {
+    grid-template-columns: repeat(auto-fit, minmax(var(--company-item-min-width), 1fr));
+    gap: var(--space-4) var(--space-6);
+  }
+}
+
+.read-list__row {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.read-list dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.read-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: var(--font-weight-semibold);
+}
+
+.read-list__missing {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.section-form__short {
+  max-width: var(--form-card-width);
+}

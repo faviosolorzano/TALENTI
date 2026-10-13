@@ -1,0 +1,19 @@
+.field__input--area {
+  min-height: var(--textarea-min-height);
+  resize: vertical;
+}
+
+.field__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+
+.field__counter {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}

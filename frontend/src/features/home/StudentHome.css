@@ -1,0 +1,235 @@
+.home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-content: start;
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.home__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.home__title {
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.home__lead {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+@media (min-width: 48rem) {
+  .home {
+    padding-top: var(--space-12);
+  }
+
+  .home__title {
+    overflow-wrap: anywhere;
+    font-size: var(--font-size-4xl);
+  }
+}
+
+/* Blocks: one column on phone and tablet, in this order */
+.home__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.home__side {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+/* Wide: Perfil across; Vacantes in the wide column; Postulaciones and DORA in the side one */
+@media (min-width: 61.25rem) {
+  .home__grid {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .home-block--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Perfil */
+.home-profile {
+  display: grid;
+  gap: var(--space-6);
+  align-items: end;
+}
+
+.home-profile__skeleton {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--form-card-width);
+}
+
+.home-profile__next {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+.home-profile__caption {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}
+
+.home-profile__done {
+  font-weight: var(--font-weight-bold);
+}
+
+@media (min-width: 48rem) {
+  .home-profile {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-10);
+  }
+
+  .home-profile__next {
+    justify-items: end;
+  }
+}
+
+/* Vacantes */
+.home-vacancies,
+.home-vacancies__skeleton {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-vacancy {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition:
+    border-color var(--duration-base),
+    background-color var(--duration-base);
+}
+
+.home-vacancies .home-vacancy:hover {
+  border-color: var(--color-border-accent);
+  background: var(--color-bg-tint);
+}
+
+.home-vacancy__body,
+.home-vacancy__lines {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-vacancy__lines {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.home-vacancy__title {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  overflow-wrap: anywhere;
+}
+
+/* The title is the only link and it covers the whole tile */
+.home-vacancy__link {
+  text-decoration: none;
+}
+
+.home-vacancy__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+}
+
+.home-vacancy__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.home-vacancy__modality {
+  flex: none;
+  color: var(--color-text-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.home-block__more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-min);
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.home-block__more:hover {
+  text-decoration: underline;
+}
+
+.home-block__more span {
+  transition: transform var(--duration-slow) var(--easing-standard);
+}
+
+.home-block__more:hover span {
+  transform: translateX(var(--space-1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-block__more:hover span {
+    transform: none;
+  }
+}
+
+/* DORA */
+.home-practice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.home-practice__orb {
+  flex: none;
+  width: var(--home-orb-size);
+}
+
+.home-practice__text {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--font-size-ui);
+}
+
+.home-practice__privacy {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Placeholder while the session is checked */
+.home-loading__title {
+  width: 50%;
+  margin-block: 0;
+}
+
+.card.home-loading__card {
+  display: grid;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-sm);
+}

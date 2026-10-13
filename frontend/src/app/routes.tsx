@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router'
 import { DashboardPage } from '../pages/DashboardPage'
 import { HomePage } from '../pages/HomePage'
 import { OpportunitiesPage } from '../pages/OpportunitiesPage'
+import { ProfilePage } from '../pages/ProfilePage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { RecoverPage } from '../pages/RecoverPage'
@@ -44,6 +45,11 @@ export const routes: RouteObject[] = [
         path: sessionPaths.login,
         element: <LoginPage />,
         handle: { title: es.pages.login.title } satisfies RouteHandle,
+      },
+      {
+        path: sessionPaths.profile,
+        element: <ProfilePage />,
+        handle: { title: es.pages.profile.title } satisfies RouteHandle,
       },
       {
         path: sessionPaths.dashboard,

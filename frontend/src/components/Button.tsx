@@ -3,8 +3,11 @@ import { Link, type To } from 'react-router'
 import './Button.css'
 
 type CommonProps = {
-  /** `primary` is the single main action of a screen; `quiet` is the outlined, discreet one. */
-  variant?: 'primary' | 'quiet'
+  /**
+   * `primary` is the single main action of a screen; `quiet` is the outlined, discreet one;
+   * `danger` confirms something that cannot be undone.
+   */
+  variant?: 'primary' | 'quiet' | 'danger'
   size?: 'md' | 'sm'
   /** Colors for a navy background (only meaningful for `quiet`). */
   onDark?: boolean

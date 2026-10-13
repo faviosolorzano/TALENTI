@@ -1,0 +1,87 @@
+.profile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-content: start;
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.profile__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.profile__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.profile__lead {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+/* Phone and tablet: progress, then the cards, then the CV announcement */
+.profile__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.profile__aside {
+  display: contents;
+}
+
+.profile__aside > :first-child {
+  order: 1;
+}
+
+.profile__sections {
+  order: 2;
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.profile__aside > :last-child {
+  order: 3;
+}
+
+@media (min-width: 48rem) {
+  .profile {
+    padding-top: var(--space-12);
+  }
+
+  .profile__title {
+    font-size: var(--font-size-4xl);
+  }
+}
+
+/* Wide: the cards on the left, progress and CV on the right and always in view */
+@media (min-width: 61.25rem) {
+  .profile__layout {
+    grid-template-columns: minmax(0, 1fr) var(--profile-aside-width);
+    gap: var(--space-8);
+  }
+
+  .profile__aside {
+    display: grid;
+    grid-column: 2;
+    grid-row: 1;
+    gap: var(--space-4);
+    position: sticky;
+    top: var(--scroll-offset);
+  }
+
+  .profile__aside > :first-child,
+  .profile__aside > :last-child {
+    order: 0;
+  }
+
+  .profile__sections {
+    grid-column: 1;
+    grid-row: 1;
+    order: 0;
+  }
+}

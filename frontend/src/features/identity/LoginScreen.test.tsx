@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import { es } from '../../i18n/es'
 import { mockBackend } from '../../test/fakeBackend'
+import { mockProfileBackend } from '../../test/fakeProfile'
 import { clearCsrfCookie, holdNextRequest, mockIdentityBackend } from '../../test/fakeIdentity'
 import { renderAppWithSession } from '../../test/renderApp'
 
@@ -20,6 +21,9 @@ async function openLogin(
   path = '/ingresar',
   options: Parameters<typeof mockIdentityBackend>[0] = { accounts: ACCOUNTS },
 ) {
+  // The student Home that follows a sign-in loads the vacancies and the profile.
+  mockBackend()
+  mockProfileBackend()
   const backend = mockIdentityBackend(options)
   const view = renderAppWithSession(path)
   await screen.findByRole('heading', { level: 1, name: es.identity.login.title })
@@ -74,15 +78,14 @@ describe('Sign-in form (001-22, 001-23)', () => {
 })
 
 describe('Sign-in result (001-08, 001-09, 001-10, 001-11)', () => {
-  it('001-08: with the right data it opens the panel', async () => {
-    const { backend, user } = await openLogin()
+  it('001-08 and 005-05: with the right data a student opens the Home, with no e-mail on screen', async () => {
+    const { backend, router, user } = await openLogin()
 
     await signIn(user)
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: es.pages.dashboard.title }),
-    ).toBeVisible()
-    expect(screen.getByText(es.identity.dashboard.greeting(EMAIL))).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: es.home.title })).toBeVisible()
+    expect(router.state.location.pathname).toBe('/')
+    expect(screen.queryByText(EMAIL, { exact: false })).not.toBeInTheDocument()
     expect(backend.calls('POST', '/auth/login')[0]?.body).toEqual({
       email: EMAIL,
       password: PASSWORD,
@@ -217,10 +220,22 @@ describe('returnTo (001, edge cases)', () => {
     ['a backslash trick', '%2F%5Cmalo.example'],
     ['the sign-in page itself', '%2Fingresar'],
     ['the sign-up page', '%2Fregistro'],
-  ])('ignores %s and goes to the panel', async (_name, encoded) => {
+  ])('ignores %s and goes to the Home', async (_name, encoded) => {
     const { router, user } = await openLogin(`/ingresar?returnTo=${encoded}`)
 
     await signIn(user)
+
+    await screen.findByRole('heading', { level: 1, name: es.home.title })
+    expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('a company account without returnTo still goes to /panel (001-21)', async () => {
+    const company = 'empresa.prueba@example.test'
+    const { router, user } = await openLogin('/ingresar', {
+      accounts: { [company]: { password: PASSWORD, role: 'COMPANY' } },
+    })
+
+    await signIn(user, PASSWORD, company)
 
     await screen.findByRole('heading', { level: 1, name: es.pages.dashboard.title })
     expect(router.state.location.pathname).toBe('/panel')
