@@ -70,7 +70,22 @@ export function parseConsent(
 
 /** The stored choice of this browser, or `null` when the visitor has not chosen (or it is no longer valid). */
 export function readConsent(catalog: CookieCatalog = CATALOG): StoredConsent | null {
-  return parseConsent(readCookie(COOKIE_NAME), catalog)
+  return parseConsent(readCookie(COOKIE_NAME), catalog) ?? validUnpersisted(unpersisted, catalog)
+}
+
+/**
+ * The last choice when the browser would not keep the cookie, so that during this page visit
+ * everyone (the React state and `isAllowed`) sees the same answer. Gone on reload.
+ */
+let unpersisted: StoredConsent | null = null
+
+function validUnpersisted(consent: StoredConsent | null, catalog: CookieCatalog) {
+  return consent && consent.v >= catalog.version ? consent : null
+}
+
+/** Forgets the unsaved choice (for tests). */
+export function forgetUnpersistedConsent(): void {
+  unpersisted = null
 }
 
 /**
@@ -108,8 +123,10 @@ export function writeConsent(
   try {
     document.cookie = serializeConsent(consent)
   } catch {
-    // Blocked: the choice only lives in memory until the page is reloaded.
+    // Blocked: handled below.
   }
+  // Blocked cookies: the choice only lives in memory until the page is reloaded.
+  unpersisted = parseConsent(readCookie(COOKIE_NAME), catalog, now) ? null : consent
   return consent
 }
 
@@ -119,8 +136,17 @@ export function writeConsent(
  * calls this for the moment.
  */
 export function isAllowed(id: string, catalog: CookieCatalog = CATALOG): boolean {
+  return isAllowedIn(readConsent(catalog), id, catalog)
+}
+
+/** The same rule over a choice already in hand (the React state uses it, so both always agree). */
+export function isAllowedIn(
+  consent: StoredConsent | null,
+  id: string,
+  catalog: CookieCatalog = CATALOG,
+): boolean {
   const category = catalog.categories.find((candidate) => candidate.id === id)
   if (!category) return false
   if (category.required) return true
-  return readConsent(catalog)?.c[id] === true
+  return consent?.c[id] === true
 }

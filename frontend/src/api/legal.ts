@@ -1,4 +1,4 @@
-import { apiFetch, CSRF_COOKIE_NAME, readCookie } from './client'
+import { ApiError, apiFetch, CSRF_COOKIE_NAME, readCookie } from './client'
 
 /** One section of a legal document. `heading` is empty for the text before the first heading. */
 export interface LegalSection {
@@ -87,17 +87,31 @@ async function ensureCsrfCookie(): Promise<void> {
 }
 
 /**
+ * Sends a POST. If the server answers 403 (the CSRF token was stale: it rotates when signing in
+ * or out), it asks for a new token with `GET /auth/csrf` and repeats the request ONCE; a second
+ * failure reaches the caller as it is.
+ */
+async function postWithCsrfRetry(path: string, json?: unknown): Promise<void> {
+  await ensureCsrfCookie()
+  try {
+    await apiFetch(path, { method: 'POST', json })
+  } catch (error) {
+    if (!(error instanceof ApiError && error.status === 403)) throw error
+    await apiFetch('/auth/csrf')
+    await apiFetch(path, { method: 'POST', json })
+  }
+}
+
+/**
  * `POST /legal/accept` (001-30). The CSRF token rotates when signing in or out, so
  * `apiFetch` reads the cookie again on every call. Rejects with `ApiError`: 409 outdated
  * version, 422 not accepted, 401 no session.
  */
 export async function acceptLegalDocuments(legalVersion: string): Promise<void> {
-  await ensureCsrfCookie()
-  await apiFetch('/legal/accept', { method: 'POST', json: { legalAccepted: true, legalVersion } })
+  await postWithCsrfRetry('/legal/accept', { legalAccepted: true, legalVersion })
 }
 
 /** `POST /auth/logout` (T8: signing out is always available). */
 export async function logoutRequest(): Promise<void> {
-  await ensureCsrfCookie()
-  await apiFetch('/auth/logout', { method: 'POST' })
+  await postWithCsrfRetry('/auth/logout')
 }

@@ -3,6 +3,7 @@ import { es } from '../../i18n/es'
 import { CATALOG, type CookieCatalog } from './catalog'
 import {
   acceptAllChoices,
+  isAllowedIn,
   readConsent,
   rejectOptionalChoices,
   writeConsent,
@@ -79,11 +80,7 @@ export function CookieConsentProvider({
       acceptAll: () => commit(acceptAllChoices(catalog), false),
       rejectOptional: () => commit(rejectOptionalChoices(catalog), false),
       save: (choices) => commit(choices, true),
-      isAllowed: (id) => {
-        const category = catalog.categories.find((candidate) => candidate.id === id)
-        if (!category) return false
-        return category.required || consent?.c[id] === true
-      },
+      isAllowed: (id) => isAllowedIn(consent, id, catalog),
     }),
     [catalog, consent, panelOpen, commit],
   )

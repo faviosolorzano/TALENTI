@@ -34,7 +34,33 @@ export function safeReturnTo(value: string | null | undefined): string | null {
   if (!value.startsWith('/') || value.startsWith('//')) return null
   // eslint-disable-next-line no-control-regex
   if (value.includes('\\') || /[\x00-\x1f\x7f]/.test(value)) return null
-  const pathname = value.split(/[?#]/, 1)[0]
-  if (pathname === ACCEPT_DOCUMENTS_PATH) return null
+  if (BLOCKED_RETURN_PATHS.has(normalizedPath(value))) return null
   return value
+}
+
+/** Routes that must never be a `returnTo`: coming back to them would loop (or is pointless). */
+const BLOCKED_RETURN_PATHS: ReadonlySet<string> = new Set([
+  ACCEPT_DOCUMENTS_PATH,
+  '/ingresar',
+  '/registro',
+])
+
+/**
+ * The path a browser would end up on, in a comparable form: dot segments resolved, percent
+ * escapes decoded (until stable, so "%2561" cannot hide a letter), lower case, no trailing "/".
+ */
+function normalizedPath(value: string): string {
+  let path: string
+  try {
+    path = new URL(value, 'http://x').pathname
+    for (let i = 0; i < 5; i++) {
+      const decoded = decodeURIComponent(path)
+      if (decoded === path) break
+      path = new URL(decoded, 'http://x').pathname
+    }
+  } catch {
+    // An address that cannot be read is not worth following: treat it as a blocked one.
+    return ACCEPT_DOCUMENTS_PATH
+  }
+  return path.toLowerCase().replace(/\/+$/, '') || '/'
 }

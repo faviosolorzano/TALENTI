@@ -111,6 +111,11 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     'javascript:alert(1)',
     'panel',
     '/aceptar-documentos',
+    '/aceptar-documentos/',
+    '/Aceptar-Documentos',
+    '/%61ceptar-documentos',
+    '/./aceptar-documentos',
+    '/ingresar',
     '/\t/evil.example',
   ])('002-19: ignores an outside returnTo (%j) and goes to the panel', async (value) => {
     mockLegalApi({ pending: true })
@@ -223,6 +228,67 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     expect(api.calls()).toContain('POST /api/v1/auth/logout')
   })
 
+  // M2: a stale CSRF token (403) is retried once with a new token
+  it('on a 403 it asks for a new CSRF token and repeats the request once, then continues', async () => {
+    const api = mockLegalApi({ pending: true, forbiddenFirst: 1 })
+    renderApp('/aceptar-documentos?returnTo=%2Fpanel')
+    await screen.findByRole('checkbox')
+    await userEvent.click(checkbox())
+
+    await userEvent.click(submit())
+
+    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/panel'))
+    expect(api.calls().filter((call) => call === 'POST /api/v1/legal/accept')).toHaveLength(2)
+    const posts = api.calls().filter((call) => call.startsWith('POST') || call.endsWith('/csrf'))
+    expect(posts.slice(-3)).toEqual([
+      'POST /api/v1/legal/accept',
+      'GET /api/v1/auth/csrf',
+      'POST /api/v1/legal/accept',
+    ])
+  })
+
+  it('on a second 403 it does not try again and shows the error', async () => {
+    const api = mockLegalApi({ pending: true, forbiddenFirst: 5 })
+    renderApp('/aceptar-documentos')
+    await screen.findByRole('checkbox')
+    await userEvent.click(checkbox())
+
+    await userEvent.click(submit())
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.acceptDocuments.failed)
+    expect(api.calls().filter((call) => call === 'POST /api/v1/legal/accept')).toHaveLength(2)
+    expect(leaveTo).not.toHaveBeenCalled()
+    expect(submit()).toBeEnabled()
+  })
+
+  // T8 with a stale CSRF token
+  it('"Cerrar sesión" also retries once after a 403 and then leaves', async () => {
+    const api = mockLegalApi({ pending: true, forbiddenFirst: 1 })
+    renderApp('/aceptar-documentos')
+    await screen.findByRole('checkbox')
+
+    await userEvent.click(screen.getByRole('button', { name: es.acceptDocuments.logout }))
+
+    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/'))
+    expect(api.calls().filter((call) => call === 'POST /api/v1/auth/logout')).toHaveLength(2)
+  })
+
+  it('"Cerrar sesión" stays available after two 403: it says so and can be tried again', async () => {
+    const api = mockLegalApi({ pending: true, forbiddenFirst: 2 })
+    renderApp('/aceptar-documentos')
+    await screen.findByRole('checkbox')
+
+    await userEvent.click(screen.getByRole('button', { name: es.acceptDocuments.logout }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.acceptDocuments.logoutFailed)
+    expect(leaveTo).not.toHaveBeenCalled()
+    const again = screen.getByRole('button', { name: es.acceptDocuments.logout })
+    expect(again).toBeEnabled()
+    await userEvent.click(again)
+    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('/'))
+    expect(api.calls().filter((call) => call === 'POST /api/v1/auth/logout')).toHaveLength(3)
+  })
+
   // T8
   it('says so, and stays on the screen, when signing out fails', async () => {
     mockLegalApi({ pending: true, logoutStatus: 500 })
@@ -244,12 +310,15 @@ describe('Page /aceptar-documentos (002-18, 002-19)', () => {
 })
 
 describe('returnTo validation (001 edge case, 002-19)', () => {
-  it.each(['/panel', '/oportunidades?q=java', '/oportunidades/abc#seccion', '/'])(
-    'accepts the internal route %s',
-    (value) => {
-      expect(safeReturnTo(value)).toBe(value)
-    },
-  )
+  it.each([
+    '/panel',
+    '/oportunidades?q=java',
+    '/oportunidades/abc#seccion',
+    '/',
+    '/aceptar-documentos-viejos',
+  ])('accepts the internal route %s', (value) => {
+    expect(safeReturnTo(value)).toBe(value)
+  })
 
   it.each([
     null,
@@ -264,6 +333,20 @@ describe('returnTo validation (001 edge case, 002-19)', () => {
     '/panel\n/x',
     '/aceptar-documentos',
     '/aceptar-documentos?returnTo=%2Fpanel',
+    '/aceptar-documentos/',
+    '/aceptar-documentos//',
+    '/ACEPTAR-DOCUMENTOS',
+    '/Aceptar-Documentos?x=1#y',
+    '/%61ceptar-documentos',
+    '/%2561ceptar-documentos',
+    '/./aceptar-documentos',
+    '/panel/../aceptar-documentos',
+    '/%2e%2e/aceptar-documentos',
+    '/%2e/aceptar-documentos',
+    '/ingresar',
+    '/Ingresar/',
+    '/registro',
+    '/%',
   ])('rejects %j', (value) => {
     expect(safeReturnTo(value)).toBeNull()
   })

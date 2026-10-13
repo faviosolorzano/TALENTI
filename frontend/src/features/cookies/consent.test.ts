@@ -3,7 +3,9 @@ import { TEST_CATALOG } from '../../test/testCatalog'
 import { CATALOG, CATALOG_VERSION, COOKIE_MAX_AGE_SECONDS, COOKIE_NAME } from './catalog'
 import {
   acceptAllChoices,
+  forgetUnpersistedConsent,
   isAllowed,
+  isAllowedIn,
   parseConsent,
   readConsent,
   rejectOptionalChoices,
@@ -130,9 +132,35 @@ describe('Cookie module: writing (002-13)', () => {
     })
     try {
       expect(() => writeConsent(acceptAllChoices())).not.toThrow()
-      expect(readConsent()).toBeNull()
+      // Nothing was stored, but during this visit the page still knows the choice.
+      expect(readConsent()?.c).toEqual({ necessary: true })
     } finally {
       delete (document as unknown as { cookie?: string }).cookie
+      forgetUnpersistedConsent()
+    }
+  })
+
+  // B2: the React state and isAllowed() agree when the browser blocks cookies
+  it('isAllowed() gives the same answer as the choice just made when cookies are blocked', () => {
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: () => '',
+      set: () => {
+        throw new Error('blocked')
+      },
+    })
+    try {
+      const accepted = writeConsent(acceptAllChoices(TEST_CATALOG), TEST_CATALOG)
+      expect(isAllowed('analytics', TEST_CATALOG)).toBe(true)
+      expect(isAllowedIn(accepted, 'analytics', TEST_CATALOG)).toBe(true)
+
+      const rejected = writeConsent(rejectOptionalChoices(TEST_CATALOG), TEST_CATALOG)
+      expect(isAllowed('analytics', TEST_CATALOG)).toBe(false)
+      expect(isAllowedIn(rejected, 'analytics', TEST_CATALOG)).toBe(false)
+      expect(isAllowed('necessary', TEST_CATALOG)).toBe(true)
+    } finally {
+      delete (document as unknown as { cookie?: string }).cookie
+      forgetUnpersistedConsent()
     }
   })
 })

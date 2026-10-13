@@ -646,8 +646,10 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
     const second = await page.context().newPage()
     await second.goto('/')
     await expect(banner(second)).toBeVisible()
+    await page.bringToFront() // a background tab is throttled and clicks wait for ever
     await banner(page).getByRole('button', { name: 'Aceptar' }).click()
 
+    await second.bringToFront()
     await second.reload()
     await expect(second.getByRole('contentinfo')).toBeVisible()
     await expect(banner(second)).toHaveCount(0)

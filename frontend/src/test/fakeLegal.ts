@@ -89,6 +89,8 @@ export interface FakeLegalOptions {
   acceptStatus?: number | (() => number)
   /** Status of `POST /auth/logout` (default 204). */
   logoutStatus?: number
+  /** The first N POSTs to `/legal/accept` and `/auth/logout` answer 403, like a stale CSRF token. */
+  forbiddenFirst?: number
 }
 
 const resolve = <T>(value: T | (() => T)): T =>
@@ -98,6 +100,7 @@ const resolve = <T>(value: T | (() => T)): T =>
 export function mockLegalApi(options: FakeLegalOptions = {}): FakeLegalApi {
   const calls: string[] = []
   const acceptBodies: unknown[] = []
+  let forbidden = options.forbiddenFirst ?? 0
   const handler = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), 'http://localhost')
     const method = (init?.method ?? 'GET').toUpperCase()
@@ -118,6 +121,13 @@ export function mockLegalApi(options: FakeLegalOptions = {}): FakeLegalApi {
         role: 'STUDENT',
         legalAcceptancePending: options.pending ?? true,
       })
+    }
+    const isGuardedPost =
+      method === 'POST' &&
+      (url.pathname === '/api/v1/legal/accept' || url.pathname === '/api/v1/auth/logout')
+    if (isGuardedPost && forbidden > 0) {
+      forbidden -= 1
+      return json(403, { title: 'Forbidden' })
     }
     if (method === 'POST' && url.pathname === '/api/v1/legal/accept') {
       acceptBodies.push(JSON.parse(String(init?.body ?? 'null')))

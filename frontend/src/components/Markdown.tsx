@@ -7,12 +7,21 @@ import './Markdown.css'
 
 /** An address inside the app: one "/" at the start, never "//" (which would leave the site). */
 function isInternal(href: string): boolean {
+  if (href.includes('\\')) return false
   return (href.startsWith('/') && !href.startsWith('//')) || href.startsWith('#')
+}
+
+/**
+ * An address without a scheme that a browser would read as another site ("//host", "/\host"):
+ * it is neither an internal link nor a declared external one, so it is not made a link.
+ */
+function isAmbiguous(href: string): boolean {
+  return href.startsWith('//') || href.includes('\\')
 }
 
 function MarkdownLink({ href, children }: { href?: string; children?: ReactNode }) {
   // react-markdown already empties dangerous addresses (javascript:, data:, vbscript:).
-  if (!href) return <span>{children}</span>
+  if (!href || isAmbiguous(href)) return <span>{children}</span>
   if (isInternal(href)) return <Link to={href}>{children}</Link>
   if (/^https?:/i.test(href)) {
     return (
