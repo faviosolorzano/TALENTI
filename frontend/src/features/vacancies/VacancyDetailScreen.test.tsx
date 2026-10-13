@@ -26,6 +26,33 @@ describe('Page /oportunidades/:id (004-21)', () => {
     await waitFor(() => expect(document.title).toBe(`Practicante Backend Java · ${es.app.name}`))
   })
 
+  it('has a disabled "Ver perfil de la empresa" button described by "Próximamente" (004-34)', async () => {
+    mockBackend()
+    const { router } = renderApp(`/oportunidades/${FIRST}`)
+    await title()
+
+    const button = screen.getByRole('button', { name: es.vacancyDetail.companyProfile })
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toHaveAccessibleDescription(es.vacancyDetail.companyProfileSoon)
+    expect(
+      within(button.parentElement as HTMLElement).getByText(es.vacancyDetail.companyProfileSoon),
+    ).toBeVisible()
+    // It is not a link: no address and nothing broken to follow.
+    expect(button.tagName).toBe('BUTTON')
+    expect(button).not.toHaveAttribute('href')
+    expect(
+      screen.queryByRole('link', { name: es.vacancyDetail.companyProfile }),
+    ).not.toBeInTheDocument()
+
+    const path = router.state.location.pathname
+    await userEvent.click(button)
+    button.focus()
+    await userEvent.keyboard('{Enter}')
+    await userEvent.keyboard(' ')
+    expect(router.state.location.pathname).toBe(path)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('separates "Obligatorios" and "Deseables", each with a badge and the minimum level in words', async () => {
     mockBackend()
     renderApp(`/oportunidades/${FIRST}`)

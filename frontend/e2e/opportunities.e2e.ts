@@ -455,6 +455,33 @@ test.describe('Search without results (004-33)', () => {
   }
 })
 
+test.describe('Company profile button in the detail (004-34)', () => {
+  for (const width of WIDTHS) {
+    test(`at ${width} px the disabled "Ver perfil de la empresa" is described, goes nowhere, is 44 px tall and the detail has no serious axe violations`, async ({
+      page,
+    }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height: 900 })
+      const id = await firstVacancyId(page)
+      await page.goto(`/oportunidades/${id}`)
+      const button = page.getByRole('button', { name: 'Ver perfil de la empresa' })
+      await expect(button).toBeVisible()
+      await expect(button).toHaveAttribute('aria-disabled', 'true')
+      await expect(button).toHaveAccessibleDescription('Próximamente')
+      expect((await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43.9)
+
+      await button.click({ force: true }) // aria-disabled: Playwright would wait for it to be enabled
+      await button.press('Enter')
+      await expect(page).toHaveURL(new RegExp(`/oportunidades/${id}$`))
+
+      await page.evaluate(() => document.fonts.ready)
+      const size = await horizontalScroll(page)
+      expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth)
+      expect(await seriousViolations(page)).toEqual([])
+    })
+  }
+})
+
 test.describe('Keyboard only (004-17, 004-25)', () => {
   test('search, filter, paginate and open a vacancy using only the keyboard, with a visible focus', async ({
     page,
