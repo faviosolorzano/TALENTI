@@ -1011,7 +1011,7 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     await page.getByRole('checkbox').check()
     await page.getByRole('button', { name: 'Aceptar y continuar' }).click()
 
-    await expect(page).toHaveURL(/\/panel$/)
+    await expect(page).toHaveURL(/\/$/)
     expect(new URL(page.url()).hostname).toBe('localhost')
   })
 
@@ -1052,7 +1052,7 @@ test.describe('Page /aceptar-documentos (002-18, 002-19)', () => {
     )
     await page.getByRole('button', { name: 'Aceptar y continuar' }).click()
     expect((await response).status()).toBe(204)
-    await expect(page).toHaveURL(/\/panel$/)
+    await expect(page).toHaveURL(/\/$/)
 
     // Sign out for real.
     const token = (await page.context().cookies()).find((cookie) => cookie.name === 'XSRF-TOKEN')!
