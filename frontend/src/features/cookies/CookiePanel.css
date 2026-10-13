@@ -1,0 +1,104 @@
+/* The only layer in this feature: the panel is modal, the notice is not. */
+.cookie-panel__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--color-scrim);
+  overscroll-behavior: contain;
+}
+
+.cookie-panel {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: var(--dialog-max-width);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.cookie-panel__title {
+  font-size: var(--font-size-2xl);
+}
+
+.cookie-panel__intro {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.cookie-panel__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cookie-panel__item {
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.cookie-panel__item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.cookie-panel__name {
+  font-weight: var(--font-weight-semibold);
+}
+
+.cookie-panel__fixed {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.cookie-panel__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+}
+
+.cookie-panel__switch input {
+  width: var(--space-5);
+  height: var(--space-5);
+  accent-color: var(--color-action);
+}
+
+.cookie-panel__description {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+  line-height: var(--line-height-snug);
+}
+
+.cookie-panel__policy a {
+  color: var(--color-link);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+  text-underline-offset: 0.2em;
+}
+
+.cookie-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (min-width: 32.5rem) {
+  .cookie-panel {
+    padding: var(--space-8);
+  }
+}

@@ -1,0 +1,103 @@
+/* Phone and tablet: a "Contenido" button above the text that opens the list. */
+.toc__toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-min);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width-strong) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.toc__toggle:hover {
+  border-color: var(--color-text);
+}
+
+.toc__chevron {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-right: var(--border-width-strong) solid currentcolor;
+  border-bottom: var(--border-width-strong) solid currentcolor;
+  transform: translateY(-15%) rotate(45deg);
+  transition: transform var(--duration-base) var(--easing-standard);
+}
+
+.toc__toggle[aria-expanded='true'] .toc__chevron {
+  transform: translateY(15%) rotate(-135deg);
+}
+
+.toc__title {
+  display: none;
+  margin-bottom: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.toc__list {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  list-style: none;
+  background: var(--color-bg-subtle);
+}
+
+.toc__list a {
+  display: block;
+  padding-block: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-ui);
+  line-height: var(--line-height-snug);
+  text-decoration: none;
+}
+
+.toc__list a:hover {
+  color: var(--color-link);
+  text-decoration: underline;
+}
+
+/* Desktop: the list is always open, as a side column. */
+@media (min-width: 61.25rem) {
+  .toc__toggle {
+    display: none;
+  }
+
+  .toc__title {
+    display: block;
+  }
+
+  .toc__list,
+  .toc__list[hidden] {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .toc__list a {
+    padding-block: var(--space-2);
+    padding-left: var(--space-3);
+    border-left: var(--border-width-accent) solid var(--color-border);
+  }
+
+  .toc__list a:hover {
+    border-left-color: var(--color-link);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toc__chevron {
+    transition: none;
+  }
+}

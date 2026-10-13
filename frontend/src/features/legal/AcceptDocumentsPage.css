@@ -1,0 +1,111 @@
+.accept {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-5);
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.accept > * {
+  max-width: var(--reading-measure);
+}
+
+.accept__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.accept__skeleton {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.accept__form {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.accept__lead {
+  font-size: var(--font-size-lead);
+  line-height: var(--line-height-base);
+}
+
+.accept__version {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.accept__read-title {
+  font-size: var(--font-size-xl);
+}
+
+.accept__links {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.accept__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+  text-underline-offset: 0.2em;
+}
+
+.accept__links a {
+  gap: var(--space-2);
+}
+
+.accept__new-tab {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+/* The box starts unticked (T9): accepting is an explicit act. */
+.accept__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+}
+
+.accept__check input {
+  flex: none;
+  width: var(--space-6);
+  height: var(--space-6);
+  margin: 0;
+  accent-color: var(--color-action);
+}
+
+.accept__problem {
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  font-weight: var(--font-weight-semibold);
+}
+
+.accept__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (min-width: 48rem) {
+  .accept {
+    padding-top: var(--space-12);
+  }
+
+  .accept__title {
+    font-size: var(--font-size-4xl);
+  }
+}
