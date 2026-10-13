@@ -4,6 +4,8 @@ import { afterEach, beforeEach, vi } from 'vitest'
 import { createFakeCanvasContext } from './mocks'
 
 beforeEach(() => {
+  // Each test starts as a first visit: no cookie choice from a previous test.
+  document.cookie = 'talenti_cookies=; Max-Age=0; Path=/'
   HTMLCanvasElement.prototype.getContext = vi.fn(
     () => createFakeCanvasContext() as unknown as CanvasRenderingContext2D,
   ) as unknown as typeof HTMLCanvasElement.prototype.getContext

@@ -19,7 +19,11 @@ export function useScrollToHash(): void {
     previous.current = { pathname, search }
     if (hash) {
       const target = document.getElementById(decodeURIComponent(hash.slice(1)))
-      if (!target) return
+      if (!target) {
+        // A section that does not exist (or is not loaded yet) leaves the page at the top.
+        if (navigationType !== 'POP') window.scrollTo?.(0, 0)
+        return
+      }
       target.scrollIntoView?.()
       target.focus({ preventScroll: true })
     } else if (navigationType !== 'POP' && !queryOnly) {

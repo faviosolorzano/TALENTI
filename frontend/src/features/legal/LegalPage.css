@@ -1,0 +1,102 @@
+/* Shared by the legal pages and the transparency page. */
+.legal {
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.legal__header {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  max-width: var(--reading-measure);
+}
+
+.legal__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.legal__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.legal__lead {
+  max-width: var(--reading-measure);
+  margin-bottom: var(--space-8);
+  font-size: var(--font-size-lead);
+  line-height: var(--line-height-base);
+}
+
+.legal__content {
+  margin-top: var(--space-8);
+}
+
+.legal__layout {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.legal__sections {
+  min-width: 0;
+}
+
+.legal-section + .legal-section {
+  margin-top: var(--space-10);
+}
+
+.legal-section__heading {
+  margin-bottom: var(--space-4);
+  max-width: var(--reading-measure);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  overflow-wrap: anywhere;
+}
+
+.legal-skeleton {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--reading-measure);
+}
+
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legal-links a {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+  text-underline-offset: 0.2em;
+}
+
+@media (min-width: 48rem) {
+  .legal {
+    padding-top: var(--space-12);
+  }
+
+  .legal__title {
+    font-size: var(--font-size-4xl);
+  }
+}
+
+/* Desktop: the index is a fixed side column and follows the reading. */
+@media (min-width: 61.25rem) {
+  .legal__layout {
+    grid-template-columns: var(--toc-width) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-12);
+  }
+
+  .legal__layout > .toc {
+    position: sticky;
+    top: var(--scroll-offset);
+    max-height: calc(100vh - var(--scroll-offset) - var(--space-4));
+    overflow-y: auto;
+  }
+}

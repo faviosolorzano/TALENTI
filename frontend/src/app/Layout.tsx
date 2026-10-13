@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Outlet, useLocation, useMatches } from 'react-router'
 import { Header } from '../components/Header'
+import { SiteFooter } from '../components/SiteFooter'
+import { CookieBanner } from '../features/cookies/CookieBanner'
+import { CookieConsentProvider } from '../features/cookies/CookieConsentProvider'
+import { CookiePanel } from '../features/cookies/CookiePanel'
 import { es } from '../i18n/es'
 import { isRouteHandle } from './routeHandle'
 import { useScrollToHash } from './useScrollToHash'
@@ -30,18 +34,23 @@ export function Layout() {
   }, [pathname])
 
   return (
-    <div className="layout">
-      <a className="layout__skip-link" href="#contenido">
-        {es.app.skipToContent}
-      </a>
+    <CookieConsentProvider>
+      <div className="layout">
+        <a className="layout__skip-link" href="#contenido">
+          {es.app.skipToContent}
+        </a>
 
-      <Header />
+        <Header />
 
-      <main id="contenido" className="layout__main" tabIndex={-1} ref={mainRef}>
-        <Outlet />
-      </main>
+        <main id="contenido" className="layout__main" tabIndex={-1} ref={mainRef}>
+          <Outlet />
+        </main>
 
-      {/* 002: aquí van el pie, el aviso de cookies y los enlaces a las páginas legales. */}
-    </div>
+        {/* Spec 002: the cookie notice goes right before the footer. */}
+        <CookieBanner />
+        <SiteFooter />
+      </div>
+      <CookiePanel />
+    </CookieConsentProvider>
   )
 }

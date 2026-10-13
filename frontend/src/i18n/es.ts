@@ -322,4 +322,141 @@ export const es = {
     },
     reducedMotion: 'Reducir movimiento está activado: el orbe no se anima.',
   },
+
+  // ---- Legal framework and cookies (spec 002). The legal documents themselves come from the
+  // API (GET /legal/current); only the frame around them is written here. ----
+  footer: {
+    label: 'Información legal',
+    terms: 'Términos y Condiciones',
+    privacy: 'Política de Privacidad',
+    cookies: 'Política de Cookies',
+    transparency: 'Transparencia',
+    cookiePreferences: 'Preferencias de cookies',
+  },
+  legal: {
+    draftNotice: 'Borrador: pendiente de revisión legal y sujeto a cambios',
+    /** Heading shown while the document loads or fails (the real title comes from the API). */
+    fallbackTitles: {
+      terms: 'Términos y Condiciones',
+      privacy: 'Política de Privacidad',
+      cookies: 'Política de Cookies',
+    },
+    version: (version: string, date: string) => `Versión ${version} · Publicada el ${date}`,
+    versionPendingDate: (version: string) => `Versión ${version} · Fecha de publicación pendiente`,
+    toc: 'Contenido',
+    loading: 'Cargando el documento…',
+    errorMessage: 'No pudimos cargar el documento. Inténtalo de nuevo.',
+    tableLabel: 'Tabla desplazable',
+    opensInNewTab: '(se abre en otra pestaña)',
+  },
+  transparency: {
+    title: 'Transparencia: cómo usamos tus datos',
+    lead: 'Aquí te lo explicamos en pocas palabras. El detalle completo está en la [Política de Privacidad](/privacidad).',
+    blocks: [
+      {
+        id: 'resumen',
+        heading: 'En pocas palabras',
+        body: [
+          '- **Tú decides.** Lo que la IA sugiere sobre ti, lo confirmas tú. La empresa decide si te contacta; tú decides a qué vacantes postulas.',
+          '- **Pedimos permiso por separado** para leer tu CV y para usar tu voz, justo cuando hace falta. Si no lo das, hay una alternativa: completar tu perfil a mano o practicar por texto.',
+          '- **No vendemos tus datos** ni los usamos para publicidad.',
+          '- **Tus sesiones de práctica son privadas.** Nunca las ven las empresas.',
+        ].join('\n'),
+        links: [{ label: 'Leer la Política de Privacidad completa', to: '/privacidad' }],
+      },
+      {
+        id: 'datos',
+        heading: 'Qué datos usamos',
+        body: 'Tu correo y tu contraseña (protegida), lo que escribes en tu perfil, el CV que decidas subir, tus respuestas en las sesiones de práctica y tus postulaciones.\n\nNo necesitamos tu DNI, dirección, fecha de nacimiento, estado civil ni foto: los quitamos del CV antes de enviarlo a la IA.',
+        links: [
+          { label: 'Ver todos los datos', to: '/privacidad#seccion-2' },
+          { label: 'Ver qué datos no necesitamos', to: '/privacidad#seccion-3' },
+        ],
+      },
+      {
+        id: 'finalidades',
+        heading: 'Para qué los usamos',
+        body: 'Para crear tu cuenta, recomendarte vacantes y explicarte por qué te encajan, dejarte postular y ayudarte a practicar con DORA.',
+        links: [{ label: 'Ver todas las finalidades', to: '/privacidad#seccion-4' }],
+      },
+      {
+        id: 'compartir',
+        heading: 'Con quién los compartimos',
+        body: [
+          '- **Con las empresas**, solo cuando postulas y solo la parte de tu perfil que te mostramos antes de confirmar.',
+          '- **Con proveedores que nos prestan servicios**, como IA, voz y alojamiento, que reciben solo lo necesario. Pueden estar fuera del Perú.',
+          '- **Nunca** enviamos tu contraseña ni tu correo a los proveedores de IA y voz.',
+        ].join('\n'),
+        links: [
+          { label: 'Ver con quién compartimos', to: '/privacidad#seccion-5' },
+          { label: 'Ver las transferencias al extranjero', to: '/privacidad#seccion-6' },
+        ],
+      },
+      {
+        id: 'conservacion',
+        heading: 'Cuánto tiempo los conservamos',
+        body: 'El PDF de tu CV se elimina cuando confirmas o descartas las sugerencias, o a los 7 días. **Talenti no guarda tu audio**, solo su transcripción. El resto se conserva mientras tu cuenta exista o hasta que lo borres.',
+        links: [{ label: 'Ver los plazos', to: '/privacidad#seccion-7' }],
+      },
+      {
+        id: 'dora',
+        heading: 'Cómo funciona DORA',
+        body: 'DORA es una **inteligencia artificial**, no una persona, y siempre se marca como tal. La IA **sugiere** y tú **confirmas**. El **porcentaje de compatibilidad no lo calcula la IA**: lo calcula el sistema con reglas visibles y se explica con coincidencias y brechas. No inferimos emociones, acento ni apariencia.',
+        links: [{ label: 'Ver cómo funciona la IA', to: '/privacidad#seccion-8' }],
+      },
+      {
+        id: 'derechos',
+        heading: 'Tus derechos y tu control',
+        body: 'Puedes ver, corregir y borrar tus datos, retirar cualquier permiso, borrar tu CV y tus sesiones, pedir una explicación de un resultado y eliminar tu cuenta cuando quieras.',
+        links: [{ label: 'Ver tus derechos', to: '/privacidad#seccion-10' }],
+      },
+    ],
+  },
+  cookies: {
+    banner: {
+      label: 'Aviso de cookies',
+      onlyNecessary: 'Solo usamos cookies necesarias.',
+      withOptional: (names: string) =>
+        `Usamos cookies necesarias y, solo si lo aceptas, estas otras: ${names}. Empiezan desactivadas.`,
+      policyLink: 'Política de Cookies',
+      accept: 'Aceptar',
+      reject: 'Rechazar',
+      configure: 'Configurar',
+    },
+    panel: {
+      title: 'Preferencias de cookies',
+      intro:
+        'Elige qué cookies permites. Las necesarias siempre están activas porque sin ellas el sitio no funciona.',
+      required: 'Siempre activas',
+      save: 'Guardar preferencias',
+      close: 'Cerrar sin guardar',
+      policyLink: 'Leer la Política de Cookies',
+    },
+    saved: 'Preferencias guardadas',
+    categories: {
+      necessary: {
+        name: 'Necesarias',
+        description:
+          'Mantienen tu sesión iniciada, protegen tus acciones y recuerdan esta elección.',
+      },
+    },
+  },
+  acceptDocuments: {
+    title: 'Actualizamos nuestros documentos',
+    lead: 'Cambiamos los Términos y Condiciones y la Política de Privacidad. Para seguir usando Talenti, léelos y acéptalos.',
+    readTitle: 'Léelos aquí',
+    checkbox: 'He leído y acepto los documentos nuevos.',
+    mustAccept:
+      'Para continuar necesitas aceptar los documentos nuevos. Si prefieres no hacerlo, puedes cerrar sesión.',
+    outdated:
+      'Los documentos cambiaron mientras leías. Ya cargamos el texto actual: léelo y vuelve a aceptar.',
+    failed: 'No pudimos guardar tu aceptación. Inténtalo de nuevo.',
+    submit: 'Aceptar y continuar',
+    saving: 'Guardando…',
+    logout: 'Cerrar sesión',
+    loggingOut: 'Cerrando sesión…',
+    loading: 'Cargando…',
+    errorMessage: 'No pudimos cargar los documentos. Inténtalo de nuevo.',
+    logoutFailed: 'No pudimos cerrar tu sesión. Inténtalo de nuevo.',
+  },
 } as const

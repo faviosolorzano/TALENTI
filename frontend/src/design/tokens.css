@@ -203,6 +203,15 @@
   --z-header: 30;
   --z-skip-link: 100;
 
+  /* ---- Legal pages and cookies (spec 002) ---- */
+  --reading-measure: 50ch; /* about 70 characters per line in the body font */
+  --toc-width: 15rem; /* 240 px: side index of the legal pages */
+  --dialog-max-width: 36rem; /* 576 px: cookie preferences panel */
+  --cookie-banner-max-height: 40vh;
+  --color-scrim: color-mix(in srgb, var(--color-brand-navy) 55%, transparent);
+  --z-cookie-banner: 20;
+  --z-modal: 50;
+
   /* ---- Sizes of the signature pieces ---- */
   --ring-size: 8.25rem; /* 132 px on phones */
   --orb-max-size: 27.5rem; /* 440 px */

@@ -1,0 +1,99 @@
+.markdown {
+  overflow-wrap: anywhere;
+}
+
+/* Text lines stay near 70 characters; a table may use the whole column. */
+.markdown > * {
+  max-width: var(--reading-measure);
+}
+
+.markdown > .markdown__scroll {
+  max-width: 100%;
+}
+
+.markdown > * + * {
+  margin-top: var(--space-4);
+}
+
+.markdown h3 {
+  margin-top: var(--space-6);
+  font-size: var(--font-size-xl);
+}
+
+.markdown h4 {
+  margin-top: var(--space-5);
+  font-size: var(--font-size-lg);
+}
+
+.markdown ul,
+.markdown ol {
+  margin-block: var(--space-4) 0;
+  padding-left: var(--space-6);
+}
+
+.markdown li + li {
+  margin-top: var(--space-2);
+}
+
+.markdown a {
+  color: var(--color-link);
+  text-underline-offset: 0.2em;
+}
+
+.markdown a:hover {
+  color: var(--color-action-hover);
+}
+
+.markdown code {
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-subtle);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+}
+
+.markdown blockquote {
+  margin-inline: 0;
+  padding-left: var(--space-4);
+  border-left: var(--border-width-accent) solid var(--color-border-accent);
+  color: var(--color-text-muted);
+}
+
+.markdown hr {
+  border: 0;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+/* Tables scroll inside their own box instead of widening the page. */
+.markdown__scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.markdown table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-ui);
+  line-height: var(--line-height-snug);
+}
+
+.markdown th,
+.markdown td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: normal;
+}
+
+.markdown tr:last-child td {
+  border-bottom: 0;
+}
+
+.markdown th {
+  background: var(--color-bg-subtle);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
