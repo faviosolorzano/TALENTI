@@ -29,15 +29,24 @@ export const TEST_SKILLS: CatalogSkill[] = [
 ]
 
 const WEIGHTS: Record<CompletenessKey, number> = {
-  ACADEMIC: 20,
+  ACADEMIC: 15,
   SKILLS: 25,
-  AVAILABILITY: 20,
+  AVAILABILITY: 15,
   PROJECTS: 25,
   LOCATION: 10,
+  ABOUT: 10,
 }
-const ORDER: CompletenessKey[] = ['ACADEMIC', 'SKILLS', 'AVAILABILITY', 'PROJECTS', 'LOCATION']
+const ORDER: CompletenessKey[] = [
+  'ACADEMIC',
+  'SKILLS',
+  'AVAILABILITY',
+  'PROJECTS',
+  'LOCATION',
+  'ABOUT',
+]
 
 export const EMPTY_PROFILE: Profile = {
+  about: { displayName: null, about: null },
   academic: { career: null, institute: null, cycle: null },
   skills: [],
   availability: { hoursPerWeek: null, acceptedModalities: [], location: null },
@@ -59,6 +68,7 @@ function completenessOf(profile: Profile): Completeness {
       profile.availability.acceptedModalities.length > 0,
     PROJECTS: profile.projects.length >= 1,
     LOCATION: Boolean(profile.availability.location),
+    ABOUT: Boolean(profile.about.about),
   }
   const items: CompletenessItem[] = ORDER.map((key) => ({
     key,
@@ -136,6 +146,7 @@ export function mockProfileBackend(options: FakeProfileOptions = {}): FakeProfil
   let state: Profile = {
     ...EMPTY_PROFILE,
     ...options.profile,
+    about: { ...EMPTY_PROFILE.about, ...options.profile?.about },
     academic: { ...EMPTY_PROFILE.academic, ...options.profile?.academic },
     availability: { ...EMPTY_PROFILE.availability, ...options.profile?.availability },
   }
@@ -199,6 +210,28 @@ export function mockProfileBackend(options: FakeProfileOptions = {}): FakeProfil
     }
 
     if (options.writeDelayMs) await new Promise((r) => setTimeout(r, options.writeDelayMs))
+
+    if (method === 'PUT' && path === '/profile/about') {
+      const displayName = text(body?.displayName)
+      const about = text(body?.about)
+      const found: Problem[] = []
+      if (displayName && displayName.length < 2) {
+        found.push({
+          field: 'displayName',
+          rule: 'min-length',
+          message: 'Escribe al menos 2 caracteres.',
+        })
+      }
+      if (about && about.length < 10) {
+        found.push({
+          field: 'about',
+          rule: 'min-length',
+          message: 'Escribe al menos 10 caracteres.',
+        })
+      }
+      if (found.length > 0) return invalid(...found)
+      return commit({ about: { displayName: displayName || null, about: about || null } })
+    }
 
     if (method === 'PUT' && path === '/profile/academic') {
       const career = text(body?.career)

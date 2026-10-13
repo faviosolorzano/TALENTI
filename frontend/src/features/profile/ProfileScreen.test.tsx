@@ -73,7 +73,7 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
     expect(bar).toHaveAttribute('aria-valuenow', '0')
     const missing = screen.getByRole('heading', { level: 3, name: t.summary.whatIsMissing })
     const links = within(missing.parentElement as HTMLElement).getAllByRole('link')
-    expect(links).toHaveLength(5)
+    expect(links).toHaveLength(6)
     // The next step the server chose goes first and is marked.
     expect(links[0]).toHaveTextContent(t.steps.SKILLS)
     expect(links[0]).toHaveTextContent(t.summary.next)
@@ -97,10 +97,10 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
   it('RN-11: the percentage, the done marks and the next step come from the server, not from the page', async () => {
     await openProfile({ ...FULL_ACADEMIC, ...THREE_SKILLS })
 
-    // Academic 20 + skills 25 = 45; the heaviest pending item is the projects (25).
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '45')
+    // Academic 15 + skills 25 = 40; the heaviest pending item is the projects (25).
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '40')
     expect(screen.getByText(es.profile.summary.percentLead, { exact: false })).toHaveTextContent(
-      'Tu perfil está al 45 %',
+      'Tu perfil está al 40 %',
     )
     const first = within(
       screen.getByRole('heading', { level: 3, name: t.summary.whatIsMissing })
@@ -121,6 +121,7 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
 
   it('at 100 % it says the profile is complete and lists nothing as missing', async () => {
     await openProfile({
+      about: { displayName: 'Ana', about: 'Estudio software.' },
       ...FULL_ACADEMIC,
       ...THREE_SKILLS,
       availability: { hoursPerWeek: 20, acceptedModalities: ['REMOTE'], location: 'Lima' },
@@ -255,7 +256,7 @@ describe('Datos académicos (006-05, 006-15, 006-19)', () => {
 
     expect(await within(card(t.academic.title)).findByText(t.academic.cycleValue(5))).toBeVisible()
     expect(within(card(t.academic.title)).getByRole('status')).toHaveTextContent(t.actions.saved)
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '20')
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '15')
     expect(profile.bodies).toEqual([
       {
         method: 'PUT',

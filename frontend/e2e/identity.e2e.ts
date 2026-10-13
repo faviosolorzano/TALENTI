@@ -57,7 +57,7 @@ const horizontalScroll = (page: Page) =>
 const emailField = (page: Page) => page.getByLabel('Correo')
 const passwordField = (page: Page) => page.getByLabel('Contraseña', { exact: true })
 const consentBox = (page: Page) => page.getByRole('checkbox', { name: /Leí y acepto/ })
-const panelTitle = (page: Page) => page.getByRole('heading', { level: 1, name: 'Mi panel' })
+const panelTitle = (page: Page) => page.getByRole('heading', { level: 1, name: 'Hola de nuevo' })
 const loginTitle = (page: Page) =>
   page.getByRole('heading', { level: 1, name: 'Ingresa a tu cuenta' })
 
@@ -82,8 +82,20 @@ async function registerViaUi(page: Page, email: string) {
   await expect(panelTitle(page)).toBeVisible()
 }
 
+/** Signs out from the header (the student Home has no button of its own). */
+async function logout(page: Page) {
+  const menu = page.getByRole('button', { name: 'Menú' })
+  if (await menu.isVisible()) await menu.click()
+  await page
+    .getByRole('banner')
+    .getByRole('button', { name: 'Cerrar sesión' })
+    .filter({ visible: true })
+    .first()
+    .click()
+}
+
 async function logoutViaPanel(page: Page) {
-  await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
+  await logout(page)
   await expect(loginTitle(page)).toBeVisible()
 }
 
@@ -137,12 +149,12 @@ test.describe('Sign-up, sign-out and sign-in (001-01, 001-12, 001-13)', () => {
 
     await registerViaUi(page, account.email)
     await expect(page.getByText('Tu cuenta está lista')).toBeVisible()
-    await expect(page.getByText(`Hola, ${account.email}`)).toBeVisible()
+    await expect(page.getByText(account.email)).toHaveCount(0)
     // 001-25: the navigation bar is there and the public sections are one click away.
     const nav = page.getByRole('navigation', { name: 'Navegación principal' })
     await nav.getByRole('link', { name: 'Oportunidades' }).click()
     await expect(page.getByRole('heading', { level: 1, name: 'Oportunidades' })).toBeVisible()
-    await page.getByRole('banner').getByRole('link', { name: 'Mi panel' }).click()
+    await page.getByRole('banner').getByRole('link', { name: 'Inicio', exact: true }).click()
     await expect(panelTitle(page)).toBeVisible()
     await expect(page.getByText('Tu cuenta está lista')).toBeHidden()
 
@@ -170,9 +182,9 @@ test.describe('Sign-up, sign-out and sign-in (001-01, 001-12, 001-13)', () => {
     // Sign in again.
     await loginViaUi(page, account.email, account.password)
     await expect(panelTitle(page)).toBeVisible()
-    await expect(page.getByText(`Hola, ${account.email}`)).toBeVisible()
+    await expect(page.getByText(account.email)).toHaveCount(0)
     await expect(page.getByText('Tu cuenta está lista')).toBeHidden()
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
     await logoutViaPanel(page)
   })
 
@@ -372,7 +384,7 @@ test.describe('returnTo and the vacancy (001, edge cases, 004-22)', () => {
 
       await expect(panelTitle(page)).toBeVisible()
       const url = new URL(page.url())
-      expect(url.pathname).toBe('/panel')
+      expect(url.pathname).toBe('/')
       expect(url.hostname).toBe('localhost')
       await logoutViaPanel(page)
     })
@@ -393,14 +405,14 @@ test.describe('Session expired (001-14)', () => {
   }) => {
     expect(await loginViaApi(page, account.email, account.password)).toBe(200)
     await page.goto('/oportunidades')
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
 
     // The server forgets the session (30 idle minutes): here, the browser holds an unknown id.
     await page
       .context()
       .addCookies([{ name: 'JSESSIONID', value: 'sesion-vencida', url: baseURL! }])
     await page.waitForTimeout(1700) // the page does not repeat a check made a moment ago
-    await page.getByRole('banner').getByRole('link', { name: 'Mi panel' }).click()
+    await page.getByRole('banner').getByRole('link', { name: 'Inicio', exact: true }).click()
 
     await expect(loginTitle(page)).toBeVisible()
     await expect(page.getByText('Tu sesión expiró. Ingresa de nuevo.')).toBeVisible()
@@ -455,11 +467,11 @@ test.describe('Responsive layout (001-22)', () => {
       expect(scrollWidth, '/recuperar-cuenta').toBeLessThanOrEqual(clientWidth)
 
       expect(await loginViaApi(page, account.email, account.password)).toBe(200)
-      await page.goto('/panel')
+      await page.goto('/')
       await expect(panelTitle(page)).toBeVisible()
       ;({ scrollWidth, clientWidth } = await horizontalScroll(page))
-      expect(scrollWidth, '/panel').toBeLessThanOrEqual(clientWidth)
-      await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
+      expect(scrollWidth, '/ (Inicio)').toBeLessThanOrEqual(clientWidth)
+      await logout(page)
       await expect(loginTitle(page)).toBeVisible()
     })
   }
@@ -515,7 +527,7 @@ test.describe('Responsive layout (001-22)', () => {
     await page.goto('/')
     await page.getByRole('button', { name: 'Menú' }).click()
     const menu = page.getByRole('navigation', { name: 'Navegación principal' })
-    await expect(menu.getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await expect(menu.getByRole('link', { name: 'Inicio', exact: true })).toBeVisible()
     await expect(menu.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible()
     expect(await seriousViolations(page)).toEqual([])
 
@@ -563,10 +575,10 @@ test.describe('axe (001-22, RNF-14)', () => {
       expect(await seriousViolations(page), '/recuperar-cuenta').toEqual([])
 
       expect(await loginViaApi(page, account.email, account.password)).toBe(200)
-      await page.goto('/panel')
+      await page.goto('/')
       await expect(panelTitle(page)).toBeVisible()
-      expect(await seriousViolations(page), '/panel').toEqual([])
-      await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
+      expect(await seriousViolations(page), '/ (Inicio)').toEqual([])
+      await logout(page)
       await expect(loginTitle(page)).toBeVisible()
     })
   }
@@ -635,7 +647,7 @@ test.describe('Keyboard only (001-22)', () => {
     await page.keyboard.type(PASSWORD)
     await page.keyboard.press('Enter') // Enter sends the form
     await expect(panelTitle(page)).toBeVisible()
-    await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
+    await logout(page)
     await expect(loginTitle(page)).toBeVisible()
   })
 
@@ -706,21 +718,21 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
     await expect(passwordField(page)).toHaveValue(PASSWORD)
   })
 
-  test('a student with a pending acceptance goes /panel -> /aceptar-documentos -> accepts -> back to /panel, without reloading the page', async ({
+  test('a student with a pending acceptance goes / -> /aceptar-documentos -> accepts -> back to /, without reloading the page', async ({
     page,
   }) => {
     expect(await loginViaApi(page, account.email, account.password)).toBe(200)
     await pendingStudent(page)
     await page.goto('/oportunidades')
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
     // A mark that a full page load would erase.
     await page.evaluate(() => {
       ;(window as unknown as { __noReload: boolean }).__noReload = true
     })
 
     // The private page sends the student to the acceptance screen, remembering where from.
-    await page.getByRole('banner').getByRole('link', { name: 'Mi panel' }).click()
-    await expect(page).toHaveURL(/\/aceptar-documentos\?returnTo=%2Fpanel$/)
+    await page.getByRole('banner').getByRole('link', { name: 'Inicio', exact: true }).click()
+    await expect(page).toHaveURL(/\/aceptar-documentos\?returnTo=%2F$/)
     await expect(
       page.getByRole('heading', { level: 1, name: 'Actualizamos nuestros documentos' }),
     ).toBeVisible()
@@ -739,11 +751,11 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
     expect((await accepted).status()).toBe(204)
 
     await expect(panelTitle(page)).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe('/panel')
+    expect(new URL(page.url()).pathname).toBe('/')
     expect(
       await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload),
     ).toBe(true)
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
     await logoutViaPanel(page)
   })
 
@@ -758,7 +770,7 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
       ;(window as unknown as { __noReload: boolean }).__noReload = true
     })
 
-    await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
+    await logout(page)
 
     await expect(page).toHaveURL(/\/ingresar$/)
     await expect(page.getByText('Cerraste sesión.')).toBeVisible()
@@ -818,7 +830,7 @@ test.describe('Session that cannot be checked (M1, M2)', () => {
     expect(await loginViaApi(page, account.email, account.password)).toBe(200)
     await page.goto('/oportunidades')
     const banner = page.getByRole('banner')
-    await expect(banner.getByRole('link', { name: 'Mi panel' })).toBeVisible()
+    await expect(banner.getByRole('link', { name: 'Mi perfil' })).toBeVisible()
     await page.route('**/api/v1/auth/logout', (route) => route.abort())
 
     await banner.getByRole('button', { name: 'Cerrar sesión' }).click()
@@ -827,7 +839,7 @@ test.describe('Session that cannot be checked (M1, M2)', () => {
     await expect(note).toBeVisible()
     await expect(note).toHaveText('No pudimos cerrar tu sesión. Inténtalo de nuevo.')
     // Another page: the note goes away.
-    await banner.getByRole('link', { name: 'Mi panel' }).click()
+    await banner.getByRole('link', { name: 'Inicio', exact: true }).click()
     await expect(panelTitle(page)).toBeVisible()
     await expect(banner.getByRole('alert')).toHaveCount(0)
 
