@@ -50,7 +50,7 @@ class DemoDataEnabledStartupTests {
 				"SELECT count(*) FROM flyway_schema_history WHERE version ~ '^[0-9]+$' AND version::int >= 1000",
 				Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("SELECT max(version::int) FROM flyway_schema_history WHERE version IS NOT NULL",
-				Integer.class)).isEqualTo(4);
+				Integer.class)).isEqualTo(latestSchemaMigration());
 	}
 
 	@Test
@@ -61,6 +61,18 @@ class DemoDataEnabledStartupTests {
 		long warnLines = output.getAll().lines().filter(line -> line.contains("ATENCIÓN: los datos de ejemplo"))
 				.filter(line -> line.contains(" WARN ")).count();
 		assertThat(warnLines).as("una línea de nivel WARN").isEqualTo(1);
+	}
+
+	/** La versión más alta entre las migraciones reales del esquema (Maven corre las pruebas con backend/ como directorio). */
+	private static int latestSchemaMigration() {
+		try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files
+				.list(java.nio.file.Path.of("src", "main", "resources", "db", "migration"))) {
+			return files.map(path -> path.getFileName().toString()).filter(name -> name.matches("V\\d+__.*\\.sql"))
+					.mapToInt(name -> Integer.parseInt(name.substring(1, name.indexOf("__")))).max().orElseThrow();
+		}
+		catch (java.io.IOException e) {
+			throw new java.io.UncheckedIOException(e);
+		}
 	}
 
 }

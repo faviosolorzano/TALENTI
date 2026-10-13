@@ -1,10 +1,15 @@
 package com.talenti.architecture;
 
 import static com.tngtech.archunit.base.DescribedPredicate.alwaysTrue;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.equivalentTo;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
+import com.talenti.identity.CurrentUser;
+import com.talenti.identity.Role;
+import com.talenti.vacancy.SkillCatalog;
+import com.talenti.vacancy.SkillInfo;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -25,6 +30,13 @@ class ArchitectureTests {
 			.should().notDependOnEachOther()
 			// Excepción explícita: todos los módulos pueden usar shared (errores, auditoría, seguridad).
 			.ignoreDependency(alwaysTrue(), resideInAPackage("com.talenti.shared.."))
+			// Excepciones explícitas hacia la interfaz pública (paquete raíz) de otro módulo. profile (spec 006) usa el
+			// usuario de la sesión de identity y el catálogo de habilidades de vacancy; nada más (lo vigila
+			// ProfileArchitectureTests).
+			.ignoreDependency(resideInAPackage("com.talenti.profile.."), equivalentTo(CurrentUser.class))
+			.ignoreDependency(resideInAPackage("com.talenti.profile.."), equivalentTo(Role.class))
+			.ignoreDependency(resideInAPackage("com.talenti.profile.."), equivalentTo(SkillCatalog.class))
+			.ignoreDependency(resideInAPackage("com.talenti.profile.."), equivalentTo(SkillInfo.class))
 			.as("los módulos no dependen unos de otros; solo usan shared, y shared no depende de ningún módulo");
 
 	@ArchTest

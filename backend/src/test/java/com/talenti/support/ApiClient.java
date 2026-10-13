@@ -126,6 +126,41 @@ public final class ApiClient {
 		return send(method, path, body, cookies.get("XSRF-TOKEN"), Map.of());
 	}
 
+	/**
+	 * Escritura con el método dado y el token CSRF indicado tal cual (nulo = sin cabecera). Para probar que una ruta
+	 * rechaza una escritura sin token o con uno falso, sea PUT, POST o DELETE.
+	 */
+	public Response writeWithToken(String method, String path, Object body, String csrfToken) {
+		return send(method, path, body, csrfToken, Map.of());
+	}
+
+	/**
+	 * Escritura con el cuerpo enviado en trozos ({@code Transfer-Encoding: chunked}, sin {@code Content-Length}),
+	 * con el token CSRF de la sesión. Para probar topes de tamaño que no pueden fiarse de la cabecera.
+	 */
+	public Response writeChunked(String method, String path, byte[] body) {
+		if (cookies.get("XSRF-TOKEN") == null) {
+			get("/api/v1/auth/csrf");
+		}
+		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base + path)).header("X-Real-IP", origin)
+				.header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN")).header("Content-Type", "application/json")
+				.header("Cookie", cookies.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue())
+						.collect(Collectors.joining("; ")))
+				.method(method, HttpRequest.BodyPublishers.ofInputStream(() -> new java.io.ByteArrayInputStream(body)));
+		try {
+			HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+			remember(response.headers().allValues("Set-Cookie"));
+			return new Response(response.statusCode(), response.headers(), response.body());
+		}
+		catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException(e);
+		}
+	}
+
 	public Response postWithoutCsrf(String path, Object body) {
 		return send("POST", path, body, false);
 	}

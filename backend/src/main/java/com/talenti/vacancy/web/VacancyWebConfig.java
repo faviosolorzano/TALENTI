@@ -27,11 +27,13 @@ class VacancyWebConfig {
 				PublicRoute.get(API + "/vacancies/featured"),
 				PublicRoute.get(API + "/vacancies/filters"),
 				PublicRoute.get(API + "/vacancies/*"),
-				PublicRoute.get(API + "/companies/featured"));
+				PublicRoute.get(API + "/companies/featured"),
+				// Catálogo de habilidades para el buscador del perfil (006-02). Solo GET: lo demás exige sesión.
+				PublicRoute.get(API + "/skills"));
 	}
 
 	/**
-	 * Calcula el {@code ETag} de la respuesta y contesta 304 si el visitante ya la tiene. Solo en las cinco rutas
+	 * Calcula el {@code ETag} de la respuesta y contesta 304 si el visitante ya la tiene. Solo en las seis rutas
 	 * públicas: el resto de la API no se toca. Solo actúa sobre respuestas 2xx de {@code GET}.
 	 */
 	@Bean
@@ -39,7 +41,8 @@ class VacancyWebConfig {
 		FilterRegistrationBean<ShallowEtagHeaderFilter> registration = new FilterRegistrationBean<>(
 				new ShallowEtagHeaderFilter());
 		registration.setName("vacancyEtagFilter");
-		registration.addUrlPatterns(API + "/vacancies", API + "/vacancies/*", API + "/companies/featured");
+		registration.addUrlPatterns(API + "/vacancies", API + "/vacancies/*", API + "/companies/featured",
+				API + "/skills");
 		return registration;
 	}
 
