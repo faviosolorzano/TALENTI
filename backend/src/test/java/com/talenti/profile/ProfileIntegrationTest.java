@@ -79,7 +79,8 @@ public abstract class ProfileIntegrationTest extends IdentityIntegrationTest {
 		ok(api.put(PROFILE + "/skills", skills(skill("java", 2), skill("sql", 1), skill("git", 3))));
 		ok(api.put(PROFILE + "/availability", body("hoursPerWeek", 20, "acceptedModalities", List.of("REMOTE", "HYBRID"),
 				"location", "Lima")));
-		return ok(api.post(PROFILE + "/projects", project("Tienda web", description(), "Java", "PostgreSQL")));
+		ok(api.post(PROFILE + "/projects", project("Tienda web", description(), "Java", "PostgreSQL")));
+		return ok(api.put(PROFILE + "/about", body("displayName", "Ana", "about", "Estudiante de software con ganas de aprender.")));
 	}
 
 	protected int profileRows(java.util.UUID userId) {

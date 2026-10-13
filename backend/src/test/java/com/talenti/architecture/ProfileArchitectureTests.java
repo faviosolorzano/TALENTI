@@ -10,8 +10,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.talenti.profile.ConfirmedChanges;
+import com.talenti.profile.ProfileEditor;
 import com.talenti.profile.ProfileReader;
 import com.talenti.profile.ProfileSnapshot;
+import com.talenti.profile.ProfileView;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.Dependency;
@@ -87,6 +90,18 @@ class ProfileArchitectureTests {
 				.as("solo el repositorio de profile toca la base de datos (006-13)").check(classes);
 	}
 
+	/**
+	 * Quién puede ver o modificar el perfil completo: solo el propio módulo y el futuro lector de CV (paquete
+	 * {@code cv}, spec 009). Los demás leen por {@link ProfileReader}, que no trae datos personales.
+	 */
+	@ArchTest
+	static void onlyCvMayUseProfileEditorAndView(JavaClasses classes) {
+		noClasses().that().resideOutsideOfPackages(PROFILE, "com.talenti.cv..").should().dependOnClassesThat()
+				.belongToAnyOf(ProfileEditor.class, ProfileView.class, ConfirmedChanges.class)
+				.as("solo el módulo cv puede usar ProfileEditor, ProfileView y ConfirmedChanges; los demás usan ProfileReader")
+				.check(classes);
+	}
+
 	// ------------------------------------------------------------------------------------------ ProfileReader
 
 	@ArchTest
@@ -109,7 +124,9 @@ class ProfileArchitectureTests {
 						"level");
 		// Dentro de un proyecto "name" y "description" son propios del proyecto (006-13 los pide); lo prohibido es
 		// lo personal y lo académico.
-		for (String forbidden : List.of("email", "career", "institute", "cycle", "password", "userid", "role")) {
+		// 006-25: el nombre y la presentación "Sobre ti" tampoco salen hacia el cálculo ni hacia ninguna IA.
+		for (String forbidden : List.of("email", "career", "institute", "cycle", "password", "userid", "role",
+				"displayName", "about", "aboutMe")) {
 			assertThat(names).as("el snapshot no trae %s", forbidden).doesNotContain(forbidden);
 		}
 	}

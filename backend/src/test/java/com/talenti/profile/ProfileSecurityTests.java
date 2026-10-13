@@ -39,6 +39,7 @@ class ProfileSecurityTests extends ProfileIntegrationTest {
 	private static List<Route> routes() {
 		return List.of(
 				new Route("GET", PROFILE, null),
+				new Route("PUT", PROFILE + "/about", body("displayName", "Ana", "about", "Una presentación de prueba.")),
 				new Route("PUT", PROFILE + "/academic", body("career", "Software", "institute", "Demo", "cycle", 3)),
 				new Route("PUT", PROFILE + "/skills", skills(skill("java", 1))),
 				new Route("PUT", PROFILE + "/availability", body("hoursPerWeek", 10, "acceptedModalities", List.of("REMOTE"))),
@@ -50,7 +51,7 @@ class ProfileSecurityTests extends ProfileIntegrationTest {
 	// ------------------------------------------------------------------------------------------ sin sesión
 
 	@Test
-	@DisplayName("006-04: sin sesión, las siete rutas responden 401 unauthenticated")
+	@DisplayName("006-04: sin sesión, las ocho rutas responden 401 unauthenticated")
 	void t006_04_withoutSessionIs401() {
 		for (Route route : routes()) {
 			Response response = route.send(client());
@@ -102,7 +103,7 @@ class ProfileSecurityTests extends ProfileIntegrationTest {
 	// ------------------------------------------------------------------------------------------ rol
 
 	@Test
-	@DisplayName("006-04: con rol COMPANY o ADMIN, las siete rutas responden 403 access-denied y no crean nada")
+	@DisplayName("006-04: con rol COMPANY o ADMIN, las ocho rutas responden 403 access-denied y no crean nada")
 	void t006_04_otherRolesAreForbidden() {
 		for (Role role : List.of(Role.COMPANY, Role.ADMIN)) {
 			CreatedUser user = createUser(role);
@@ -224,6 +225,22 @@ class ProfileSecurityTests extends ProfileIntegrationTest {
 		assertThat(response.status()).isEqualTo(413);
 		assertThat(response.json().get("code").asString()).isEqualTo("payload-too-large");
 		assertThat(profileRows(student.id())).isZero();
+	}
+
+	@Test
+	@DisplayName("006-04: el tope de 64 KB también vale con cuerpo chunked (sin Content-Length): 413 y no se guarda")
+	void t006_04_chunkedOversizedBodyIsRejected() {
+		RegisteredStudent student = registerStudent();
+		byte[] huge = ("{\"career\":\"" + repeat('a', 200_000) + "\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+		Response response = student.api().writeChunked("PUT", PROFILE + "/academic", huge);
+
+		assertThat(response.status()).isEqualTo(413);
+		assertThat(response.json().get("code").asString()).isEqualTo("payload-too-large");
+		assertThat(profileRows(student.id())).isZero();
+		// Un cuerpo chunked pequeño sí pasa.
+		byte[] small = "{\"career\":\"Software\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(student.api().writeChunked("PUT", PROFILE + "/academic", small).status()).isEqualTo(200);
 	}
 
 	@Test

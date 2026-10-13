@@ -38,7 +38,7 @@ class ProfileApiTests extends ProfileIntegrationTest {
 		assertThat(profile.get("availability").get("location").isNull()).isTrue();
 		assertThat(profile.get("updatedAt").isNull()).isTrue();
 		assertThat(profile.get("completeness").get("percent").asInt()).isZero();
-		assertThat(profile.get("completeness").get("items")).hasSize(5);
+		assertThat(profile.get("completeness").get("items")).hasSize(6);
 		assertThat(profile.get("completeness").get("nextStep").asString()).isEqualTo("SKILLS");
 		assertThat(profileRows(student.id())).as("GET no crea la fila").isZero();
 		assertThat(count("SELECT count(*) FROM student_skill WHERE user_id = ?", student.id())).isZero();
@@ -364,27 +364,32 @@ class ProfileApiTests extends ProfileIntegrationTest {
 		ApiClient api = student();
 
 		JsonNode academic = ok(api.put(PROFILE + "/academic", body("career", "Software", "institute", "Demo", "cycle", 3)));
-		assertThat(academic.get("completeness").get("percent").asInt()).isEqualTo(20);
+		assertThat(academic.get("completeness").get("percent").asInt()).isEqualTo(15);
 
 		JsonNode twoSkills = ok(api.put(PROFILE + "/skills", skills(skill("java", 1), skill("sql", 1))));
-		assertThat(twoSkills.get("completeness").get("percent").asInt()).as("2 habilidades no suman").isEqualTo(20);
+		assertThat(twoSkills.get("completeness").get("percent").asInt()).as("2 habilidades no suman").isEqualTo(15);
 		assertThat(twoSkills.get("academic").get("career").asString()).as("el perfil viene completo").isEqualTo("Software");
 
 		JsonNode threeSkills = ok(api.put(PROFILE + "/skills", skills(skill("java", 1), skill("sql", 1), skill("git", 2))));
-		assertThat(threeSkills.get("completeness").get("percent").asInt()).isEqualTo(45);
+		assertThat(threeSkills.get("completeness").get("percent").asInt()).isEqualTo(40);
 
 		JsonNode availability = ok(api.put(PROFILE + "/availability",
 				body("hoursPerWeek", 15, "acceptedModalities", List.of("REMOTE"), "location", null)));
-		assertThat(availability.get("completeness").get("percent").asInt()).isEqualTo(65);
+		assertThat(availability.get("completeness").get("percent").asInt()).isEqualTo(55);
 
 		JsonNode project = ok(api.post(PROFILE + "/projects", project("Tienda web", description(), "Java")));
-		assertThat(project.get("completeness").get("percent").asInt()).isEqualTo(90);
-		assertThat(project.get("completeness").get("nextStep").asString()).isEqualTo("LOCATION");
+		assertThat(project.get("completeness").get("percent").asInt()).isEqualTo(80);
+		assertThat(project.get("completeness").get("nextStep").asString()).as("LOCATION y ABOUT pesan 10: gana el primero")
+				.isEqualTo("LOCATION");
 
 		JsonNode location = ok(api.put(PROFILE + "/availability",
 				body("hoursPerWeek", 15, "acceptedModalities", List.of("REMOTE"), "location", "Lima")));
-		assertThat(location.get("completeness").get("percent").asInt()).isEqualTo(100);
-		assertThat(location.get("completeness").get("nextStep").isNull()).isTrue();
+		assertThat(location.get("completeness").get("percent").asInt()).isEqualTo(90);
+		assertThat(location.get("completeness").get("nextStep").asString()).isEqualTo("ABOUT");
+
+		JsonNode about = ok(api.put(PROFILE + "/about", body("displayName", "Ana", "about", "Estudiante de software con ganas de aprender.")));
+		assertThat(about.get("completeness").get("percent").asInt()).isEqualTo(100);
+		assertThat(about.get("completeness").get("nextStep").isNull()).isTrue();
 		assertThat(api.get(PROFILE).json().get("completeness").get("percent").asInt()).isEqualTo(100);
 	}
 
@@ -400,8 +405,8 @@ class ProfileApiTests extends ProfileIntegrationTest {
 		List<String> shape = new ArrayList<>();
 		completeness.get("items").forEach(item -> shape.add(item.get("key").asString() + ":" + item.get("weight").asInt()
 				+ ":" + item.get("done").asBoolean()));
-		assertThat(shape).containsExactly("ACADEMIC:20:false", "SKILLS:25:true", "AVAILABILITY:20:false",
-				"PROJECTS:25:false", "LOCATION:10:false");
+		assertThat(shape).containsExactly("ACADEMIC:15:false", "SKILLS:25:true", "AVAILABILITY:15:false",
+				"PROJECTS:25:false", "LOCATION:10:false", "ABOUT:10:false");
 		assertThat(completeness.get("nextStep").asString()).isEqualTo("PROJECTS");
 	}
 
@@ -431,6 +436,66 @@ class ProfileApiTests extends ProfileIntegrationTest {
 
 		assertThat(second.get("skills")).isEqualTo(first.get("skills"));
 		assertThat(second.get("completeness")).isEqualTo(first.get("completeness"));
+	}
+
+	// ------------------------------------------------------------------------------------------ 006-23 a 006-25
+
+	@Test
+	@DisplayName("006-23: PUT /about recorta, guarda y devuelve about {displayName, about}; los vacíos quedan nulos; el nombre no cuenta para el avance")
+	void t006_23_aboutSaves() {
+		ApiClient api = student();
+		assertThat(api.get(PROFILE).json().get("about").get("displayName").isNull()).isTrue();
+
+		JsonNode onlyName = ok(api.put(PROFILE + "/about", body("displayName", "  Ana  ", "about", "   ")));
+		assertThat(onlyName.get("about").get("displayName").asString()).isEqualTo("Ana");
+		assertThat(onlyName.get("about").get("about").isNull()).isTrue();
+		assertThat(onlyName.get("completeness").get("percent").asInt()).as("el nombre no suma").isZero();
+
+		JsonNode both = ok(api.put(PROFILE + "/about", body("about", "Me gusta crear aplicaciones web.\nBusco practicar.")));
+		assertThat(both.get("about").get("displayName").isNull()).as("reemplaza la sección").isTrue();
+		assertThat(both.get("completeness").get("percent").asInt()).isEqualTo(10);
+		assertThat(api.get(PROFILE).json().get("about").get("about").asString()).contains("\n");
+	}
+
+	@Test
+	@DisplayName("006-23: nombre fuera de 2 a 40, presentación fuera de 10 a 500 e invisibles dan 422 y no guardan")
+	void t006_23_aboutValidation() {
+		ApiClient api = student();
+		ok(api.put(PROFILE + "/about", body("displayName", "Ana", "about", "Una presentación válida.")));
+
+		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "A")))).containsExactly("displayName:min-length");
+		assertThat(errors(api.put(PROFILE + "/about", body("displayName", repeat('n', 41))))).containsExactly("displayName:max-length");
+		assertThat(errors(api.put(PROFILE + "/about", body("about", "corta")))).containsExactly("about:min-length");
+		assertThat(errors(api.put(PROFILE + "/about", body("about", repeat('a', 501))))).containsExactly("about:max-length");
+		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "\u200B\u200B")))).containsExactly("displayName:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "\u00A0\u00A0\u00A0")))).containsExactly("displayName:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "An\u202Ea")))).containsExactly("displayName:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("about", "Texto con separador\u2028de línea.")))).containsExactly("about:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "An\u0000a")))).containsExactly("displayName:invalid");
+		JsonNode after = api.get(PROFILE).json().get("about");
+		assertThat(after.get("displayName").asString()).isEqualTo("Ana");
+		assertThat(after.get("about").asString()).isEqualTo("Una presentación válida.");
+	}
+
+	@Test
+	@DisplayName("006-23: un JSON con el invisible escrito como secuencia \u200b también se rechaza")
+	void t006_23_escapedInvisibleInJsonIsRejected() {
+		ApiClient api = student();
+		byte[] raw = "{\"displayName\":\"\\u200b\\u200b\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+		Response response = api.writeChunked("PUT", PROFILE + "/about", raw);
+
+		assertThat(errors(response)).containsExactly("displayName:invalid");
+	}
+
+	@Test
+	@DisplayName("006-08: dos formas Unicode de la misma tecnología (é compuesta y descompuesta) cuentan como repetidas")
+	void t006_08_technologiesCompareInNfc() {
+		ApiClient api = student();
+
+		Response response = api.post(PROFILE + "/projects", project("Ok", description(), "Caf\u00E9", "CAFE\u0301"));
+
+		assertThat(errors(response)).containsExactly("technologies[1]:duplicate");
 	}
 
 	// ------------------------------------------------------------------------------------------ 006-12

@@ -75,6 +75,8 @@ class ProfileReaderEditorTests extends ProfileIntegrationTest {
 
 		assertThat(reader.snapshot(student.id()).toString()).doesNotContain("Lima").doesNotContain("Tienda")
 				.doesNotContain("java");
+		assertThat(editor.current(student.id()).about().toString()).doesNotContain("Ana");
+		assertThat(editor.current(student.id()).skills().get(0).toString()).doesNotContain("Java");
 		assertThat(editor.current(student.id()).toString()).doesNotContain("Desarrollo").doesNotContain("Demo");
 	}
 
@@ -100,9 +102,9 @@ class ProfileReaderEditorTests extends ProfileIntegrationTest {
 				.containsExactly(3);
 		assertThat(view.skills()).allMatch(skill -> skill.evidence() == SkillEvidence.DECLARED);
 		assertThat(view.projects()).hasSize(1);
-		assertThat(view.completeness().percent()).isEqualTo(20 + 25 + 25);
+		assertThat(view.completeness().percent()).isEqualTo(15 + 25 + 25);
 		// Lo mismo se ve por la API.
-		assertThat(student.api().get(PROFILE).json().get("completeness").get("percent").asInt()).isEqualTo(70);
+		assertThat(student.api().get(PROFILE).json().get("completeness").get("percent").asInt()).isEqualTo(65);
 	}
 
 	@Test

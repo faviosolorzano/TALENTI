@@ -297,6 +297,73 @@ class ProfileRulesTests {
 				.containsExactly("projects:limit");
 	}
 
+	// ------------------------------------------------------------------------------------------ 006-23
+
+	@Test
+	@DisplayName("006-23: nombre de 2 a 40 y presentación de 10 a 500; recortados, y los vacíos pasan a nulo")
+	void t006_23_aboutLimitsAndTrim() {
+		ProfileRules.AboutData data = rules.about("", "  Ana  ", "  Una presentación válida.  ");
+
+		assertThat(data.displayName()).isEqualTo("Ana");
+		assertThat(data.about()).isEqualTo("Una presentación válida.");
+		assertThat(rules.about("", " ", null)).isEqualTo(new ProfileRules.AboutData(null, null));
+		assertThat(violations(() -> rules.about("", "A", null))).containsExactly("displayName:min-length");
+		assertThat(violations(() -> rules.about("", repeat('n', 41), null))).containsExactly("displayName:max-length");
+		assertThat(rules.about("", repeat('n', 40), repeat('a', 500)).about()).hasSize(500);
+		assertThat(violations(() -> rules.about("", null, "corta"))).containsExactly("about:min-length");
+		assertThat(violations(() -> rules.about("", null, repeat('a', 501)))).containsExactly("about:max-length");
+		assertThat(rules.about("", null, "Línea uno.\nLínea dos.").about()).contains("\n");
+		assertThat(violations(() -> rules.about("", "Ana\nPérez", null))).containsExactly("displayName:invalid");
+	}
+
+	@Test
+	@DisplayName("006-23: invisibles, espacios duros como único contenido, marcas bidi y separadores de línea se rechazan")
+	void t006_23_invisibleCharactersAreRejected() {
+		for (String bad : new String[] { "\u200B\u200B", "\u00A0\u00A0\u00A0", "\u200E\u200F\u200E", "Ana\u202Ebuf",
+				"Ana\u200Bmaria", "Ana\u2066x\u2069", "Ana\u2028Maria", "Ana\u2029Maria", "\uFEFFAna",
+				"\u2003\u00A0\u2007\u202F" }) {
+			assertThat(violations(() -> rules.about("", bad, null))).as("nombre %s", bad.length())
+					.containsExactly("displayName:invalid");
+		}
+		// Lo que no es invisible sigue valiendo: tildes, eñes y emojis con ZWJ.
+		assertThat(rules.about("", "María Ñandú", null).displayName()).isEqualTo("María Ñandú");
+		assertThat(rules.about("", "Ana \uD83D\uDC69\u200D\uD83D\uDCBB", null).displayName()).isNotNull();
+	}
+
+	@Test
+	@DisplayName("006-08: Unicode vacío como único contenido de un campo obligatorio o de una tecnología se rechaza")
+	void t006_08_blankLikeUnicodeIsRejectedEverywhere() {
+		assertThat(violations(() -> project("\u00A0\u00A0", repeat('d', 10), "Java"))).containsExactly("name:invalid");
+		assertThat(violations(() -> project("ab", repeat('d', 10), "\u200B"))).containsExactly("technologies[0]:invalid");
+		assertThat(violations(() -> rules.academic("", "\u00A0\u00A0", null, null))).containsExactly("career:invalid");
+		assertThat(violations(() -> rules.availability("", null, null, "\u200B\u200B"))).containsExactly("location:invalid");
+	}
+
+	@Test
+	@DisplayName("006-08: las tecnologías se comparan en NFC: é compuesta y descompuesta son la misma")
+	void t006_08_technologiesAreComparedInNfc() {
+		assertThat(violations(() -> project("ab", repeat('d', 10), "Caf\u00E9", "CAFE\u0301")))
+				.containsExactly("technologies[1]:duplicate");
+		// Se guarda en NFC.
+		assertThat(project("ab", repeat('d', 10), "Cafe\u0301").technologies().get(0)).isEqualTo("Caf\u00E9");
+	}
+
+	@Test
+	@DisplayName("006-05: un max-cycle mayor que 10 (lo que admite la base de datos) impide arrancar")
+	void t006_05_maxCycleCannotExceedTheDatabaseLimit() {
+		assertThatThrownBy(() -> new ProfileRules(11, 10)).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("max-cycle");
+		assertThatCode(() -> new ProfileRules(10, 10)).doesNotThrowAnyException();
+	}
+
+	@Test
+	@DisplayName("006-12: el toString de los resultados de validación no imprime contenido")
+	void t006_12_toStringIsMasked() {
+		assertThat(rules.about("", "Ana Secreta", "Una presentación secreta.").toString()).doesNotContain("Secreta");
+		assertThat(rules.academic("", "Carrera Secreta", null, null).toString()).doesNotContain("Secreta");
+		assertThat(project("Proyecto Secreto", repeat('d', 10), "Java").toString()).doesNotContain("Secreto");
+	}
+
 	@Test
 	@DisplayName("006-05: los parámetros de configuración inválidos impiden arrancar")
 	void t006_05_invalidConfigurationFailsFast() {
