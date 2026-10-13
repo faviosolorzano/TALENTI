@@ -6,6 +6,10 @@ import java.util.UUID;
  * Interfaz pública de escritura del perfil para otros módulos (hoy, el lector de CV de la spec 009). Aplica las
  * mismas validaciones que las rutas de {@code /profile}. Se une a la transacción que ya esté abierta, así quien la
  * llama puede aplicar varias cosas juntas o ninguna.
+ *
+ * <p>Esta interfaz, {@link ProfileView} y {@link ConfirmedChanges} muestran el perfil completo (carrera, instituto,
+ * nombre y presentación) o lo modifican: solo el módulo del lector de CV (paquete {@code cv}) puede usarlas. Los demás
+ * módulos leen el perfil por {@link ProfileReader}. Lo vigila {@code ProfileArchitectureTests}.
  */
 public interface ProfileEditor {
 

@@ -16,7 +16,7 @@ class ProfileConfig {
 	CompletenessRule completenessRule(ProfileProperties properties) {
 		ProfileProperties.Weights weights = properties.completeness().weights();
 		return new CompletenessRule(weights.academic(), weights.skills(), weights.availability(), weights.projects(),
-				weights.location(), properties.completeness().minSkills(), properties.completeness().minModalities());
+				weights.location(), weights.about(), properties.completeness().minSkills(), properties.completeness().minModalities());
 	}
 
 	@Bean

@@ -39,6 +39,11 @@ class ProfileController {
 		return profiles.current(user.id());
 	}
 
+	@PutMapping("/about")
+	ProfileView saveAbout(@AuthenticationPrincipal CurrentUser user, @RequestBody Requests.About body) {
+		return profiles.saveAbout(user.id(), body.displayName(), body.about());
+	}
+
 	@PutMapping("/academic")
 	ProfileView saveAcademic(@AuthenticationPrincipal CurrentUser user, @RequestBody Requests.Academic body) {
 		return profiles.saveAcademic(user.id(), body.career(), body.institute(), Requests.toInt(body.cycle()));

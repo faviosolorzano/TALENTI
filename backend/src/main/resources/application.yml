@@ -82,11 +82,12 @@ talenti:
     completeness:
       # Avance del perfil (RN-11, 006-09): todo o nada por ítem. Los pesos deben sumar 100 (si no, el arranque falla).
       weights:
-        academic: 20            # carrera, instituto y ciclo
+        academic: 15            # carrera, instituto y ciclo
         skills: 25              # al menos min-skills habilidades
-        availability: 20        # horas por semana y al menos min-modalities modalidades
+        availability: 15        # horas por semana y al menos min-modalities modalidades
         projects: 25            # al menos 1 proyecto
         location: 10            # ubicación
+        about: 10               # presentación "Sobre ti" (el nombre no cuenta)
       min-skills: 3
       min-modalities: 1
   demo-data:

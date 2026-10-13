@@ -22,14 +22,15 @@ public final class CompletenessRule {
 
 	private final int minModalities;
 
-	public CompletenessRule(int academic, int skills, int availability, int projects, int location, int minSkills,
-			int minModalities) {
+	public CompletenessRule(int academic, int skills, int availability, int projects, int location, int about,
+			int minSkills, int minModalities) {
 		this.weights = new int[CompletenessItem.values().length];
 		weights[CompletenessItem.ACADEMIC.ordinal()] = academic;
 		weights[CompletenessItem.SKILLS.ordinal()] = skills;
 		weights[CompletenessItem.AVAILABILITY.ordinal()] = availability;
 		weights[CompletenessItem.PROJECTS.ordinal()] = projects;
 		weights[CompletenessItem.LOCATION.ordinal()] = location;
+		weights[CompletenessItem.ABOUT.ordinal()] = about;
 		int total = 0;
 		for (int weight : weights) {
 			if (weight < 0) {
@@ -77,6 +78,7 @@ public final class CompletenessRule {
 			case AVAILABILITY -> facts.hasHoursPerWeek() && facts.modalityCount() >= minModalities;
 			case PROJECTS -> facts.projectCount() >= 1;
 			case LOCATION -> facts.hasLocation();
+			case ABOUT -> facts.hasAbout();
 		};
 	}
 

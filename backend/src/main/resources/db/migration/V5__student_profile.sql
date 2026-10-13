@@ -10,6 +10,10 @@
 CREATE TABLE student_profile (
     -- S6 borrara la cuenta y, con ella, el perfil (RN-12).
     user_id             uuid         PRIMARY KEY REFERENCES app_user (id) ON DELETE CASCADE,
+    -- Enmienda 1 de la spec 006: "como quieres que te llamen" y la presentacion. El nombre solo sirve para el saludo
+    -- y la pantalla del perfil: nunca entra en la compatibilidad ni sale hacia una IA (006-25).
+    display_name        varchar(40),
+    about               varchar(500),
     career              varchar(80),
     institute           varchar(80),
     cycle               smallint,
@@ -19,6 +23,8 @@ CREATE TABLE student_profile (
     location            varchar(60),
     created_at          timestamptz  NOT NULL DEFAULT now(),
     updated_at          timestamptz  NOT NULL DEFAULT now(),
+    CONSTRAINT ck_student_profile_display_name CHECK (display_name IS NULL OR btrim(display_name) <> ''),
+    CONSTRAINT ck_student_profile_about CHECK (about IS NULL OR btrim(about) <> ''),
     CONSTRAINT ck_student_profile_career CHECK (career IS NULL OR btrim(career) <> ''),
     CONSTRAINT ck_student_profile_institute CHECK (institute IS NULL OR btrim(institute) <> ''),
     CONSTRAINT ck_student_profile_cycle CHECK (cycle IS NULL OR cycle BETWEEN 1 AND 10),

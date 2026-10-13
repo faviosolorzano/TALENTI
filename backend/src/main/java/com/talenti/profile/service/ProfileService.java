@@ -92,6 +92,15 @@ public class ProfileService implements ProfileReader, ProfileEditor {
 
 	// ------------------------------------------------------------------------------------------ escritura
 
+	/** 006-23: nombre y presentación. */
+	@Transactional
+	public ProfileView saveAbout(UUID userId, String displayName, String about) {
+		ProfileRules.AboutData data = rules.about("", displayName, about);
+		touch(userId);
+		repository.saveAbout(userId, data);
+		return load(userId);
+	}
+
 	/** 006-05. */
 	@Transactional
 	public ProfileView saveAcademic(UUID userId, String career, String institute, IntInput cycle) {
@@ -252,6 +261,8 @@ public class ProfileService implements ProfileReader, ProfileEditor {
 				.map(row -> new ProfileView.ProjectEntry(row.id(), row.name(), row.description(), row.technologies()))
 				.toList();
 
+		ProfileView.About about = profile == null ? new ProfileView.About(null, null)
+				: new ProfileView.About(profile.displayName(), profile.about());
 		ProfileView.Academic academic = profile == null ? new ProfileView.Academic(null, null, null)
 				: new ProfileView.Academic(profile.career(), profile.institute(), profile.cycle());
 		ProfileView.Availability availability = profile == null
@@ -260,9 +271,10 @@ public class ProfileService implements ProfileReader, ProfileEditor {
 						profile.location());
 		ProfileFacts facts = new ProfileFacts(academic.career() != null, academic.institute() != null,
 				academic.cycle() != null, skills.size(), availability.hoursPerWeek() != null,
-				availability.acceptedModalities().size(), projects.size(), availability.location() != null);
+				availability.acceptedModalities().size(), projects.size(), availability.location() != null,
+				about.about() != null);
 		Instant updatedAt = profile == null || profile.updatedAt() == null ? null : profile.updatedAt().toInstant();
-		return new ProfileView(academic, skills, availability, projects, completenessRule.evaluate(facts), updatedAt);
+		return new ProfileView(about, academic, skills, availability, projects, completenessRule.evaluate(facts), updatedAt);
 	}
 
 }

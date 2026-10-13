@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  * Lo único del perfil que sale del módulo hacia otros (006-13): habilidades con nivel, disponibilidad,
  * preferencias y proyectos. A propósito NO trae correo, carrera, instituto ni ciclo: no entran en ninguna fórmula
- * de compatibilidad (RN-01, principio 3).
+ * de compatibilidad (RN-01, principio 3), y tampoco el nombre ni la presentación "Sobre ti" (enmienda 1, 006-25).
  *
  * @param hoursPerWeek nulo si no lo declaró
  * @param location     nulo si no la declaró
@@ -22,6 +22,12 @@ public record ProfileSnapshot(List<Skill> skills, Integer hoursPerWeek, Set<Work
 
 	/** Una habilidad del catálogo con su nivel (1 básico, 2 intermedio, 3 avanzado). */
 	public record Skill(String slug, int level) {
+
+		@Override
+		public String toString() {
+			return "Skill[...]";
+		}
+
 	}
 
 	/** Un proyecto; las tecnologías son texto libre y no cuentan como habilidades (006, duda 5). */
@@ -29,6 +35,11 @@ public record ProfileSnapshot(List<Skill> skills, Integer hoursPerWeek, Set<Work
 
 		public Project {
 			technologies = List.copyOf(technologies);
+		}
+
+		@Override
+		public String toString() {
+			return "Project[...]";
 		}
 
 	}

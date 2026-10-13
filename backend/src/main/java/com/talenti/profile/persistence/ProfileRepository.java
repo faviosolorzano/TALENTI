@@ -35,22 +35,42 @@ public class ProfileRepository {
 
 	// ------------------------------------------------------------------------------------------ lectura
 
-	public record ProfileRow(String career, String institute, Integer cycle, Integer hoursPerWeek,
-			List<WorkModality> acceptedModalities, String location, OffsetDateTime updatedAt) {
+	public record ProfileRow(String displayName, String about, String career, String institute, Integer cycle,
+			Integer hoursPerWeek, List<WorkModality> acceptedModalities, String location, OffsetDateTime updatedAt) {
+
+		@Override
+		public String toString() {
+			return "ProfileRow[...]";
+		}
+
 	}
 
 	public record SkillRow(UUID skillId, int level, SkillEvidence evidence) {
+
+		@Override
+		public String toString() {
+			return "SkillRow[...]";
+		}
+
 	}
 
 	public record ProjectRow(UUID id, String name, String description, List<String> technologies) {
+
+		@Override
+		public String toString() {
+			return "ProjectRow[id=" + id + "]";
+		}
+
 	}
 
 	public Optional<ProfileRow> findProfile(UUID userId) {
 		return jdbc.sql("""
-				SELECT career, institute, cycle, hours_per_week, accepted_modalities, location, updated_at
+				SELECT display_name, about, career, institute, cycle, hours_per_week, accepted_modalities, location,
+				       updated_at
 				FROM student_profile WHERE user_id = :userId""")
 				.param("userId", userId)
-				.query((rs, row) -> new ProfileRow(rs.getString("career"), rs.getString("institute"),
+				.query((rs, row) -> new ProfileRow(rs.getString("display_name"),
+						rs.getString("about"), rs.getString("career"), rs.getString("institute"),
 						(Integer) rs.getObject("cycle"), (Integer) rs.getObject("hours_per_week"),
 						modalities(rs.getArray("accepted_modalities")), rs.getString("location"),
 						rs.getObject("updated_at", OffsetDateTime.class)))
@@ -92,6 +112,14 @@ public class ProfileRepository {
 				INSERT INTO student_profile (user_id) VALUES (:userId)
 				ON CONFLICT (user_id) DO UPDATE SET updated_at = now()""")
 				.param("userId", userId).update();
+	}
+
+	/** Reemplaza nombre y presentación (enmienda 1, 006-23). Antes hay que llamar a {@link #touch}. */
+	public void saveAbout(UUID userId, ProfileRules.AboutData data) {
+		jdbc.sql("""
+				UPDATE student_profile SET display_name = :displayName, about = :about WHERE user_id = :userId""")
+				.param("displayName", data.displayName()).param("about", data.about()).param("userId", userId)
+				.update();
 	}
 
 	/** Reemplaza los tres datos académicos (006-05). Antes hay que llamar a {@link #touch}. */

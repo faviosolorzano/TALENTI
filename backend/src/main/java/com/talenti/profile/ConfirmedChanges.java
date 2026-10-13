@@ -19,12 +19,30 @@ public record ConfirmedChanges(Academic academic, List<Skill> skills, List<Proje
 	}
 
 	public record Academic(String career, String institute, Integer cycle) {
+
+		@Override
+		public String toString() {
+			return "Academic[...]";
+		}
+
 	}
 
 	public record Skill(String slug, Integer level) {
+
+		@Override
+		public String toString() {
+			return "Skill[...]";
+		}
+
 	}
 
 	public record Project(String name, String description, List<String> technologies) {
+
+		@Override
+		public String toString() {
+			return "Project[...]";
+		}
+
 	}
 
 	/** Contenido de la persona: no se imprime en registros. */

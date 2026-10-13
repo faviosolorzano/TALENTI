@@ -27,6 +27,15 @@ final class Requests {
 		return IntInput.notAnInteger();
 	}
 
+	record About(String displayName, String about) {
+
+		@Override
+		public String toString() {
+			return "About[...]";
+		}
+
+	}
+
 	record Academic(String career, String institute, JsonNode cycle) {
 
 		@Override

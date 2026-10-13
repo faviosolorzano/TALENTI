@@ -1,5 +1,6 @@
 package com.talenti.profile.domain;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,15 @@ public final class ProfileRules {
 	public static final int ACADEMIC_MAX = 80;
 
 	public static final int LOCATION_MAX = 60;
+
+	public static final int DISPLAY_NAME_MAX = 40;
+
+	public static final int ABOUT_MIN = 10;
+
+	public static final int ABOUT_MAX = 500;
+
+	/** El ciclo más alto que admite la columna de la base de datos (V5). */
+	public static final int CYCLE_DB_MAX = 10;
 
 	public static final int HOURS_MIN = 1;
 
@@ -60,6 +70,10 @@ public final class ProfileRules {
 		if (maxCycle < CYCLE_MIN || maxProjects < 1) {
 			throw new IllegalArgumentException("talenti.profile: max-cycle y max-projects deben ser al menos 1");
 		}
+		if (maxCycle > CYCLE_DB_MAX) {
+			throw new IllegalArgumentException(
+					"talenti.profile.max-cycle no puede pasar de " + CYCLE_DB_MAX + ": la base de datos no admite más");
+		}
 		this.maxCycle = maxCycle;
 		this.maxProjects = maxProjects;
 	}
@@ -72,29 +86,79 @@ public final class ProfileRules {
 
 	/** Una habilidad tal como llegó: el {@code slug} del catálogo y el nivel. */
 	public record SkillInput(String slug, IntInput level) {
+
+		@Override
+		public String toString() {
+			return "SkillInput[...]";
+		}
+
 	}
 
 	// ------------------------------------------------------------------------------------------ resultados
 
+	public record AboutData(String displayName, String about) {
+
+		@Override
+		public String toString() {
+			return "AboutData[...]";
+		}
+
+	}
+
 	public record AcademicData(String career, String institute, Integer cycle) {
+
+		@Override
+		public String toString() {
+			return "AcademicData[...]";
+		}
+
 	}
 
 	public record AvailabilityData(Integer hoursPerWeek, List<WorkModality> acceptedModalities, String location) {
+
+		@Override
+		public String toString() {
+			return "AvailabilityData[...]";
+		}
+
 	}
 
 	public record ProjectData(String name, String description, List<String> technologies) {
+
+		@Override
+		public String toString() {
+			return "ProjectData[...]";
+		}
+
 	}
 
 	public record SkillData(UUID skillId, String slug, int level) {
+
+		@Override
+		public String toString() {
+			return "SkillData[...]";
+		}
+
 	}
 
 	// ------------------------------------------------------------------------------------------ secciones
 
+	/** 006-23: nombre de 2 a 40 y presentación de 10 a 500 caracteres; ambos opcionales. */
+	public AboutData about(String prefix, String displayName, String about) {
+		List<FieldViolation> violations = new ArrayList<>();
+		String cleanName = optionalText(prefix + "displayName", displayName, DISPLAY_NAME_MAX, TEXT_MIN, false,
+				violations);
+		String cleanAbout = optionalText(prefix + "about", about, ABOUT_MAX, ABOUT_MIN, true, violations);
+		throwIfAny(violations);
+		return new AboutData(cleanName, cleanAbout);
+	}
+
 	/** 006-05. Los vacíos se guardan como nulos. */
 	public AcademicData academic(String prefix, String career, String institute, IntInput cycle) {
 		List<FieldViolation> violations = new ArrayList<>();
-		String cleanCareer = optionalText(prefix + "career", career, ACADEMIC_MAX, violations);
-		String cleanInstitute = optionalText(prefix + "institute", institute, ACADEMIC_MAX, violations);
+		String cleanCareer = optionalText(prefix + "career", career, ACADEMIC_MAX, TEXT_MIN, false, violations);
+		String cleanInstitute = optionalText(prefix + "institute", institute, ACADEMIC_MAX, TEXT_MIN, false,
+				violations);
 		Integer cleanCycle = optionalInt(prefix + "cycle", cycle, CYCLE_MIN, maxCycle, violations);
 		throwIfAny(violations);
 		return new AcademicData(cleanCareer, cleanInstitute, cleanCycle);
@@ -170,7 +234,7 @@ public final class ProfileRules {
 				}
 			}
 		}
-		String cleanLocation = optionalText(prefix + "location", location, LOCATION_MAX, violations);
+		String cleanLocation = optionalText(prefix + "location", location, LOCATION_MAX, TEXT_MIN, false, violations);
 		throwIfAny(violations);
 		return new AvailabilityData(hours, accepted, cleanLocation);
 	}
@@ -230,18 +294,24 @@ public final class ProfileRules {
 	}
 
 	/** Texto opcional: recortado; vacío pasa a nulo; si hay texto, de {@link #TEXT_MIN} a {@code max} caracteres. */
-	private static String optionalText(String field, String raw, int max, List<FieldViolation> violations) {
-		String text = raw == null ? "" : raw.strip();
+	private static String optionalText(String field, String raw, int max, int min, boolean multiline,
+			List<FieldViolation> violations) {
+		String text = clean(raw);
 		if (text.isEmpty()) {
 			return null;
 		}
-		return checkedText(field, text, max, TEXT_MIN, false, violations);
+		return checkedText(field, text, max, min, multiline, violations);
+	}
+
+	/** Forma canónica (NFC) y sin espacios en los extremos: la misma letra escrita de dos maneras es el mismo texto. */
+	private static String clean(String raw) {
+		return raw == null ? "" : Normalizer.normalize(raw, Normalizer.Form.NFC).strip();
 	}
 
 	/** Texto obligatorio: recortado; vacío es {@code required}. */
 	private static String requiredText(String field, String raw, int max, int min, boolean multiline,
 			List<FieldViolation> violations) {
-		String text = raw == null ? "" : raw.strip();
+		String text = clean(raw);
 		if (text.isEmpty()) {
 			violations.add(FieldViolation.of(field, "required"));
 			return null;
@@ -251,6 +321,10 @@ public final class ProfileRules {
 
 	private static String checkedText(String field, String text, int max, int min, boolean multiline,
 			List<FieldViolation> violations) {
+		if (hasHiddenOrBlankOnly(text)) {
+			violations.add(FieldViolation.of(field, "invalid"));
+			return null;
+		}
 		int length = text.codePointCount(0, text.length());
 		if (length < min) {
 			violations.add(FieldViolation.of(field, "min-length", min));
@@ -268,6 +342,31 @@ public final class ProfileRules {
 			return null;
 		}
 		return text;
+	}
+
+	/**
+	 * Rechaza lo que se ve vacío o engaña a la vista: espacio de ancho cero (U+200B), marcas de dirección (bidi),
+	 * separadores de línea y de párrafo, U+FEFF, U+2060; o un texto que solo tiene espacios, espacios duros
+	 * (U+00A0) y otros caracteres de formato. Se permiten U+200D y U+200C (emojis y alfabetos que los necesitan).
+	 */
+	private static boolean hasHiddenOrBlankOnly(String text) {
+		return text.codePoints().anyMatch(ProfileRules::isHidden) || text.codePoints().allMatch(ProfileRules::isBlankLike);
+	}
+
+	private static boolean isHidden(int cp) {
+		if (cp == 0x200B || cp == 0x200E || cp == 0x200F || cp == 0x061C || cp == 0x2060 || cp == 0xFEFF
+				|| (cp >= 0x202A && cp <= 0x202E) || (cp >= 0x2066 && cp <= 0x2069)) {
+			return true;
+		}
+		int type = Character.getType(cp);
+		return type == Character.LINE_SEPARATOR || type == Character.PARAGRAPH_SEPARATOR;
+	}
+
+	private static boolean isBlankLike(int cp) {
+		int type = Character.getType(cp);
+		return Character.isWhitespace(cp) || type == Character.FORMAT || type == Character.SPACE_SEPARATOR
+				|| type == Character.LINE_SEPARATOR || type == Character.PARAGRAPH_SEPARATOR
+				|| type == Character.CONTROL;
 	}
 
 	private static Integer optionalInt(String field, IntInput input, int min, int max,

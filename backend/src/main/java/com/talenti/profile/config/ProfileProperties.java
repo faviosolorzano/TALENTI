@@ -24,11 +24,12 @@ public record ProfileProperties(
 	}
 
 	public record Weights(
-			@DefaultValue("20") int academic,
+			@DefaultValue("15") int academic,
 			@DefaultValue("25") int skills,
-			@DefaultValue("20") int availability,
+			@DefaultValue("15") int availability,
 			@DefaultValue("25") int projects,
-			@DefaultValue("10") int location) {
+			@DefaultValue("10") int location,
+			@DefaultValue("10") int about) {
 	}
 
 }
