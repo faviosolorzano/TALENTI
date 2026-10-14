@@ -44,7 +44,14 @@ export interface ProfileProject {
 }
 
 export interface Profile {
-  about: { displayName: string | null; about: string | null }
+  about: {
+    firstNames: string | null
+    lastNames: string | null
+    contactEmail: string | null
+    /** Nine digits, no spaces (the server normalizes it). */
+    phone: string | null
+    about: string | null
+  }
   academic: { career: string | null; institute: string | null; cycle: number | null }
   skills: ProfileSkill[]
   availability: {
@@ -71,7 +78,10 @@ export interface CatalogSkill {
 export type TypedNumber = number | string | null
 
 export interface AboutInput {
-  displayName: string
+  firstNames: string
+  lastNames: string
+  contactEmail: string
+  phone: string
   about: string
 }
 

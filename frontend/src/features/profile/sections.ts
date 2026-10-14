@@ -62,7 +62,9 @@ export function sectionDomId(section: SectionKey): string {
  */
 export const PROFILE_LIMITS = {
   maxProjects: 10,
-  displayNameMaxLength: 40,
+  personNameMaxLength: 60,
+  contactEmailMaxLength: 254,
+  phoneMaxLength: 16,
   aboutMaxLength: 500,
   careerMaxLength: 80,
   locationMaxLength: 60,

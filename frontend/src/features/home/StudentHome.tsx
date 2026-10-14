@@ -22,10 +22,11 @@ export function StudentHome() {
   )
 
   const profile = useProfileResource()
-  // "Hola, {nombre}" only when the person gave a name; otherwise the neutral greeting (005-01).
-  const displayName =
-    profile.state.status === 'success' ? profile.state.data.about?.displayName : null
-  const title = displayName ? es.home.titleNamed(displayName) : es.home.title
+  // "Hola, {primer nombre}" (first word of the first names) only when the person gave them; otherwise the neutral greeting (005-01).
+  const firstNames =
+    profile.state.status === 'success' ? profile.state.data.about?.firstNames : null
+  const firstName = firstNames?.trim().split(/\s+/)[0]
+  const title = firstName ? es.home.titleNamed(firstName) : es.home.title
 
   useEffect(() => {
     // Take the mark out of the history entry, so reloading the page does not show it again.

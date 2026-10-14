@@ -91,6 +91,14 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
       expect(editButton(title)).toBeInTheDocument()
     }
     expect(within(card(t.cv.title)).getByText(t.cv.soon)).toBeInTheDocument()
+    // 006-29: "Enlaza tu GitHub" only announces; it has no active control.
+    const github = card(t.github.title)
+    expect(within(github).getByText(t.github.soon)).toBeInTheDocument()
+    expect(within(github).getByText(/repositorios públicos/)).toBeInTheDocument()
+    expect(within(github).queryByRole('button')).not.toBeInTheDocument()
+    expect(within(github).queryByRole('link')).not.toBeInTheDocument()
+    // 006-28: "Datos personales" is the first card.
+    expect(editButton(t.about.title)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /CV/ })).not.toBeInTheDocument()
   })
 
@@ -121,7 +129,13 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
 
   it('at 100 % it says the profile is complete and lists nothing as missing', async () => {
     await openProfile({
-      about: { displayName: 'Ana', about: 'Estudio software.' },
+      about: {
+        firstNames: 'Ana',
+        lastNames: 'Quispe',
+        contactEmail: null,
+        phone: null,
+        about: 'Estudio software.',
+      },
       ...FULL_ACADEMIC,
       ...THREE_SKILLS,
       availability: { hoursPerWeek: 20, acceptedModalities: ['REMOTE'], location: 'Lima' },

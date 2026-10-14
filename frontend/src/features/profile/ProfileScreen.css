@@ -48,6 +48,12 @@
   order: 3;
 }
 
+/* The announcements (CV, GitHub) travel together after the cards */
+.profile__soon {
+  display: grid;
+  gap: var(--space-4);
+}
+
 @media (min-width: 48rem) {
   .profile {
     padding-top: var(--space-12);

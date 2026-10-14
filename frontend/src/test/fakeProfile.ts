@@ -46,7 +46,7 @@ const ORDER: CompletenessKey[] = [
 ]
 
 export const EMPTY_PROFILE: Profile = {
-  about: { displayName: null, about: null },
+  about: { firstNames: null, lastNames: null, contactEmail: null, phone: null, about: null },
   academic: { career: null, institute: null, cycle: null },
   skills: [],
   availability: { hoursPerWeek: null, acceptedModalities: [], location: null },
@@ -212,14 +212,36 @@ export function mockProfileBackend(options: FakeProfileOptions = {}): FakeProfil
     if (options.writeDelayMs) await new Promise((r) => setTimeout(r, options.writeDelayMs))
 
     if (method === 'PUT' && path === '/profile/about') {
-      const displayName = text(body?.displayName)
+      const firstNames = text(body?.firstNames)
+      const lastNames = text(body?.lastNames)
+      const contactEmail = text(body?.contactEmail).toLowerCase()
+      const rawPhone = text(body?.phone)
       const about = text(body?.about)
       const found: Problem[] = []
-      if (displayName && displayName.length < 2) {
+      const personName = /^[\p{L}][\p{L} '.-]*$/u
+      for (const [field, value] of [
+        ['firstNames', firstNames],
+        ['lastNames', lastNames],
+      ] as const) {
+        if (value && value.length < 2) {
+          found.push({ field, rule: 'min-length', message: 'Escribe al menos 2 caracteres.' })
+        } else if (value && !personName.test(value)) {
+          found.push({ field, rule: 'invalid', message: 'Usa solo letras y espacios.' })
+        }
+      }
+      if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
         found.push({
-          field: 'displayName',
-          rule: 'min-length',
-          message: 'Escribe al menos 2 caracteres.',
+          field: 'contactEmail',
+          rule: 'invalid',
+          message: 'Escribe un correo válido.',
+        })
+      }
+      const phone = rawPhone.replace(/^\+51/, '').replace(/\s+/g, '')
+      if (phone && !/^9\d{8}$/.test(phone)) {
+        found.push({
+          field: 'phone',
+          rule: 'invalid',
+          message: 'Escribe un celular de 9 dígitos que empiece en 9.',
         })
       }
       if (about && about.length < 10) {
@@ -230,7 +252,15 @@ export function mockProfileBackend(options: FakeProfileOptions = {}): FakeProfil
         })
       }
       if (found.length > 0) return invalid(...found)
-      return commit({ about: { displayName: displayName || null, about: about || null } })
+      return commit({
+        about: {
+          firstNames: firstNames || null,
+          lastNames: lastNames || null,
+          contactEmail: contactEmail || null,
+          phone: phone || null,
+          about: about || null,
+        },
+      })
     }
 
     if (method === 'PUT' && path === '/profile/academic') {
