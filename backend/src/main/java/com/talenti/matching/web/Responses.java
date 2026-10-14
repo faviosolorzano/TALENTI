@@ -77,6 +77,12 @@ final class Responses {
 			List<Map<String, Object>> matches, List<Map<String, Object>> gaps,
 			List<Map<String, Object>> missingInfo, ExplanationBody explanation, Formula formula) {
 
+		/** Lleva datos del perfil (por ejemplo su ubicación): no se imprime en registros. */
+		@Override
+		public String toString() {
+			return "Compatibility[vacancyId=" + vacancyId + ", status=" + status + "]";
+		}
+
 		static Compatibility of(UUID vacancyId, CompatibilityResult result, Explanation explanation,
 				MatchingParameters parameters) {
 			return new Compatibility(vacancyId, result.status().name(), result.percent(),

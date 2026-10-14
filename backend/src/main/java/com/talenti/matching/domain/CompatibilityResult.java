@@ -86,6 +86,13 @@ public record CompatibilityResult(Status status, List<Reason> reasons, Integer p
 
 	public record ConditionItem(Factor factor, Outcome outcome, String vacancyValue, String profileValue)
 			implements Item {
+
+		/** {@code profileValue} es un dato del perfil (ubicación, horas): no se imprime en registros. */
+		@Override
+		public String toString() {
+			return "ConditionItem[factor=" + factor + ", outcome=" + outcome + "]";
+		}
+
 	}
 
 	public record ProfileItem(ProfileKey key) implements Item {
