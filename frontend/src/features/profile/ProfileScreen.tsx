@@ -10,6 +10,7 @@ import { AboutForm, AboutSummary } from './AboutSection'
 import { AcademicForm, AcademicSummary } from './AcademicSection'
 import { AvailabilityForm, AvailabilitySummary } from './AvailabilitySection'
 import { CvCard } from './CvCard'
+import { GithubCard } from './GithubCard'
 import { ProfileSkeleton } from './ProfileSkeleton'
 import { ProfileSummary } from './ProfileSummary'
 import { ProjectsEditor, ProjectsSummary } from './ProjectsSection'
@@ -216,7 +217,10 @@ function ProfileView({ initial }: { initial: Profile }) {
             completeness={completeness}
             onOpenSection={(section) => openSection(section, true)}
           />
-          <CvCard />
+          <div className="profile__soon">
+            <CvCard />
+            <GithubCard />
+          </div>
         </div>
         <div className="profile__sections">{SECTION_ORDER.map((section) => cards[section])}</div>
       </div>
