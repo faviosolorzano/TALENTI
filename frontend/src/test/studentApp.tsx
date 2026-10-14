@@ -1,5 +1,6 @@
 import userEvent from '@testing-library/user-event'
 import { mockBackend, type FakeBackendOptions } from './fakeBackend'
+import { mockCompatibilityBackend, type FakeCompatibilityOptions } from './fakeCompatibility'
 import { mockIdentityBackend, type FakeIdentityOptions } from './fakeIdentity'
 import { mockProfileBackend, type FakeProfileOptions } from './fakeProfile'
 import { renderAppWithSession } from './renderApp'
@@ -10,6 +11,7 @@ export const STUDENT_PASSWORD = 'Clave12345'
 interface StudentAppOptions {
   profile?: FakeProfileOptions
   vacancies?: FakeBackendOptions
+  compatibility?: FakeCompatibilityOptions
   identity?: FakeIdentityOptions
   /** Role of the account that is signed in (default: a student). */
   role?: 'STUDENT' | 'COMPANY' | 'ADMIN'
@@ -25,6 +27,7 @@ interface StudentAppOptions {
 export function openStudentApp(path: string, options: StudentAppOptions = {}) {
   const vacancies = mockBackend(options.vacancies)
   const profile = mockProfileBackend(options.profile)
+  const compatibility = mockCompatibilityBackend(options.compatibility)
   const identity = mockIdentityBackend({
     signedInAs: options.signedOut ? undefined : STUDENT_EMAIL,
     accounts: {
@@ -33,5 +36,5 @@ export function openStudentApp(path: string, options: StudentAppOptions = {}) {
     ...options.identity,
   })
   const view = renderAppWithSession(path)
-  return { vacancies, profile, identity, ...view, user: userEvent.setup() }
+  return { vacancies, profile, compatibility, identity, ...view, user: userEvent.setup() }
 }
