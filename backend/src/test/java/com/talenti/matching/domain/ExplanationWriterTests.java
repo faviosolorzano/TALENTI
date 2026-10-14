@@ -101,12 +101,15 @@ class ExplanationWriterTests {
 	}
 
 	@Test
-	@DisplayName("007-13: advierte del tope cuando falta un obligatorio, aunque el tope no haya bajado la cifra")
+	@DisplayName("007-13: advierte del tope solo cuando el tope bajó la cifra; si falta un obligatorio sin recorte no habla del tope")
 	void t007_13_capWarning() {
-		Explanation explanation = explain(profile("java", 1), remote(required("java", "Java", 1),
+		Explanation capped = explain(profile("java", 1, "sql", 1, "git", 1), remote(required("java", "Java", 1),
+				required("sql", "SQL", 1), required("react", "React", 1), desirable("git", "Git", 1)));
+		Explanation notCapped = explain(profile("java", 1), remote(required("java", "Java", 1),
 				required("sql", "SQL", 1), required("react", "React", 1)));
 
-		assertThat(explanation.text()).contains("el máximo posible para esta vacante es 69 %");
+		assertThat(capped.text()).contains("el máximo posible para esta vacante es 69 %");
+		assertThat(notCapped.text()).doesNotContain("máximo posible").contains("La brecha principal es");
 	}
 
 	@Test

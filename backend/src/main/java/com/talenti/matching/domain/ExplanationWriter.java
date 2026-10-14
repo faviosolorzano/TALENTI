@@ -65,10 +65,7 @@ public final class ExplanationWriter {
 		if (main != null) {
 			sentences.add(describeGap(main));
 		}
-		boolean requiredMissing = result.gaps().stream()
-				.anyMatch(item -> item instanceof RequirementItem r && r.kind() == RequirementKind.REQUIRED
-						&& r.outcome() == Outcome.MISSING);
-		if (requiredMissing) {
+		if (result.capped()) {
 			sentences.add(fill(template("cap.warning"), "cap", Integer.toString(cap)));
 		}
 		if (result.informationBasis() != null && result.informationBasis() < 100) {
