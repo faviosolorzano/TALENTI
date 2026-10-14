@@ -233,6 +233,7 @@
 
   /* ---- Student home and profile (specs 005 and 006) ---- */
   --progress-height: 0.75rem; /* 12 px: progress bar */
+  --cv-reader-width: 46rem; /* 736 px: CV reader column (spec 009) */
   --tick-size: 1.75rem; /* 28 px: done / pending mark of a section */
   --profile-aside-width: 22.5rem; /* 360 px: progress column of /perfil */
   --picker-max-height: 15rem; /* 240 px: list of the skill search */

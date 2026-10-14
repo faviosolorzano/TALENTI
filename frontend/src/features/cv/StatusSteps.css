@@ -1,0 +1,30 @@
+.status-step {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.status-step__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.status-step__skeleton {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.status-step__note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.status-step__problem {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.status-step__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

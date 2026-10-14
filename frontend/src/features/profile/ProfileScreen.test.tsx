@@ -90,7 +90,11 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
     ]) {
       expect(editButton(title)).toBeInTheDocument()
     }
-    expect(within(card(t.cv.title)).getByText(t.cv.soon)).toBeInTheDocument()
+    // The CV block is an entry to the reader (spec 009), no longer an announcement.
+    expect(within(card(t.cv.title)).getByRole('link', { name: t.cv.action })).toHaveAttribute(
+      'href',
+      '/perfil/cv',
+    )
     // 006-29: "Enlaza tu GitHub" only announces; it has no active control.
     const github = card(t.github.title)
     expect(within(github).getByText(t.github.soon)).toBeInTheDocument()
@@ -99,7 +103,6 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
     expect(within(github).queryByRole('link')).not.toBeInTheDocument()
     // 006-28: "Datos personales" is the first card.
     expect(editButton(t.about.title)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /CV/ })).not.toBeInTheDocument()
   })
 
   it('RN-11: the percentage, the done marks and the next step come from the server, not from the page', async () => {

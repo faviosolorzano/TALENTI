@@ -1,0 +1,101 @@
+.upload-step {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.upload-step__modes {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.upload-step__legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.upload-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: var(--touch-target-min);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.upload-mode:has(input:checked) {
+  border-color: var(--color-border-accent);
+  background: var(--color-bg-tint);
+}
+
+.upload-mode:has(input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.upload-mode[data-disabled] {
+  cursor: default;
+  color: var(--color-text-muted);
+}
+
+.upload-mode input {
+  flex: none;
+  margin-top: var(--space-1);
+  accent-color: var(--color-action);
+}
+
+.upload-mode__text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.upload-mode__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.upload-mode__note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.upload-step__drop {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: var(--border-width-strong) dashed var(--color-border-accent);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-tint);
+  transition: background-color var(--duration-base) var(--easing-standard);
+}
+
+.upload-step__drop[data-dragging] {
+  background: var(--color-brand-blue-soft);
+}
+
+.upload-step__hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.upload-step__info {
+  font-size: var(--font-size-md);
+}
+
+.upload-step__help {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
