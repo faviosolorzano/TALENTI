@@ -103,9 +103,9 @@
   font-size: var(--font-size-lg);
 }
 
+/* Only slides (no fade): text keeps its full contrast during the movement */
 @keyframes project-enter {
   from {
-    opacity: 0;
     transform: translateY(calc(-1 * var(--space-2)));
   }
 }
