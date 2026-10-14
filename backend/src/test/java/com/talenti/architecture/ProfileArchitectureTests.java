@@ -126,7 +126,7 @@ class ProfileArchitectureTests {
 		// lo personal y lo académico.
 		// 006-25: el nombre y la presentación "Sobre ti" tampoco salen hacia el cálculo ni hacia ninguna IA.
 		for (String forbidden : List.of("email", "career", "institute", "cycle", "password", "userid", "role",
-				"displayName", "about", "aboutMe")) {
+				"firstNames", "lastNames", "contactEmail", "phone", "displayName", "about", "aboutMe")) {
 			assertThat(names).as("el snapshot no trae %s", forbidden).doesNotContain(forbidden);
 		}
 	}

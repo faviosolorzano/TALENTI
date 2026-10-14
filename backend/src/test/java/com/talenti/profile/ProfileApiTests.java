@@ -441,51 +441,69 @@ class ProfileApiTests extends ProfileIntegrationTest {
 	// ------------------------------------------------------------------------------------------ 006-23 a 006-25
 
 	@Test
-	@DisplayName("006-23: PUT /about recorta, guarda y devuelve about {displayName, about}; los vacíos quedan nulos; el nombre no cuenta para el avance")
+	@DisplayName("006-30: PUT /about recorta, normaliza y devuelve about {firstNames, lastNames, contactEmail, phone, about}; nada de eso cuenta para el avance")
 	void t006_23_aboutSaves() {
 		ApiClient api = student();
-		assertThat(api.get(PROFILE).json().get("about").get("displayName").isNull()).isTrue();
+		JsonNode empty = api.get(PROFILE).json().get("about");
+		for (String field : new String[] { "firstNames", "lastNames", "contactEmail", "phone", "about" }) {
+			assertThat(empty.get(field).isNull()).as(field).isTrue();
+		}
+		assertThat(empty.has("displayName")).isFalse();
 
-		JsonNode onlyName = ok(api.put(PROFILE + "/about", body("displayName", "  Ana  ", "about", "   ")));
-		assertThat(onlyName.get("about").get("displayName").asString()).isEqualTo("Ana");
-		assertThat(onlyName.get("about").get("about").isNull()).isTrue();
-		assertThat(onlyName.get("completeness").get("percent").asInt()).as("el nombre no suma").isZero();
+		JsonNode personal = ok(api.put(PROFILE + "/about", body("firstNames", "  Ana María ", "lastNames", " Pérez Ñ ",
+				"contactEmail", " Ana@Correo.PE ", "phone", "+51 912 345 678", "about", "   ")));
+		JsonNode about = personal.get("about");
+		assertThat(about.get("firstNames").asString()).isEqualTo("Ana María");
+		assertThat(about.get("lastNames").asString()).isEqualTo("Pérez Ñ");
+		assertThat(about.get("contactEmail").asString()).isEqualTo("ana@correo.pe");
+		assertThat(about.get("phone").asString()).isEqualTo("912345678");
+		assertThat(about.get("about").isNull()).isTrue();
+		assertThat(personal.get("completeness").get("percent").asInt()).as("los datos personales no suman").isZero();
 
 		JsonNode both = ok(api.put(PROFILE + "/about", body("about", "Me gusta crear aplicaciones web.\nBusco practicar.")));
-		assertThat(both.get("about").get("displayName").isNull()).as("reemplaza la sección").isTrue();
+		assertThat(both.get("about").get("firstNames").isNull()).as("reemplaza la sección").isTrue();
+		assertThat(both.get("about").get("phone").isNull()).isTrue();
 		assertThat(both.get("completeness").get("percent").asInt()).isEqualTo(10);
 		assertThat(api.get(PROFILE).json().get("about").get("about").asString()).contains("\n");
 	}
 
 	@Test
-	@DisplayName("006-23: nombre fuera de 2 a 40, presentación fuera de 10 a 500 e invisibles dan 422 y no guardan")
+	@DisplayName("006-30: cada campo de Datos personales y la presentación se validan: 422 con {field, rule} y no se guarda nada")
 	void t006_23_aboutValidation() {
 		ApiClient api = student();
-		ok(api.put(PROFILE + "/about", body("displayName", "Ana", "about", "Una presentación válida.")));
+		ok(api.put(PROFILE + "/about", body("firstNames", "Ana", "phone", "912345678", "about", "Una presentación válida.")));
 
-		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "A")))).containsExactly("displayName:min-length");
-		assertThat(errors(api.put(PROFILE + "/about", body("displayName", repeat('n', 41))))).containsExactly("displayName:max-length");
+		assertThat(errors(api.put(PROFILE + "/about", body("firstNames", "A")))).containsExactly("firstNames:min-length");
+		assertThat(errors(api.put(PROFILE + "/about", body("firstNames", repeat('n', 61))))).containsExactly("firstNames:max-length");
+		assertThat(errors(api.put(PROFILE + "/about", body("lastNames", "Pérez2")))).containsExactly("lastNames:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("lastNames", "Pé@rez")))).containsExactly("lastNames:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("contactEmail", "no-es-correo")))).containsExactly("contactEmail:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("phone", "812345678")))).containsExactly("phone:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("phone", "9123456")))).containsExactly("phone:invalid");
 		assertThat(errors(api.put(PROFILE + "/about", body("about", "corta")))).containsExactly("about:min-length");
 		assertThat(errors(api.put(PROFILE + "/about", body("about", repeat('a', 501))))).containsExactly("about:max-length");
-		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "\u200B\u200B")))).containsExactly("displayName:invalid");
-		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "\u00A0\u00A0\u00A0")))).containsExactly("displayName:invalid");
-		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "An\u202Ea")))).containsExactly("displayName:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("firstNames", "\u200B\u200B")))).containsExactly("firstNames:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("firstNames", "\u00A0\u00A0\u00A0")))).containsExactly("firstNames:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("firstNames", "An\u202Ea")))).containsExactly("firstNames:invalid");
 		assertThat(errors(api.put(PROFILE + "/about", body("about", "Texto con separador\u2028de línea.")))).containsExactly("about:invalid");
-		assertThat(errors(api.put(PROFILE + "/about", body("displayName", "An\u0000a")))).containsExactly("displayName:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("firstNames", "An\u0000a")))).containsExactly("firstNames:invalid");
+		assertThat(errors(api.put(PROFILE + "/about", body("firstNames", "A", "phone", "1", "contactEmail", "x"))))
+				.containsExactlyInAnyOrder("firstNames:min-length", "phone:invalid", "contactEmail:invalid");
 		JsonNode after = api.get(PROFILE).json().get("about");
-		assertThat(after.get("displayName").asString()).isEqualTo("Ana");
+		assertThat(after.get("firstNames").asString()).isEqualTo("Ana");
+		assertThat(after.get("phone").asString()).isEqualTo("912345678");
 		assertThat(after.get("about").asString()).isEqualTo("Una presentación válida.");
 	}
 
 	@Test
-	@DisplayName("006-23: un JSON con el invisible escrito como secuencia \u200b también se rechaza")
+	@DisplayName("006-23: un JSON con el invisible escrito como secuencia también se rechaza")
 	void t006_23_escapedInvisibleInJsonIsRejected() {
 		ApiClient api = student();
-		byte[] raw = "{\"displayName\":\"\\u200b\\u200b\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		byte[] raw = "{\"firstNames\":\"\\u200b\\u200b\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
 		Response response = api.writeChunked("PUT", PROFILE + "/about", raw);
 
-		assertThat(errors(response)).containsExactly("displayName:invalid");
+		assertThat(errors(response)).containsExactly("firstNames:invalid");
 	}
 
 	@Test

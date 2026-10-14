@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -30,7 +31,17 @@ public final class ProfileRules {
 
 	public static final int LOCATION_MAX = 60;
 
-	public static final int DISPLAY_NAME_MAX = 40;
+	public static final int NAME_MAX = 60;
+
+	public static final int EMAIL_MAX = 254;
+
+	private static final Pattern PERSON_NAME = Pattern.compile("[\\p{L}\\p{M}][\\p{L}\\p{M} '’.-]*");
+
+	private static final Pattern CONTACT_EMAIL = Pattern.compile(
+			"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
+					+ "@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]");
+
+	private static final Pattern PERU_MOBILE = Pattern.compile("9[0-9]{8}");
 
 	public static final int ABOUT_MIN = 10;
 
@@ -96,7 +107,7 @@ public final class ProfileRules {
 
 	// ------------------------------------------------------------------------------------------ resultados
 
-	public record AboutData(String displayName, String about) {
+	public record AboutData(String firstNames, String lastNames, String contactEmail, String phone, String about) {
 
 		@Override
 		public String toString() {
@@ -143,14 +154,61 @@ public final class ProfileRules {
 
 	// ------------------------------------------------------------------------------------------ secciones
 
-	/** 006-23: nombre de 2 a 40 y presentación de 10 a 500 caracteres; ambos opcionales. */
-	public AboutData about(String prefix, String displayName, String about) {
+	/** 006-23, 006-27, 006-30: nombres, apellidos, contacto y presentación; todo opcional. */
+	public AboutData about(String prefix, String firstNames, String lastNames, String contactEmail, String phone,
+			String about) {
 		List<FieldViolation> violations = new ArrayList<>();
-		String cleanName = optionalText(prefix + "displayName", displayName, DISPLAY_NAME_MAX, TEXT_MIN, false,
-				violations);
+		String cleanFirst = personName(prefix + "firstNames", firstNames, violations);
+		String cleanLast = personName(prefix + "lastNames", lastNames, violations);
+		String cleanEmail = contactEmail(prefix + "contactEmail", contactEmail, violations);
+		String cleanPhone = phone(prefix + "phone", phone, violations);
 		String cleanAbout = optionalText(prefix + "about", about, ABOUT_MAX, ABOUT_MIN, true, violations);
 		throwIfAny(violations);
-		return new AboutData(cleanName, cleanAbout);
+		return new AboutData(cleanFirst, cleanLast, cleanEmail, cleanPhone, cleanAbout);
+	}
+
+	private static String personName(String field, String raw, List<FieldViolation> violations) {
+		String text = optionalText(field, raw, NAME_MAX, TEXT_MIN, false, violations);
+		if (text != null && !PERSON_NAME.matcher(text).matches()) {
+			violations.add(FieldViolation.of(field, "invalid"));
+			return null;
+		}
+		return text;
+	}
+
+	private static String contactEmail(String field, String raw, List<FieldViolation> violations) {
+		String text = clean(raw);
+		if (text.isEmpty()) {
+			return null;
+		}
+		text = text.toLowerCase(Locale.ROOT);
+		int at = text.indexOf('@');
+		if (text.codePointCount(0, text.length()) > EMAIL_MAX) {
+			violations.add(FieldViolation.of(field, "max-length", EMAIL_MAX));
+			return null;
+		}
+		if (hasHiddenOrBlankOnly(text) || at < 1 || at > 64 || !CONTACT_EMAIL.matcher(text).matches()) {
+			violations.add(FieldViolation.of(field, "invalid"));
+			return null;
+		}
+		return text;
+	}
+
+	/** Celular peruano: acepta +51 y espacios; se guarda solo con los 9 dígitos. */
+	private static String phone(String field, String raw, List<FieldViolation> violations) {
+		String text = clean(raw);
+		if (text.isEmpty()) {
+			return null;
+		}
+		String digits = text.replace(" ", "");
+		if (digits.startsWith("+51")) {
+			digits = digits.substring(3);
+		}
+		if (hasHiddenOrBlankOnly(text) || !PERU_MOBILE.matcher(digits).matches()) {
+			violations.add(FieldViolation.of(field, "invalid"));
+			return null;
+		}
+		return digits;
 	}
 
 	/** 006-05. Los vacíos se guardan como nulos. */

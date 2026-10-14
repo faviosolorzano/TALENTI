@@ -75,7 +75,7 @@ class ProfileReaderEditorTests extends ProfileIntegrationTest {
 
 		assertThat(reader.snapshot(student.id()).toString()).doesNotContain("Lima").doesNotContain("Tienda")
 				.doesNotContain("java");
-		assertThat(editor.current(student.id()).about().toString()).doesNotContain("Ana");
+		assertThat(editor.current(student.id()).about().toString()).doesNotContain("Ana").doesNotContain("ana@correo.pe").doesNotContain("912345678");
 		assertThat(editor.current(student.id()).skills().get(0).toString()).doesNotContain("Java");
 		assertThat(editor.current(student.id()).toString()).doesNotContain("Desarrollo").doesNotContain("Demo");
 	}

@@ -40,6 +40,7 @@ class ProfileNeverLoggedTests extends ProfileIntegrationTest {
 		ApiClient api = student.api();
 		String mark = "marca" + UUID.randomUUID().toString().replace("-", "").substring(0, 14);
 
+		String letters = "Qwertyuiop";
 		List<Response> responses = List.of(
 				api.put(PROFILE + "/academic", body("career", "Carrera " + mark, "institute", "Instituto " + mark, "cycle", 4)),
 				api.put(PROFILE + "/academic", body("career", "x", "institute", mark + repeat('z', 90))),
@@ -49,14 +50,19 @@ class ProfileNeverLoggedTests extends ProfileIntegrationTest {
 						"location", "Ciudad " + mark)),
 				api.post(PROFILE + "/projects", project("Proyecto " + mark, "Descripcion " + mark, "Tec" + mark.substring(0, 10))),
 				api.post(PROFILE + "/projects", project("P " + mark, "corta", "Java")),
+				api.put(PROFILE + "/about", body("firstNames", "Nom" + letters, "lastNames", "Ape" + letters,
+						"contactEmail", mark + "@contacto.pe", "phone", "+51 987 654 321", "about", "Presentacion " + mark)),
+				api.put(PROFILE + "/about", body("firstNames", "Nom" + letters + "9", "contactEmail", mark + "@@x",
+						"phone", "777654321")),
 				api.get(PROFILE));
 
-		assertThat(responses).extracting(Response::status).containsExactly(200, 422, 200, 422, 200, 201, 422, 200);
+		assertThat(responses).extracting(Response::status).containsExactly(200, 422, 200, 422, 200, 201, 422, 200, 422, 200);
 		// Los errores 422 tampoco devuelven el valor recibido.
 		assertThat(responses.get(1).body()).doesNotContain(mark);
 		assertThat(responses.get(3).body()).doesNotContain(mark);
+		assertThat(responses.get(8).body()).doesNotContain(mark).doesNotContain(letters).doesNotContain("777654321");
 		assertThat(output.getAll()).as("registros de la aplicación").isNotEmpty()
-				.doesNotContain(mark)
+				.doesNotContain(mark).doesNotContain(letters).doesNotContain("987654321").doesNotContain("987 654 321")
 				.doesNotContain(student.email())
 				.doesNotContain(student.password());
 	}

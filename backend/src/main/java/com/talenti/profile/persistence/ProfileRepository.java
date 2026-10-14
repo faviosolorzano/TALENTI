@@ -35,7 +35,7 @@ public class ProfileRepository {
 
 	// ------------------------------------------------------------------------------------------ lectura
 
-	public record ProfileRow(String displayName, String about, String career, String institute, Integer cycle,
+	public record ProfileRow(String firstNames, String lastNames, String contactEmail, String phone, String about, String career, String institute, Integer cycle,
 			Integer hoursPerWeek, List<WorkModality> acceptedModalities, String location, OffsetDateTime updatedAt) {
 
 		@Override
@@ -65,11 +65,12 @@ public class ProfileRepository {
 
 	public Optional<ProfileRow> findProfile(UUID userId) {
 		return jdbc.sql("""
-				SELECT display_name, about, career, institute, cycle, hours_per_week, accepted_modalities, location,
+				SELECT first_names, last_names, contact_email, phone, about, career, institute, cycle, hours_per_week, accepted_modalities, location,
 				       updated_at
 				FROM student_profile WHERE user_id = :userId""")
 				.param("userId", userId)
-				.query((rs, row) -> new ProfileRow(rs.getString("display_name"),
+				.query((rs, row) -> new ProfileRow(rs.getString("first_names"), rs.getString("last_names"),
+						rs.getString("contact_email"), rs.getString("phone"),
 						rs.getString("about"), rs.getString("career"), rs.getString("institute"),
 						(Integer) rs.getObject("cycle"), (Integer) rs.getObject("hours_per_week"),
 						modalities(rs.getArray("accepted_modalities")), rs.getString("location"),
@@ -117,8 +118,10 @@ public class ProfileRepository {
 	/** Reemplaza nombre y presentación (enmienda 1, 006-23). Antes hay que llamar a {@link #touch}. */
 	public void saveAbout(UUID userId, ProfileRules.AboutData data) {
 		jdbc.sql("""
-				UPDATE student_profile SET display_name = :displayName, about = :about WHERE user_id = :userId""")
-				.param("displayName", data.displayName()).param("about", data.about()).param("userId", userId)
+				UPDATE student_profile SET first_names = :firstNames, last_names = :lastNames,
+				contact_email = :contactEmail, phone = :phone, about = :about WHERE user_id = :userId""")
+				.param("firstNames", data.firstNames()).param("lastNames", data.lastNames())
+				.param("contactEmail", data.contactEmail()).param("phone", data.phone()).param("about", data.about()).param("userId", userId)
 				.update();
 	}
 
