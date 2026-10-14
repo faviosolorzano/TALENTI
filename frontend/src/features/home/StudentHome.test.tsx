@@ -30,11 +30,26 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
-  it('says "Hola, {nombre}" when there is a display name, as plain text', async () => {
+  it('says "Hola, {primer nombre}" with the first word of the first names, as plain text', async () => {
     openStudentApp('/', {
-      profile: { profile: { about: { displayName: '<i>Ana</i>', about: null } } },
+      profile: {
+        profile: {
+          about: {
+            firstNames: '<i>Ana</i> María',
+            lastNames: 'Quispe',
+            contactEmail: null,
+            phone: null,
+            about: null,
+          },
+        },
+      },
     })
     expect(await homeHeading('Hola, <i>Ana</i>')).toBeInTheDocument()
+  })
+
+  it('says "Hola de nuevo" when there are no first names', async () => {
+    openStudentApp('/')
+    expect(await homeHeading(es.home.title)).toBeInTheDocument()
   })
 
   it('Perfil: the percentage and ONE next step come from the server and lead to its section', async () => {
