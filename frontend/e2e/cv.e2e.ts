@@ -154,7 +154,7 @@ test('upload an invented CV, review the suggestions, accept with a level and see
   const skills = await groups.count()
   expect(skills).toBeGreaterThanOrEqual(3)
   for (let index = 0; index < skills; index += 1) {
-    await groups.nth(index).getByText('Básico', { exact: true }).click()
+    await groups.nth(index).getByRole('radio', { name: 'Básico' }).check()
   }
   const accepts = page.getByRole('button', { name: /^Aceptar / })
   const total = await accepts.count()
