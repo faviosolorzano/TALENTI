@@ -23,7 +23,7 @@ public record ProfileView(About about, Academic academic, List<SkillEntry> skill
 	 * "Sobre ti" (enmienda 1): cómo quiere que le llamen y su presentación; cada campo es nulo si no se declaró. El
 	 * nombre solo sirve para el saludo y la pantalla del perfil (006-25): no sale hacia otros módulos.
 	 */
-	public record About(String displayName, String about) {
+	public record About(String firstNames, String lastNames, String contactEmail, String phone, String about) {
 
 		@Override
 		public String toString() {

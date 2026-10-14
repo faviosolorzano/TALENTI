@@ -41,7 +41,8 @@ class ProfileController {
 
 	@PutMapping("/about")
 	ProfileView saveAbout(@AuthenticationPrincipal CurrentUser user, @RequestBody Requests.About body) {
-		return profiles.saveAbout(user.id(), body.displayName(), body.about());
+		return profiles.saveAbout(user.id(), body.firstNames(), body.lastNames(), body.contactEmail(), body.phone(),
+				body.about());
 	}
 
 	@PutMapping("/academic")

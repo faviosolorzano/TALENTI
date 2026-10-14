@@ -27,7 +27,7 @@ final class Requests {
 		return IntInput.notAnInteger();
 	}
 
-	record About(String displayName, String about) {
+	record About(String firstNames, String lastNames, String contactEmail, String phone, String about) {
 
 		@Override
 		public String toString() {

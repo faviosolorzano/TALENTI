@@ -94,8 +94,9 @@ public class ProfileService implements ProfileReader, ProfileEditor {
 
 	/** 006-23: nombre y presentación. */
 	@Transactional
-	public ProfileView saveAbout(UUID userId, String displayName, String about) {
-		ProfileRules.AboutData data = rules.about("", displayName, about);
+	public ProfileView saveAbout(UUID userId, String firstNames, String lastNames, String contactEmail,
+			String phone, String about) {
+		ProfileRules.AboutData data = rules.about("", firstNames, lastNames, contactEmail, phone, about);
 		touch(userId);
 		repository.saveAbout(userId, data);
 		return load(userId);
@@ -261,8 +262,9 @@ public class ProfileService implements ProfileReader, ProfileEditor {
 				.map(row -> new ProfileView.ProjectEntry(row.id(), row.name(), row.description(), row.technologies()))
 				.toList();
 
-		ProfileView.About about = profile == null ? new ProfileView.About(null, null)
-				: new ProfileView.About(profile.displayName(), profile.about());
+		ProfileView.About about = profile == null ? new ProfileView.About(null, null, null, null, null)
+				: new ProfileView.About(profile.firstNames(), profile.lastNames(),
+						profile.contactEmail(), profile.phone(), profile.about());
 		ProfileView.Academic academic = profile == null ? new ProfileView.Academic(null, null, null)
 				: new ProfileView.Academic(profile.career(), profile.institute(), profile.cycle());
 		ProfileView.Availability availability = profile == null
