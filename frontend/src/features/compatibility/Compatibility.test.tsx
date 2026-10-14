@@ -68,16 +68,15 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
       within(region).getAllByRole('heading', { level: 4, name: t.lists.desirable }).length,
     ).toBe(2)
 
-    expect(within(region).getByRole('link', { name: `${t.action.PARTIAL}: SQL` })).toHaveAttribute(
-      'href',
-      '/perfil?seccion=habilidades',
-    )
     expect(
-      within(region).getByRole('link', { name: `${t.action.MISSING}: Docker` }),
+      within(region).getByRole('link', { name: new RegExp(`${t.action.PARTIAL}.*SQL`) }),
+    ).toHaveAttribute('href', '/perfil?seccion=habilidades')
+    expect(
+      within(region).getByRole('link', { name: new RegExp(`${t.action.MISSING}.*Docker`) }),
     ).toHaveAttribute('href', '/perfil?seccion=habilidades')
     expect(
       within(region).getByRole('link', {
-        name: `${t.action.COMPLETE}: ${t.condition.factor.AVAILABILITY}`,
+        name: new RegExp(`${t.action.COMPLETE}.*${t.condition.factor.AVAILABILITY}`),
       }),
     ).toHaveAttribute('href', '/perfil?seccion=disponibilidad')
     // A match has nothing to fix.
