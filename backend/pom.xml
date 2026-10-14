@@ -17,6 +17,9 @@
 		<java.version>21</java.version>
 		<!-- Prueba de arquitectura (límites entre módulos). No viene en el BOM de Spring Boot. -->
 		<archunit.version>1.5.1</archunit.version>
+		<!-- Lectura de texto de los PDF del lector de CV (spec 009). Versión exacta: 3.0.8 (publicada el 2026-07-15, más de
+		     dos semanas) y sin vulnerabilidades conocidas en OSV (consulta del 2026-10-14). Revisar al subir de versión. -->
+		<pdfbox.version>3.0.8</pdfbox.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -48,6 +51,18 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>${pdfbox.version}</version>
+			<exclusions>
+				<!-- El registro de Spring (spring-jcl) ya cumple esa función. -->
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

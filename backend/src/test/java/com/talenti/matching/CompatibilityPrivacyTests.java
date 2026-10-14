@@ -84,8 +84,10 @@ class CompatibilityPrivacyTests extends MatchingIntegrationTest {
 		api.get(COMPATIBILITY + "/vacancies/" + UUID.randomUUID());
 
 		assertThat(rowCounts()).isEqualTo(before);
-		assertThat(before).as("no hay tablas de resultados ni de consumo de IA").doesNotContainKeys("match_result",
-				"ai_usage_event", "profile_embedding", "vacancy_embedding");
+		assertThat(before).as("no hay tablas de resultados ni de embeddings").doesNotContainKeys("match_result",
+				"profile_embedding", "vacancy_embedding");
+		// ai_usage_event existe desde la spec 009; la igualdad de conteos de arriba prueba que la compatibilidad no escribe en ella (009-33).
+		assertThat(before).containsKey("ai_usage_event");
 	}
 
 	private Map<String, Integer> rowCounts() {
