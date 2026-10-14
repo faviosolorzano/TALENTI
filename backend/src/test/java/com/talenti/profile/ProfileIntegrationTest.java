@@ -80,7 +80,7 @@ public abstract class ProfileIntegrationTest extends IdentityIntegrationTest {
 		ok(api.put(PROFILE + "/availability", body("hoursPerWeek", 20, "acceptedModalities", List.of("REMOTE", "HYBRID"),
 				"location", "Lima")));
 		ok(api.post(PROFILE + "/projects", project("Tienda web", description(), "Java", "PostgreSQL")));
-		return ok(api.put(PROFILE + "/about", body("displayName", "Ana", "about", "Estudiante de software con ganas de aprender.")));
+		return ok(api.put(PROFILE + "/about", body("firstNames", "Ana", "lastNames", "Pérez", "contactEmail", "ana@correo.pe", "phone", "+51 912 345 678", "about", "Estudiante de software con ganas de aprender.")));
 	}
 
 	protected int profileRows(java.util.UUID userId) {

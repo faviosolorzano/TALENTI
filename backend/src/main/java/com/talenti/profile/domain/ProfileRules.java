@@ -35,11 +35,11 @@ public final class ProfileRules {
 
 	public static final int EMAIL_MAX = 254;
 
-	private static final Pattern PERSON_NAME = Pattern.compile("[\p{L}\p{M}][\p{L}\p{M} '’.-]*");
+	private static final Pattern PERSON_NAME = Pattern.compile("[\\p{L}\\p{M}][\\p{L}\\p{M} '’.-]*");
 
 	private static final Pattern CONTACT_EMAIL = Pattern.compile(
-			"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
-					+ "@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]");
+			"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
+					+ "@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]");
 
 	private static final Pattern PERU_MOBILE = Pattern.compile("9[0-9]{8}");
 

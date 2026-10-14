@@ -300,20 +300,32 @@ class ProfileRulesTests {
 	// ------------------------------------------------------------------------------------------ 006-23
 
 	@Test
-	@DisplayName("006-23: nombre de 2 a 40 y presentación de 10 a 500; recortados, y los vacíos pasan a nulo")
+	@DisplayName("006-23: presentación de 10 a 500; recortada, y los vacíos pasan a nulo")
 	void t006_23_aboutLimitsAndTrim() {
-		ProfileRules.AboutData data = rules.about("", "  Ana  ", "  Una presentación válida.  ");
+		ProfileRules.AboutData data = rules.about("", "  Ana  ", " Pérez ", null, null, "  Una presentación válida.  ");
 
-		assertThat(data.displayName()).isEqualTo("Ana");
+		assertThat(data.firstNames()).isEqualTo("Ana");
+		assertThat(data.lastNames()).isEqualTo("Pérez");
 		assertThat(data.about()).isEqualTo("Una presentación válida.");
-		assertThat(rules.about("", " ", null)).isEqualTo(new ProfileRules.AboutData(null, null));
-		assertThat(violations(() -> rules.about("", "A", null))).containsExactly("displayName:min-length");
-		assertThat(violations(() -> rules.about("", repeat('n', 41), null))).containsExactly("displayName:max-length");
-		assertThat(rules.about("", repeat('n', 40), repeat('a', 500)).about()).hasSize(500);
-		assertThat(violations(() -> rules.about("", null, "corta"))).containsExactly("about:min-length");
-		assertThat(violations(() -> rules.about("", null, repeat('a', 501)))).containsExactly("about:max-length");
-		assertThat(rules.about("", null, "Línea uno.\nLínea dos.").about()).contains("\n");
-		assertThat(violations(() -> rules.about("", "Ana\nPérez", null))).containsExactly("displayName:invalid");
+		assertThat(rules.about("", " ", "", " ", "  ", null)).isEqualTo(new ProfileRules.AboutData(null, null, null, null, null));
+		assertThat(violations(() -> rules.about("", null, null, null, null, "corta"))).containsExactly("about:min-length");
+		assertThat(violations(() -> rules.about("", null, null, null, null, repeat('a', 501)))).containsExactly("about:max-length");
+		assertThat(rules.about("", null, null, null, null, repeat('a', 500)).about()).hasSize(500);
+		assertThat(rules.about("", null, null, null, null, "Línea uno.\nLínea dos.").about()).contains("\n");
+	}
+
+	@Test
+	@DisplayName("006-27: nombres y apellidos de 2 a 60; solo letras con tildes y ñ, espacios, guion, apóstrofo y punto")
+	void t006_27_namesRules() {
+		assertThat(rules.about("", "María José", "Ñandú-O'Brien Jr.", null, null, null).lastNames()).isEqualTo("Ñandú-O'Brien Jr.");
+		assertThat(rules.about("", repeat('n', 60), "Lo", null, null, null).firstNames()).hasSize(60);
+		assertThat(violations(() -> rules.about("", "A", null, null, null, null))).containsExactly("firstNames:min-length");
+		assertThat(violations(() -> rules.about("", null, repeat('n', 61), null, null, null))).containsExactly("lastNames:max-length");
+		for (String bad : new String[] { "Ana2", "Ana_", "Ana@", "Ana#Pérez", "1234", "-Ana", "Ana\nPérez", "Ana \uD83D\uDC69" }) {
+			assertThat(violations(() -> rules.about("", bad, null, null, null, null))).as("nombres %s", bad.length())
+					.containsExactly("firstNames:invalid");
+			assertThat(violations(() -> rules.about("", null, bad, null, null, null))).containsExactly("lastNames:invalid");
+		}
 	}
 
 	@Test
@@ -322,12 +334,47 @@ class ProfileRulesTests {
 		for (String bad : new String[] { "\u200B\u200B", "\u00A0\u00A0\u00A0", "\u200E\u200F\u200E", "Ana\u202Ebuf",
 				"Ana\u200Bmaria", "Ana\u2066x\u2069", "Ana\u2028Maria", "Ana\u2029Maria", "\uFEFFAna",
 				"\u2003\u00A0\u2007\u202F" }) {
-			assertThat(violations(() -> rules.about("", bad, null))).as("nombre %s", bad.length())
-					.containsExactly("displayName:invalid");
+			assertThat(violations(() -> rules.about("", bad, null, null, null, null))).as("nombre %s", bad.length())
+					.containsExactly("firstNames:invalid");
 		}
-		// Lo que no es invisible sigue valiendo: tildes, eñes y emojis con ZWJ.
-		assertThat(rules.about("", "María Ñandú", null).displayName()).isEqualTo("María Ñandú");
-		assertThat(rules.about("", "Ana \uD83D\uDC69\u200D\uD83D\uDCBB", null).displayName()).isNotNull();
+		assertThat(violations(() -> rules.about("", null, null, "a\u200Bb@correo.pe", "\u200B912345678", null)))
+				.containsExactly("contactEmail:invalid", "phone:invalid");
+		assertThat(rules.about("", "María Ñandú", null, null, null, null).firstNames()).isEqualTo("María Ñandú");
+	}
+
+	@Test
+	@DisplayName("006-30: el correo de contacto es opcional, se pasa a minúsculas y rechaza formatos inválidos y más de 254")
+	void t006_30_contactEmail() {
+		assertThat(rules.about("", null, null, "  Ana.Perez@Correo.PE ", null, null).contactEmail()).isEqualTo("ana.perez@correo.pe");
+		for (String bad : new String[] { "sin-arroba", "@correo.pe", "ana@", "ana@correo", "ana pe@correo.pe", "ana@@correo.pe",
+				"ana@correo..pe" }) {
+			assertThat(violations(() -> rules.about("", null, null, bad, null, null))).as(bad)
+					.containsExactly("contactEmail:invalid");
+		}
+		String longEmail = repeat('a', 60) + "@" + repeat('b', 195) + ".pe";
+		assertThat(violations(() -> rules.about("", null, null, longEmail, null, null))).containsExactly("contactEmail:max-length");
+	}
+
+	@Test
+	@DisplayName("006-30: el celular acepta +51 y espacios y se guarda con solo los 9 dígitos; rechaza lo que no es celular peruano")
+	void t006_30_phoneNormalization() {
+		for (String ok : new String[] { "912345678", "+51 912 345 678", "+51912345678", " 912 345 678 ", "+51 912345678" }) {
+			assertThat(rules.about("", null, null, null, ok, null).phone()).as(ok).isEqualTo("912345678");
+		}
+		for (String bad : new String[] { "812345678", "91234567", "9123456789", "91234567a", "(01) 2345678", "+52912345678",
+				"+51 +51 912345678", "912-345-678" }) {
+			assertThat(violations(() -> rules.about("", null, null, null, bad, null))).as(bad)
+					.containsExactly("phone:invalid");
+		}
+	}
+
+	@Test
+	@DisplayName("006-12: el toString de los resultados de validación no imprime contenido")
+	void t006_12_toStringIsMasked() {
+		assertThat(rules.about("", "Ana Secreta", null, "secreto@correo.pe", "912345678", "Una presentación secreta.").toString())
+				.doesNotContain("Secreta").doesNotContain("secreto").doesNotContain("912345678");
+		assertThat(rules.academic("", "Carrera Secreta", null, null).toString()).doesNotContain("Secreta");
+		assertThat(project("Proyecto Secreto", repeat('d', 10), "Java").toString()).doesNotContain("Secreto");
 	}
 
 	@Test
@@ -354,14 +401,6 @@ class ProfileRulesTests {
 		assertThatThrownBy(() -> new ProfileRules(11, 10)).isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("max-cycle");
 		assertThatCode(() -> new ProfileRules(10, 10)).doesNotThrowAnyException();
-	}
-
-	@Test
-	@DisplayName("006-12: el toString de los resultados de validación no imprime contenido")
-	void t006_12_toStringIsMasked() {
-		assertThat(rules.about("", "Ana Secreta", "Una presentación secreta.").toString()).doesNotContain("Secreta");
-		assertThat(rules.academic("", "Carrera Secreta", null, null).toString()).doesNotContain("Secreta");
-		assertThat(project("Proyecto Secreto", repeat('d', 10), "Java").toString()).doesNotContain("Secreto");
 	}
 
 	@Test

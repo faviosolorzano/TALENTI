@@ -15,11 +15,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 class ProfileSchemaTests extends ProfileIntegrationTest {
 
 	@Test
-	@DisplayName("006-01: Flyway aplicó V5 y existen student_profile, student_skill y student_project con los tipos de la spec")
+	@DisplayName("006-01: Flyway aplicó V6 y existen student_profile, student_skill y student_project con los tipos de la spec")
 	void t006_01_tablesAndColumns() {
-		assertThat(count("SELECT count(*) FROM flyway_schema_history WHERE version = '5' AND success")).isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM flyway_schema_history WHERE version = '6' AND success")).isEqualTo(1);
 		Map<String, String> profileColumns = columns("student_profile");
-		assertThat(profileColumns).containsEntry("display_name", "character varying")
+		assertThat(profileColumns).containsEntry("first_names", "character varying").containsEntry("last_names", "character varying").containsEntry("contact_email", "character varying").containsEntry("phone", "character varying")
 				.containsEntry("about", "character varying").containsEntry("user_id", "uuid").containsEntry("career", "character varying")
 				.containsEntry("institute", "character varying").containsEntry("cycle", "smallint")
 				.containsEntry("hours_per_week", "smallint").containsEntry("accepted_modalities", "ARRAY")
@@ -62,7 +62,7 @@ class ProfileSchemaTests extends ProfileIntegrationTest {
 		assertRejected("UPDATE student_profile SET hours_per_week = 0 WHERE user_id = ?", user);
 		assertRejected("UPDATE student_profile SET accepted_modalities = ARRAY['NOCTURNO']::varchar[] WHERE user_id = ?", user);
 		assertRejected("UPDATE student_profile SET career = '   ' WHERE user_id = ?", user);
-		assertRejected("UPDATE student_profile SET display_name = '  ' WHERE user_id = ?", user);
+		assertRejected("UPDATE student_profile SET first_names = '  ' WHERE user_id = ?", user);
 		assertRejected("UPDATE student_profile SET about = repeat('a', 501) WHERE user_id = ?", user);
 		assertRejected("INSERT INTO student_skill (user_id, skill_id, level) VALUES (?, ?, 4)", user, skill);
 		assertRejected("INSERT INTO student_skill (user_id, skill_id, level) VALUES (?, ?, 0)", user, skill);

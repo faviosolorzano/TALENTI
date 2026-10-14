@@ -39,7 +39,7 @@ class ProfileSecurityTests extends ProfileIntegrationTest {
 	private static List<Route> routes() {
 		return List.of(
 				new Route("GET", PROFILE, null),
-				new Route("PUT", PROFILE + "/about", body("displayName", "Ana", "about", "Una presentación de prueba.")),
+				new Route("PUT", PROFILE + "/about", body("firstNames", "Ana", "lastNames", "Pérez", "contactEmail", "ana@correo.pe", "phone", "+51 912 345 678", "about", "Una presentación de prueba.")),
 				new Route("PUT", PROFILE + "/academic", body("career", "Software", "institute", "Demo", "cycle", 3)),
 				new Route("PUT", PROFILE + "/skills", skills(skill("java", 1))),
 				new Route("PUT", PROFILE + "/availability", body("hoursPerWeek", 10, "acceptedModalities", List.of("REMOTE"))),
