@@ -19,6 +19,7 @@ import org.springframework.dao.QueryTimeoutException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+import com.talenti.vacancy.VacancyInfo;
 import com.talenti.vacancy.domain.CompanyDetail;
 import com.talenti.vacancy.domain.CompanyRef;
 import com.talenti.vacancy.domain.FeaturedCompany;
@@ -232,6 +233,56 @@ public class VacancyReadRepository {
 		return Optional.of(new VacancyDetail(d.id, d.title, d.summary, d.description, d.modality, d.location,
 				d.hoursPerWeek, d.publishedAt, d.status, d.featured, d.company, skills,
 				new Requirements(required, desirable)));
+	}
+
+	// -- Consulta para otros módulos (VacancyLookup) --------------------------------------------------------------
+
+	/** Todas las vacantes abiertas con sus requisitos (para calcular la compatibilidad). */
+	public List<VacancyInfo> openVacancyInfos() {
+		return loadInfos("WHERE v.status = 'OPEN'", null);
+	}
+
+	/** Las vacantes con esos ids; si {@code onlyOpen}, solo las abiertas. Los ids desconocidos se omiten. */
+	public List<VacancyInfo> vacancyInfos(List<UUID> ids, boolean onlyOpen) {
+		if (ids.isEmpty()) {
+			return List.of();
+		}
+		return loadInfos("WHERE v.id IN (:ids)" + (onlyOpen ? " AND v.status = 'OPEN'" : ""), ids);
+	}
+
+	private List<VacancyInfo> loadInfos(String where, List<UUID> ids) {
+		JdbcClient.StatementSpec query = jdbc.sql("SELECT " + CARD_COLUMNS
+				+ ", v.status FROM vacancy v JOIN company c ON c.id = v.company_id " + where
+				+ " ORDER BY v.published_at DESC, v.id");
+		if (ids != null) {
+			query = query.param("ids", ids);
+		}
+		List<InfoRow> rows = query.query((rs, n) -> new InfoRow(mapCard(rs, n),
+				VacancyInfo.Status.valueOf(rs.getString("status")))).list();
+		if (rows.isEmpty()) {
+			return List.of();
+		}
+		Map<UUID, List<VacancyInfo.Requirement>> requirements = new LinkedHashMap<>();
+		jdbc.sql("SELECT r.vacancy_id, r.kind, r.min_level, s.slug, s.name FROM vacancy_requirement r "
+				+ "JOIN skill s ON s.id = r.skill_id WHERE r.vacancy_id IN (:ids) "
+				+ "ORDER BY r.vacancy_id, " + REQUIRED_FIRST + ", r.min_level DESC, s.name")
+				.param("ids", rows.stream().map(row -> row.card().id()).toList())
+				.query((rs, n) -> requirements
+						.computeIfAbsent(rs.getObject("vacancy_id", UUID.class), key -> new ArrayList<>())
+						.add(new VacancyInfo.Requirement(rs.getString("slug"), rs.getString("name"),
+								VacancyInfo.RequirementKind.valueOf(rs.getString("kind")), rs.getInt("min_level"))))
+				.list();
+		return rows.stream().map(row -> {
+			VacancyCard card = row.card();
+			return new VacancyInfo(card.id(), card.title(), card.summary(),
+					VacancyInfo.Modality.valueOf(card.modality().name()), card.location(), card.hoursPerWeek(),
+					card.publishedAt(), card.featured(), row.status(),
+					new VacancyInfo.Company(card.company().id(), card.company().name(), card.company().city()),
+					requirements.getOrDefault(card.id(), List.of()));
+		}).toList();
+	}
+
+	private record InfoRow(VacancyCard card, VacancyInfo.Status status) {
 	}
 
 	// -- Construcción del filtro ------------------------------------------------------------------------------
