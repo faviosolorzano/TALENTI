@@ -56,7 +56,7 @@ export const EMPTY_PROFILE: Profile = {
 }
 
 /** The same rule as the server (006-09, 006-10), written again only for the fake. */
-function completenessOf(profile: Profile): Completeness {
+export function completenessOf(profile: Profile): Completeness {
   const done: Record<CompletenessKey, boolean> = {
     ACADEMIC:
       Boolean(profile.academic.career) &&
