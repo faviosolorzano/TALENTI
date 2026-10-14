@@ -139,14 +139,75 @@ public final class ApiClient {
 	 * con el token CSRF de la sesión. Para probar topes de tamaño que no pueden fiarse de la cabecera.
 	 */
 	public Response writeChunked(String method, String path, byte[] body) {
+		return writeChunked(method, path, body, "application/json");
+	}
+
+	public Response writeChunked(String method, String path, byte[] body, String contentType) {
 		if (cookies.get("XSRF-TOKEN") == null) {
 			get("/api/v1/auth/csrf");
 		}
 		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base + path)).header("X-Real-IP", origin)
-				.header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN")).header("Content-Type", "application/json")
+				.header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN")).header("Content-Type", contentType)
 				.header("Cookie", cookies.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue())
 						.collect(Collectors.joining("; ")))
 				.method(method, HttpRequest.BodyPublishers.ofInputStream(() -> new java.io.ByteArrayInputStream(body)));
+		try {
+			HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+			remember(response.headers().allValues("Set-Cookie"));
+			return new Response(response.statusCode(), response.headers(), response.body());
+		}
+		catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException(e);
+		}
+	}
+
+	/**
+	 * POST multipart/form-data con un archivo en el campo {@code file} y campos de texto, con el token CSRF de la
+	 * sesión (lo pide primero si aún no lo tiene). Para el lector de CV.
+	 */
+	public Response postMultipart(String path, String fileName, String contentType, byte[] content,
+			Map<String, String> fields) {
+		return postMultipart(path, fileName, contentType, content, fields, true);
+	}
+
+	public Response postMultipart(String path, String fileName, String contentType, byte[] content,
+			Map<String, String> fields, boolean withCsrf) {
+		if (withCsrf && cookies.get("XSRF-TOKEN") == null) {
+			get("/api/v1/auth/csrf");
+		}
+		String boundary = "----talenti" + java.util.UUID.randomUUID().toString().replace("-", "");
+		java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
+		try {
+			for (Map.Entry<String, String> field : fields.entrySet()) {
+				body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + field.getKey()
+						+ "\"\r\n\r\n" + field.getValue() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			}
+			if (content != null) {
+				body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
+						+ "\"\r\nContent-Type: " + contentType + "\r\n\r\n")
+						.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+				body.write(content);
+				body.write("\r\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			}
+			body.write(("--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		}
+		catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base + path)).header("X-Real-IP", origin)
+				.header("Content-Type", "multipart/form-data; boundary=" + boundary)
+				.POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()));
+		if (!cookies.isEmpty()) {
+			request.header("Cookie", cookies.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue())
+					.collect(Collectors.joining("; ")));
+		}
+		if (withCsrf) {
+			request.header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"));
+		}
 		try {
 			HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
 			remember(response.headers().allValues("Set-Cookie"));

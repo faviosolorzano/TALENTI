@@ -47,6 +47,14 @@ class ArchitectureTests {
 			// nada más (lo vigila MatchingArchitectureTests).
 			.ignoreDependency(resideInAPackage("com.talenti.matching.."), belongToAnyOf(CurrentUser.class, Role.class,
 					ProfileReader.class, ProfileSnapshot.class, WorkModality.class, VacancyLookup.class, VacancyInfo.class))
+			// cv (spec 009) usa el usuario de la sesión, el catálogo de habilidades y la interfaz pública de profile
+			// (lo vigila CvArchitectureTests); nada más.
+			.ignoreDependency(resideInAPackage("com.talenti.cv.."), equivalentTo(CurrentUser.class))
+			.ignoreDependency(resideInAPackage("com.talenti.cv.."), equivalentTo(Role.class))
+			.ignoreDependency(resideInAPackage("com.talenti.cv.."), equivalentTo(SkillCatalog.class))
+			.ignoreDependency(resideInAPackage("com.talenti.cv.."), equivalentTo(SkillInfo.class))
+			// Los tipos públicos de profile están en su paquete raíz (ProfileEditor, ProfileView, ConfirmedChanges...).
+			.ignoreDependency(resideInAPackage("com.talenti.cv.."), resideInAPackage("com.talenti.profile"))
 			.as("los módulos no dependen unos de otros; solo usan shared, y shared no depende de ningún módulo");
 
 	@ArchTest
