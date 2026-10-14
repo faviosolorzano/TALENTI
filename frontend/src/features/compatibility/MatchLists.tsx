@@ -34,7 +34,7 @@ function Row({ item, list }: { item: CompatibilityItem; list: ListKey }) {
       {action && (
         <Link className="match-row__action" to={action.to}>
           {action.label}
-          <span className="visually-hidden">: {name}</span>
+          <span className="visually-hidden"> ({name})</span>
         </Link>
       )}
     </li>
