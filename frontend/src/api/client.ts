@@ -63,6 +63,8 @@ export function readCookie(name: string, cookieSource: string = document.cookie)
 export interface ApiRequestOptions extends Omit<RequestInit, 'body' | 'credentials'> {
   /** Object to send as JSON. */
   json?: unknown
+  /** A multipart body (file upload). The browser sets the Content-Type with its boundary. */
+  form?: FormData
 }
 
 /**
@@ -100,7 +102,7 @@ async function requestCsrfToken(signal?: AbortSignal): Promise<void> {
 
 async function send<T>(
   path: string,
-  { json, headers, method = 'GET', ...init }: ApiRequestOptions,
+  { json, form, headers, method = 'GET', ...init }: ApiRequestOptions,
 ): Promise<T> {
   const finalHeaders = new Headers(headers)
   finalHeaders.set('Accept', 'application/json')
@@ -124,7 +126,7 @@ async function send<T>(
       headers: finalHeaders,
       // The app and the API share the origin (nginx proxies /api/), so same-origin is enough.
       credentials: 'same-origin',
-      body: json === undefined ? undefined : JSON.stringify(json),
+      body: form ?? (json === undefined ? undefined : JSON.stringify(json)),
     })
   } catch (error) {
     // A request cancelled on purpose (AbortController) is not a network failure.

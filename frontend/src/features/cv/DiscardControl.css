@@ -1,0 +1,26 @@
+.discard {
+  display: grid;
+  justify-items: start;
+}
+
+.discard__ask {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.discard__title {
+  font-weight: var(--font-weight-bold);
+}
+
+.discard__failed {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.discard__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

@@ -331,8 +331,8 @@ export const es = {
     },
     cv: {
       title: 'Llena tu perfil con tu CV',
-      body: 'Pronto podrás subir tu CV y revisar lo que encontramos. Tú decides qué se guarda.',
-      soon: 'Próximamente',
+      body: 'Sube tu CV y te sugerimos qué completar. Tú decides qué se guarda.',
+      action: 'Subir mi CV',
     },
   },
 
@@ -363,6 +363,151 @@ export const es = {
   // ---- Vacancies and opportunities (spec 004) ----
   common: {
     retry: 'Reintentar',
+  },
+
+  // ---- CV reader (spec 009) ----
+  cv: {
+    pageTitle: 'Tu CV',
+    title: 'Llena tu perfil con tu CV',
+    lead: 'Sube tu CV y te sugerimos qué completar en tu perfil.',
+    backToProfile: 'Volver a mi perfil',
+    manual: 'Prefiero completarlo a mano',
+    loading: 'Cargando tu CV…',
+    loadError: 'No pudimos cargar tu CV. Inténtalo de nuevo.',
+    upload: {
+      info: 'Leeremos tu CV para sugerirte tu perfil. Tú decides qué se guarda.',
+      button: 'Subir mi CV',
+      dropHint: 'o arrastra tu PDF hasta aquí',
+      dropActive: 'Suelta tu PDF aquí',
+      help: 'Solo PDF, hasta 2 MB y 10 páginas. Quitamos tus datos de contacto antes de leerlo.',
+      uploading: 'Subiendo…',
+      modeLegend: 'Cómo quieres que lo leamos',
+      basic: 'Lectura básica',
+      basicNote: 'Gratis, hecha con reglas en Talenti.',
+      enhanced: 'Lectura mejorada con DORA',
+      enhancedLeft: (left: number, limit: number) =>
+        left === 1
+          ? `Te queda 1 de ${limit} lecturas con IA este mes.`
+          : `Te quedan ${left} de ${limit} lecturas con IA este mes.`,
+      enhancedSend:
+        'Enviaremos el texto de tu CV, sin tus datos de contacto, a un servicio externo de IA solo para esta lectura.',
+      limitUsed: (limit: number, date: string) =>
+        `Ya usaste tus ${limit} lecturas con IA de este mes; se renuevan el ${date}. La lectura básica sigue disponible.`,
+      limitGlobal:
+        'La lectura con IA no está disponible por ahora. La lectura básica sigue disponible.',
+    },
+    errors: {
+      notPdf: 'Solo podemos leer archivos PDF. Elige un archivo con la extensión .pdf.',
+      tooLarge: 'Este archivo pesa más de 2 MB. Prueba con una versión más liviana.',
+      NOT_A_PDF: 'Este archivo no parece un PDF válido. Prueba con otro.',
+      CORRUPT: 'No pudimos abrir este PDF; parece dañado. Prueba exportándolo de nuevo.',
+      ENCRYPTED: 'Este PDF tiene contraseña. Sube una versión sin contraseña.',
+      TOO_MANY_PAGES:
+        'Este PDF tiene más de 10 páginas. Sube una versión más corta, con lo esencial.',
+      NO_TEXT:
+        'Este PDF parece una imagen escaneada: no encontramos texto que leer. Puedes completar tu perfil a mano.',
+      invalid: 'No pudimos revisar este archivo. Prueba con otro PDF.',
+      limit: 'Subiste muchos CV en poco tiempo. Inténtalo de nuevo más tarde.',
+      quota: (limit: number, date: string) =>
+        `Ya usaste tus ${limit} lecturas con IA de este mes; se renuevan el ${date}. La lectura básica sigue disponible.`,
+      generic: 'No pudimos procesar tu CV. Inténtalo de nuevo.',
+    },
+    analyzing: {
+      pending: 'Preparando tu CV…',
+      analyzing: 'Analizando tu CV…',
+      note: 'Puedes salir de esta página: tu análisis seguirá aquí cuando vuelvas.',
+    },
+    failed: {
+      title: 'No pudimos leer tu CV',
+      TIMEOUT: 'Tardamos demasiado en leerlo.',
+      EXTRACTION_ERROR: 'Algo falló al leer el archivo.',
+      RESTART: 'La lectura se interrumpió por un mantenimiento.',
+      BUSY: 'Hay mucha gente usando la lectura ahora mismo.',
+      fallback: 'La lectura no se completó.',
+      hint: 'No se descontó nada de tus lecturas con IA. Puedes reintentar o completar tu perfil a mano.',
+    },
+    empty: {
+      title: 'No encontramos datos para sugerir',
+      body: 'Tu CV no trae datos que podamos usar, o ya están en tu perfil. Puedes completarlo a mano.',
+      toProfile: 'Ir a mi perfil',
+    },
+    review: {
+      title: 'Revisa lo que encontramos',
+      rulesLabel: 'Sugerencias automáticas por reglas',
+      rulesNote: 'Lectura básica, hecha con reglas en Talenti. Es una búsqueda: puede equivocarse.',
+      aiNote: 'Sugerencias de DORA a partir de tu CV. Pueden equivocarse.',
+      youDecide: 'Tú decides: nada se guarda hasta que confirmes.',
+      groups: { ACADEMIC: 'Estudios', SKILL: 'Habilidades', PROJECT: 'Proyectos' } as const,
+      fromCv: 'Del CV:',
+      current: (value: string) => `Ahora en tu perfil: ${value}`,
+      fields: { CAREER: 'Carrera', INSTITUTE: 'Instituto', CYCLE: 'Ciclo' } as const,
+      accept: 'Aceptar',
+      edit: 'Editar',
+      discard: 'Descartar',
+      acceptLabel: (what: string) => `Aceptar ${what}`,
+      editLabel: (what: string) => `Editar ${what}`,
+      discardLabel: (what: string) => `Descartar ${what}`,
+      state: { ACCEPT: 'Aceptada', EDIT: 'Editada', DISCARD: 'Descartada', none: 'Sin decidir' },
+      undo: 'Deshacer',
+      undoLabel: (what: string) => `Deshacer la decisión sobre ${what}`,
+      levelMissing: 'Elige tu nivel para aceptar esta habilidad.',
+      unlinked: 'Esta habilidad no está en nuestro catálogo. Asóciala a una o descártala.',
+      linkSkill: 'Asociar a una habilidad',
+      changeSkill: 'Cambiar habilidad',
+      linkedTo: (name: string) => `Asociada a ${name}`,
+      slugMissing: 'Asóciala a una habilidad del catálogo para aceptarla.',
+      editDone: 'Listo',
+      cycleHint: 'Del 1 al 10.',
+      save: (count: number) => `Guardar en mi perfil (${count})`,
+      saving: 'Guardando…',
+      saveNone: 'Acepta al menos una sugerencia para guardar.',
+      undecided: (count: number) =>
+        count === 1
+          ? '1 sugerencia sin decidir se descartará.'
+          : `${count} sugerencias sin decidir se descartarán.`,
+      saveFailed: 'No pudimos guardar. Tus decisiones siguen aquí: inténtalo de nuevo.',
+      reviewFields: 'Revisa los campos marcados e inténtalo de nuevo.',
+      truncated: 'Leímos con IA solo el inicio de tu CV.',
+      reused: 'Ya habías subido este archivo; te mostramos su resultado guardado.',
+      alreadyInProfile: (count: number) =>
+        count === 1
+          ? '1 dato de tu CV ya está en tu perfil, así que no lo repetimos.'
+          : `${count} datos de tu CV ya están en tu perfil, así que no los repetimos.`,
+      degraded: {
+        DISABLED: 'Usamos la lectura básica: la lectura con IA no está disponible por ahora.',
+        GLOBAL_LIMIT: 'Usamos la lectura básica: la lectura con IA no está disponible por ahora.',
+        ALREADY_READ:
+          'Usamos la lectura básica: ya leímos este archivo con IA. Usa tu perfil o sube una versión nueva.',
+        AI_FAILED:
+          'Usamos la lectura básica: la lectura con IA no respondió. No se descontó de tu cupo.',
+        ALREADY_ATTEMPTED: 'Usamos la lectura básica: ya intentamos leer este archivo con IA.',
+      } as const,
+    },
+    enhanced: {
+      button: 'Leer mejor con IA',
+      again: 'Volver a leer con IA',
+      confirmTitle: '¿Leer tu CV con IA?',
+      confirmYes: 'Sí, leer con IA',
+      cancel: 'Cancelar',
+      failed: 'No pudimos pedir la lectura. Inténtalo de nuevo.',
+    },
+    discard: {
+      button: 'Borrar mi CV',
+      title: '¿Borrar tu CV?',
+      body: 'Borramos el archivo y sus sugerencias. Tu perfil no cambia.',
+      yes: 'Sí, borrar',
+      deleting: 'Borrando…',
+      cancel: 'Cancelar',
+      failed: 'No pudimos borrar tu CV. Inténtalo de nuevo.',
+    },
+    done: {
+      title: 'Guardamos tus datos',
+      lead: 'Tu perfil está al',
+      saved: (count: number) =>
+        count === 1 ? 'Guardamos 1 dato en tu perfil.' : `Guardamos ${count} datos en tu perfil.`,
+      viewProfile: 'Ver mi perfil',
+      keepGoing: 'Seguir completando',
+    },
   },
   vacancies: {
     sampleData: 'Datos de ejemplo',

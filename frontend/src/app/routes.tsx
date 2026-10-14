@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router'
+import { CvReaderPage } from '../pages/CvReaderPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { HomePage } from '../pages/HomePage'
 import { OpportunitiesPage } from '../pages/OpportunitiesPage'
@@ -50,6 +51,11 @@ export const routes: RouteObject[] = [
         path: sessionPaths.profile,
         element: <ProfilePage />,
         handle: { title: es.pages.profile.title } satisfies RouteHandle,
+      },
+      {
+        path: sessionPaths.cv,
+        element: <CvReaderPage />,
+        handle: { title: es.cv.pageTitle } satisfies RouteHandle,
       },
       {
         path: sessionPaths.dashboard,

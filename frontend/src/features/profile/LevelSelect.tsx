@@ -8,7 +8,8 @@ const LEVELS: readonly SkillLevel[] = [1, 2, 3]
 interface LevelSelectProps {
   /** Name of the skill, for the accessible name of the group. */
   skillName: string
-  value: SkillLevel
+  /** `null` while the person has not chosen yet. */
+  value: SkillLevel | null
   onChange: (level: SkillLevel) => void
 }
 

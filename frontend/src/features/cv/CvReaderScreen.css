@@ -1,0 +1,56 @@
+.cv-reader {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+  max-width: var(--cv-reader-width);
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.cv-reader__head {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.cv-reader__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.cv-reader__lead {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+.card.cv-reader__card {
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.cv-reader__loading {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cv-reader__manual {
+  font-size: var(--font-size-md);
+}
+
+.cv-reader__link {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (min-width: 48rem) {
+  .cv-reader {
+    padding-top: var(--space-12);
+  }
+
+  .cv-reader__title {
+    font-size: var(--font-size-4xl);
+  }
+
+  .card.cv-reader__card {
+    padding: var(--space-8);
+  }
+}

@@ -7,6 +7,7 @@ export const sessionPaths = {
   home: '/',
   opportunities: '/oportunidades',
   profile: '/perfil',
+  cv: '/perfil/cv',
   applications: '/postulaciones',
   register: '/registro',
   login: '/ingresar',
