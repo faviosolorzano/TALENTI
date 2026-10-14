@@ -90,6 +90,26 @@ talenti:
         about: 10               # presentación "Sobre ti" (el nombre no cuenta)
       min-skills: 3
       min-modalities: 1
+  matching:
+    # Fórmula de compatibilidad (spec 007, RN-01 y RN-14): todo parámetro vive aquí, no en el código. Si cambia un
+    # peso o un umbral, sube CompatibilityCalculator.FORMULA_VERSION. Los cuatro pesos deben sumar 100 (si no, el
+    # arranque falla).
+    weights:
+      required: 50              # A. requisitos obligatorios
+      desirable: 15             # B. requisitos deseables
+      conditions: 20            # C. modalidad, ubicación y disponibilidad
+      similarity: 15            # D. similitud de proyectos (apagada hasta S12)
+    cap: 69                     # máximo si falta un requisito obligatorio (crédito 0)
+    partial-credit: 0.5         # crédito de un requisito que se tiene en un nivel menor
+    cosine:
+      low: 0.20                 # coseno que vale 0
+      high: 0.60                # coseno que vale 1
+    min-evaluable-weight: 50    # menos peso evaluable que esto = información insuficiente (RN-02)
+    verdict:
+      high: 80                  # desde aquí "Encajas muy bien"
+      medium: 60                # desde aquí "Encajas con algo de refuerzo"
+    similarity:
+      enabled: false            # sin embeddings hasta S12: el componente D no se evalúa y los pesos se reajustan
   demo-data:
     # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
     # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.
