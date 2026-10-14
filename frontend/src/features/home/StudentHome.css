@@ -233,3 +233,10 @@
   gap: var(--space-3);
   box-shadow: var(--shadow-sm);
 }
+
+.home-vacancy__side {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  gap: var(--space-1);
+}

@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import {
   fetchFilters,
   fetchVacancies,
@@ -8,13 +8,18 @@ import {
   type VacancySort,
 } from '../../api/vacancies'
 import { Button } from '../../components/Button'
+import { ForYouView } from '../compatibility/ForYouView'
+import { useCardCompatibility } from '../compatibility/useCardCompatibility'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
+import { useSession } from '../../session/useSession'
+import { sectionPath } from '../profile/sections'
 import { ErrorNotice } from './ErrorNotice'
+import { OpportunitiesIntro } from './OpportunitiesIntro'
 import { FilterPanel } from './FilterPanel'
 import { Pagination } from './Pagination'
 import { RecentVacancies } from './RecentVacancies'
-import { SampleFootnote, SampleNote } from './SampleNote'
+import { SampleFootnote } from './SampleNote'
 import { SearchForm } from './SearchForm'
 import { VacancyListSkeleton } from './Skeletons'
 import { VacancyCard } from './VacancyCard'
@@ -55,7 +60,7 @@ interface Answer {
  * `ubicacion`, `tecnologia`, `orden`, `pagina`), so a link can be shared and back/forward walk
  * through the searches. An invalid value in the address is ignored and the address corrected.
  */
-export function OpportunitiesScreen() {
+function AllVacancies() {
   const location = useLocation()
   const navigate = useNavigate()
   const sortId = useId()
@@ -97,6 +102,11 @@ export function OpportunitiesScreen() {
       navigate({ search: serializeSearch({ ...state, page: lastPage }) }, { replace: true })
   }, [outOfRange, lastPage, state, navigate])
 
+  // One `summaries` call for the whole page of cards (student with a session only).
+  const compatibility = useCardCompatibility(
+    data && !outOfRange ? data.items.map((item) => item.id) : [],
+  )
+
   const loading = results.state.status === 'loading' || outOfRange
   const filtersActive = hasActiveFilters(state)
   const empty = data !== null && !outOfRange && data.items.length === 0
@@ -137,23 +147,14 @@ export function OpportunitiesScreen() {
 
   return (
     <div className="opportunities">
-      <section className="opportunities__intro" aria-labelledby="opportunities-title">
-        <div className="container">
-          <div className="opportunities__title-row">
-            <h1 id="opportunities-title" className="opportunities__title">
-              {es.opportunities.title}
-            </h1>
-            <SampleNote />
-          </div>
-          <p className="opportunities__lead">{es.opportunities.lead}</p>
-          <SearchForm
-            q={state.q}
-            location={state.location}
-            locations={filters.state.status === 'success' ? filters.state.data.locations : []}
-            onSearch={(q, place) => go({ ...state, q, location: place, page: 1 })}
-          />
-        </div>
-      </section>
+      <OpportunitiesIntro lead={es.opportunities.lead} view="all">
+        <SearchForm
+          q={state.q}
+          location={state.location}
+          locations={filters.state.status === 'success' ? filters.state.data.locations : []}
+          onSearch={(q, place) => go({ ...state, q, location: place, page: 1 })}
+        />
+      </OpportunitiesIntro>
 
       <div className="container opportunities__layout">
         <div className="opportunities__filters">
@@ -210,11 +211,22 @@ export function OpportunitiesScreen() {
             <ErrorNotice message={es.opportunities.results.errorTitle} onRetry={results.retry} />
           )}
 
+          {compatibility.sufficient === false && (
+            <p className="opportunities__complete">
+              {es.opportunities.completeLine}{' '}
+              <Link to={sectionPath('skills')}>{es.opportunities.completeAction}</Link>
+            </p>
+          )}
+
           {data && !outOfRange && data.items.length > 0 && (
             <ul className="opportunities__list" aria-label={es.opportunities.results.listLabel}>
               {data.items.map((vacancy) => (
                 <li key={vacancy.id}>
-                  <VacancyCard vacancy={vacancy} from={from} />
+                  <VacancyCard
+                    vacancy={vacancy}
+                    from={from}
+                    compatibility={compatibility.byId.get(vacancy.id)}
+                  />
                 </li>
               ))}
             </ul>
@@ -276,4 +288,26 @@ export function OpportunitiesScreen() {
       </div>
     </div>
   )
+}
+
+/**
+ * Public page /oportunidades. `?vista=para-ti` shows the recommended vacancies, but only to a
+ * student with a session; for anyone else the parameter is ignored (spec 007-24).
+ */
+export function OpportunitiesScreen() {
+  const session = useSession()
+  const location = useLocation()
+  const wantsForYou = new URLSearchParams(location.search).get('vista') === 'para-ti'
+
+  if (wantsForYou && session.status === 'loading') {
+    return (
+      <div className="opportunities">
+        <div className="container opportunities__layout">
+          <VacancyListSkeleton count={SKELETON_COUNT} className="opportunities__list" />
+        </div>
+      </div>
+    )
+  }
+  if (wantsForYou && session.isStudent) return <ForYouView />
+  return <AllVacancies />
 }

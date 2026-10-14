@@ -8,6 +8,7 @@ import { Card } from '../../components/Card'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
+import { VacancyCompatibilityPanel } from '../compatibility/VacancyCompatibilityPanel'
 import { CompanyAvatar } from './CompanyAvatar'
 import { ErrorNotice } from './ErrorNotice'
 import { SampleFootnote, SampleNote } from './SampleNote'
@@ -160,6 +161,7 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
         </Card>
 
         <div className="vacancy-detail__main">
+          {open && session.isStudent && <VacancyCompatibilityPanel vacancyId={vacancy.id} />}
           <section aria-labelledby="detail-about">
             <h2 id="detail-about">{es.vacancyDetail.about}</h2>
             <p className="vacancy-detail__description">{vacancy.description}</p>

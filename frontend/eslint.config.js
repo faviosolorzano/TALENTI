@@ -34,9 +34,9 @@ export default defineConfig([
           patterns: [
             {
               group: [
-                '**/features/compatibility',
-                '**/features/compatibility/**',
-                '**/compatibility/**',
+                '**/compatibility/computeCompatibility',
+                '**/compatibility/config',
+                '**/compatibility/demoVacancy',
               ],
               message:
                 'computeCompatibility is a demo for the landing page only. The real percentage comes from the backend (RN-01).',

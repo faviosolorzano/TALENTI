@@ -1,0 +1,35 @@
+.compat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+}
+
+.compat-badge__dot {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-action);
+}
+
+.compat-badge[data-tone='high'] .compat-badge__dot {
+  background: var(--color-success);
+}
+
+.compat-badge[data-tone='low'] .compat-badge__dot {
+  background: var(--color-text-muted);
+}
+
+.compat-badge[data-tone='capped'] .compat-badge__dot {
+  background: var(--color-warning);
+}
