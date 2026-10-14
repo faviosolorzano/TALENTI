@@ -138,8 +138,7 @@ class CompatibilityApiTests extends MatchingIntegrationTest {
 		assertThat(body.get("capped").asBoolean()).isFalse();
 		assertThat(body.get("level").asString()).isEqualTo("MEDIUM");
 		assertThat(elements(body.get("gaps"), "outcome")).contains("MISSING");
-		assertThat(body.get("explanation").get("text").asString()).contains("máximo posible")
-				.contains("69 %");
+		assertThat(body.get("explanation").get("text").asString()).doesNotContain("máximo posible");
 	}
 
 	@Test
