@@ -145,3 +145,22 @@
     top: calc(var(--header-height) + var(--space-4));
   }
 }
+
+.opportunities__complete {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-tint);
+  font-size: var(--font-size-ui);
+}
+
+.opportunities__complete a {
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (min-width: 61.25rem) {
+  .opportunities__layout.opportunities__layout--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

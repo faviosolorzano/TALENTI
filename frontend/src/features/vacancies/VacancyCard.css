@@ -124,3 +124,7 @@
 .vacancy-card__skill--more {
   color: var(--color-text-muted);
 }
+
+.vacancy-card__compat {
+  margin-top: var(--space-3);
+}

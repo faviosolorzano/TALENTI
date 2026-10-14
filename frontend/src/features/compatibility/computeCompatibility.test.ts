@@ -176,7 +176,7 @@ describe('computeCompatibility is only for the landing page (003-13)', () => {
       return statSync(path).isDirectory() ? walk(path) : [path]
     })
 
-  it('no file outside features/landing and features/compatibility imports it', () => {
+  it('no file outside features/landing and features/compatibility imports the demo (007-17)', () => {
     const allowed = new Set(['landing', 'compatibility'])
     const importers = walk(srcDir)
       .filter((file) => /\.(ts|tsx)$/.test(file))
@@ -184,7 +184,11 @@ describe('computeCompatibility is only for the landing page (003-13)', () => {
         const parts = relative(srcDir, file).split(sep)
         return !(parts[0] === 'features' && allowed.has(parts[1] ?? ''))
       })
-      .filter((file) => /from\s+['"][^'"]*compatibility\//.test(readFileSync(file, 'utf-8')))
+      .filter((file) =>
+        /from\s+['"][^'"]*compatibility\/(computeCompatibility|config|demoVacancy)/.test(
+          readFileSync(file, 'utf-8'),
+        ),
+      )
       .filter((file) => !file.endsWith('computeCompatibility.test.ts'))
       .map((file) => relative(srcDir, file))
 

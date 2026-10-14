@@ -160,6 +160,10 @@ export const es = {
       empty: 'Todavía no hay vacantes abiertas',
       error: 'No pudimos cargar las vacantes.',
       listLabel: 'Vacantes destacadas',
+      forYouListLabel: 'Vacantes para ti',
+      seeAllForYou: 'Ver todas las recomendadas',
+      completeProfile: 'Completa tu perfil para ver cuáles encajan contigo',
+      completeProfileAction: 'Completar mi perfil',
       loading: 'Cargando vacantes…',
     },
     applications: {
@@ -399,6 +403,27 @@ export const es = {
   opportunities: {
     title: 'Oportunidades',
     lead: 'Explora vacantes de prácticas preprofesionales sin crear cuenta.',
+    view: {
+      label: 'Qué vacantes ver',
+      all: 'Todas',
+      forYou: 'Para ti',
+    },
+    forYou: {
+      lead: 'Las vacantes abiertas ordenadas por qué tanto encajas con ellas.',
+      notCombined: 'Esta vista no usa la búsqueda ni los filtros. Para buscar, entra a «Todas».',
+      title: 'Recomendadas para ti',
+      listLabel: 'Vacantes recomendadas para ti',
+      loading: 'Cargando tus recomendadas…',
+      error: 'No pudimos cargar tus vacantes recomendadas.',
+      insufficientTitle: 'Completa tu perfil para ver tus recomendadas',
+      insufficientBody:
+        'Con al menos una habilidad en tu perfil ordenamos las vacantes según qué tanto encajas con ellas.',
+      action: 'Completar mi perfil',
+      emptyTitle: 'Todavía no hay vacantes abiertas',
+      emptyHint: 'Vuelve pronto: te mostraremos cuáles encajan contigo.',
+    },
+    completeLine: 'Completa tu perfil para ver tu compatibilidad',
+    completeAction: 'Completar mi perfil',
     searchLabel: 'Buscar vacantes',
     queryLabel: '¿Qué sabes hacer?',
     queryPlaceholder: 'Por ejemplo: Java, SQL o React',
@@ -480,6 +505,90 @@ export const es = {
     notFoundTitle: 'Esta vacante no existe o ya no está disponible',
     notFoundLink: 'Ver todas las oportunidades',
     errorTitle: 'No pudimos cargar la vacante.',
+  },
+
+  // ---- Compatibility (spec 007) ----
+  compatibility: {
+    title: 'Tu compatibilidad',
+    loading: 'Calculando tu compatibilidad…',
+    error: 'No pudimos calcular tu compatibilidad.',
+    verdict: {
+      HIGH: 'Encajas muy bien',
+      MEDIUM: 'Encajas con algo de refuerzo',
+      LOW: 'Aún te falta camino',
+    } as const,
+    capped: (cap: number) => `Te falta un requisito obligatorio: el máximo es ${cap} %.`,
+    basis: (percent: number) => `Basado en ${percent} % de la información`,
+    explanationLabel: 'Explicación automática, calculada con reglas',
+    badge: (percent: number) => `${percent} % de compatibilidad`,
+    insufficient: {
+      title: 'Información insuficiente',
+      NO_SKILLS:
+        'Agrega al menos una habilidad a tu perfil y calculamos cuánto encajas con esta vacante. No mostramos un porcentaje que no podamos respaldar.',
+      LOW_INFORMATION:
+        'Con lo que hay en tu perfil todavía no alcanza para calcular tu compatibilidad con esta vacante. Completa los datos que faltan y lo calculamos.',
+      VACANCY_WITHOUT_REQUIREMENTS:
+        'Esta vacante no indica qué se necesita, así que no podemos calcular tu compatibilidad.',
+      action: 'Completar mi perfil',
+    },
+    lists: {
+      matches: 'Coincidencias',
+      gaps: 'Brechas',
+      missing: 'Información que falta',
+      required: 'Requisitos obligatorios',
+      desirable: 'Requisitos deseables',
+      conditions: 'Condiciones',
+    },
+    requirement: {
+      /** Example: "pide nivel intermedio · tú: básico · declarado". */
+      compared: (asked: string, yours: string) => `pide nivel ${asked} · tú: ${yours} · declarado`,
+      /** Example: "pide nivel intermedio · no está en tu perfil". */
+      absent: (asked: string) => `pide nivel ${asked} · no está en tu perfil`,
+    },
+    condition: {
+      factor: {
+        MODALITY: 'Modalidad',
+        LOCATION: 'Ubicación',
+        AVAILABILITY: 'Dedicación',
+      } as const,
+      /** Example: "la vacante es Remoto · tú aceptas: Remoto, Híbrido". */
+      modality: (vacancy: string, accepted: string) =>
+        `la vacante es ${vacancy} · tú aceptas: ${accepted}`,
+      modalityUnknown: (vacancy: string) =>
+        `la vacante es ${vacancy} · falta que indiques qué modalidades aceptas`,
+      location: (vacancy: string, yours: string) => `la vacante es en ${vacancy} · tú: ${yours}`,
+      locationUnknown: (vacancy: string) =>
+        `la vacante es en ${vacancy} · falta que indiques tu ciudad`,
+      hours: (vacancy: number, yours: string) =>
+        `pide ${vacancy} h por semana · tú: ${yours} h por semana`,
+      hoursUnknown: (vacancy: number) =>
+        `pide ${vacancy} h por semana · falta que indiques tus horas`,
+    },
+    action: {
+      MISSING: 'Agregar a mi perfil',
+      PARTIAL: 'Subir mi nivel',
+      CONDITION: 'Actualizar',
+      COMPLETE: 'Completar',
+      SKILLS_MISSING: 'Agrega tus habilidades',
+    },
+    skillsMissing: 'Tus habilidades',
+    how: {
+      summary: 'Cómo se calcula este porcentaje',
+      intro: 'Lo calcula el sistema con reglas visibles, no la inteligencia artificial.',
+      weights: 'Peso de cada parte',
+      required: 'Requisitos obligatorios',
+      desirable: 'Requisitos deseables',
+      conditions: 'Modalidad, ubicación y disponibilidad',
+      points: (weight: number) => `${weight} puntos`,
+      cap: (cap: number) =>
+        `Si falta por completo un requisito obligatorio, el máximo es ${cap} %.`,
+      minimum: (minimum: number) =>
+        `Para mostrar un porcentaje se necesita información que cubra al menos ${minimum} puntos de los pesos.`,
+      similarityOff: 'El parecido de tus proyectos con la vacante todavía no se usa.',
+      similarityOn: (weight: number) =>
+        `El parecido de tus proyectos con la vacante pesa ${weight} puntos.`,
+      version: (version: string) => `Versión de la fórmula: ${version}`,
+    },
   },
 
   // ---- Landing ----

@@ -20,7 +20,7 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
 
     for (const title of [
       t.profile.title,
-      t.vacancies.featuredTitle,
+      t.vacancies.forYouTitle,
       t.applications.title,
       t.practice.title,
     ]) {
@@ -63,17 +63,43 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
     expect(within(block).getAllByRole('link')).toHaveLength(1)
   })
 
-  it('Vacantes: up to 3, the title is the only link, plus "Ver todas"', async () => {
+  it('Vacantes para ti (007-22): up to 3 with the percentage the server sent, the title is the only link, plus "Ver todas las recomendadas"', async () => {
     openStudentApp('/')
+    const block = await screen.findByRole('region', { name: t.vacancies.forYouTitle })
+    const list = await within(block).findByRole('list', { name: t.vacancies.forYouListLabel })
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(3)
+    expect(within(list).getAllByRole('link')).toHaveLength(3)
+    // 90, 83 and 76: invented by the fake server, in the order it sent them.
+    expect(
+      within(items[0] as HTMLElement).getByText(es.compatibility.badge(90)),
+    ).toBeInTheDocument()
+    expect(
+      within(items[2] as HTMLElement).getByText(es.compatibility.badge(76)),
+    ).toBeInTheDocument()
+    expect(
+      within(block).getByRole('link', { name: new RegExp(t.vacancies.seeAllForYou) }),
+    ).toHaveAttribute('href', '/oportunidades?vista=para-ti')
+  })
+
+  it('Vacantes (007-22): with an insufficient profile it shows the featured ones with no percentage and one line to the profile', async () => {
+    const { compatibility } = openStudentApp('/', { compatibility: { sufficient: false } })
     const block = await screen.findByRole('region', { name: t.vacancies.featuredTitle })
     const list = await within(block).findByRole('list', { name: t.vacancies.listLabel })
     expect(within(list).getAllByRole('listitem').length).toBeLessThanOrEqual(3)
-    expect(within(list).getAllByRole('link')).toHaveLength(
-      within(list).getAllByRole('listitem').length,
-    )
+    expect(within(block).queryByText(/de compatibilidad/)).not.toBeInTheDocument()
+    expect(
+      within(block).getByText(t.vacancies.completeProfile, { exact: false }),
+    ).toBeInTheDocument()
+    expect(
+      within(block).getByRole('link', { name: t.vacancies.completeProfileAction }),
+    ).toHaveAttribute('href', '/perfil?seccion=habilidades')
     expect(
       within(block).getByRole('link', { name: new RegExp(t.vacancies.seeAll) }),
     ).toHaveAttribute('href', '/oportunidades')
+    expect(
+      compatibility.requests.some((path) => path.startsWith('/compatibility/recommended?size=3')),
+    ).toBe(true)
   })
 
   it('005-14: one failing block does not affect the others and "Reintentar" repeats only its call', async () => {
@@ -81,7 +107,9 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
     const block = await screen.findByRole('region', { name: t.profile.title })
     const alert = await within(block).findByRole('alert')
     expect(alert).toHaveTextContent(t.profile.error)
-    expect(await screen.findByRole('list', { name: t.vacancies.listLabel })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('list', { name: t.vacancies.forYouListLabel }),
+    ).toBeInTheDocument()
 
     profile.setFailing({})
     await user.click(within(alert).getByRole('button', { name: es.common.retry }))

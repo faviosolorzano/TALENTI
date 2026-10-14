@@ -1,0 +1,46 @@
+.how-calc {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.how-calc summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.how-calc__body {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+}
+
+.how-calc table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.how-calc th,
+.how-calc td {
+  padding: var(--space-2) 0;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.how-calc th {
+  font-weight: var(--font-weight-regular);
+  text-align: left;
+}
+
+.how-calc td {
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+  text-align: right;
+}
+
+.how-calc__version {
+  font-size: var(--font-size-caption);
+}
