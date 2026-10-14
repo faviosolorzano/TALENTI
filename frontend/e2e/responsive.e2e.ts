@@ -29,6 +29,8 @@ test.describe('Responsive layout (003-26)', () => {
       })
     await page.setViewportSize({ width: 979, height: 900 })
     await page.goto('/')
+    // The landing appears once the session check ends (neutral skeleton before).
+    await page.locator('.hero__grid').waitFor()
     expect(await columns()).toBe(1)
     await page.setViewportSize({ width: 1000, height: 900 })
     expect(await columns()).toBe(2)
