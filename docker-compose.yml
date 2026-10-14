@@ -50,6 +50,10 @@ services:
       # Datos de ejemplo FICTICIOS (spec 004). El contenedor corre con el perfil prod, cuyo valor por defecto es
       # "false"; Compose lo enciende aquí (la demo). Para apagarlo: TALENTI_DEMO_DATA=false en el .env.
       TALENTI_DEMO_DATA: ${TALENTI_DEMO_DATA:-true}
+      # Lector de CV (spec 009): la lectura mejorada con IA está APAGADA (talenti.ai.cv.enabled=false). Mientras
+      # AI_PROVIDER sea "simulated" no se envía nada a ningún servicio externo. La clave solo viaja por esta variable.
+      AI_PROVIDER: ${AI_PROVIDER:-simulated}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     # Sin "ports": el navegador llega al backend solo a través del proxy de nginx (frontend).
     read_only: true
     tmpfs:

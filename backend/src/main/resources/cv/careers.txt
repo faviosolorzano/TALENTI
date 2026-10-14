@@ -1,0 +1,22 @@
+# Diccionario de carreras del lector de CV por reglas (spec 009-12). Una carrera por línea:
+#   Nombre que se sugiere|sinónimo|sinónimo ...
+# Se comparan sin distinguir mayúsculas ni tildes y como frase completa. Se puede ampliar sin tocar el código
+# (talenti.cv.careers-resource). Las líneas que empiezan con # se ignoran.
+Diseño y Desarrollo de Software|Diseño y Desarrollo de Sistemas de Información|Diseno y Desarrollo de Software
+Desarrollo de Software|Desarrollo de Sistemas|Desarrollo de Aplicaciones
+Computación e Informática|Computacion e Informatica|Informática y Computación
+Ingeniería de Software|Software Engineering
+Ingeniería de Sistemas|Ingeniería de Sistemas e Informática|Ingeniería de Sistemas y Computación|Systems Engineering
+Ingeniería Informática|Ingeniería en Informática
+Ingeniería de Computación|Computer Engineering
+Ciencias de la Computación|Computer Science
+Análisis de Sistemas|Análisis y Desarrollo de Sistemas
+Desarrollo de Videojuegos|Diseño de Videojuegos
+Ciberseguridad|Seguridad Informática|Cybersecurity
+Redes y Comunicaciones|Redes y Comunicaciones de Datos|Administración de Redes
+Ciencia de Datos|Data Science|Análisis de Datos
+Inteligencia Artificial|Artificial Intelligence
+Administración de Tecnologías de la Información|Tecnologías de la Información|Information Technology
+Soporte y Mantenimiento de Equipos de Cómputo|Soporte Técnico
+Electrónica y Automatización|Electrónica|Mecatrónica
+Diseño Gráfico Digital|Diseño Gráfico

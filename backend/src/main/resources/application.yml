@@ -20,6 +20,14 @@ spring:
           time_zone: UTC        # fechas siempre en UTC
   jackson:
     time-zone: UTC
+  servlet:
+    multipart:
+      # Lector de CV (spec 009): el tamaño real del PDF (2 MB) lo exige CvAnalysisService con talenti.cv.max-size y
+      # responde 413 cv-too-large. Estos topes son una red de seguridad un poco mayor (el mismo 3 MB que nginx en
+      # /api/v1/cv/). El umbral deja la subida en memoria: el PDF nunca se escribe en el disco.
+      max-file-size: 3MB
+      max-request-size: 4MB
+      file-size-threshold: 4MB
   flyway:
     enabled: true
     # Flyway del ESQUEMA: estricto a propósito (sin ignore-migration-patterns ni out-of-order). Los datos de ejemplo
@@ -110,6 +118,41 @@ talenti:
       medium: 60                # desde aquí "Encajas con algo de refuerzo"
     similarity:
       enabled: false            # sin embeddings hasta S12: el componente D no se evalúa y los pesos se reajustan
+
+  cv:
+    # Lector de CV (spec 009, sección 5).
+    max-size: 2MB               # tamaño máximo del PDF
+    max-pages: 10
+    min-text-chars: 200         # menos que esto = sin texto legible (no hay OCR)
+    max-text-chars: 100000
+    parse-timeout: 5s
+    analysis-timeout: 15s       # lectura básica
+    retention: 7d               # un análisis vence a los 7 días
+    daily-limit: 5              # análisis nuevos por persona en 24 horas
+    origin-limit-per-minute: 10
+    careers-resource: classpath:cv/careers.txt
+    expiry-interval: PT1H       # cada cuánto se borra lo vencido
+  ai:
+    # Control de consumo de IA (spec 009, sección 3.1). La IA real está APAGADA hasta S10: sin cv.enabled=true, un
+    # modelo (D-12) y OPENAI_API_KEY no se envía nada a ningún servicio externo, y la lectura básica sigue igual.
+    provider: ${AI_PROVIDER:simulated}      # simulated | openai
+    reuse-window: 30d           # misma huella ya leída con IA: no se vuelve a enviar (009-26)
+    cv:
+      enabled: false
+      model: ""                 # el modelo más económico que cumpla, elegido con la prueba de 10 casos (D-12)
+      max-input-chars: 12000    # lo máximo que sale hacia la IA (009-30)
+      max-output-tokens: 3000
+      timeout: 30s
+    openai:
+      api-key: ${OPENAI_API_KEY:}           # solo por variable de entorno; nunca en el código
+      base-url: https://api.openai.com/v1
+    limits:
+      per-user-monthly:
+        cv-read: 3              # lecturas mejoradas por persona y mes calendario (009-28)
+        # practice-session: lo fija S8 (el plan gratuito de D-10 propone 2)
+      global-daily: 100         # lecturas mejoradas por día entre todos (009-29)
+      global-monthly: 1500
+      zone: America/Lima        # define el día y el mes calendario
   demo-data:
     # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
     # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.

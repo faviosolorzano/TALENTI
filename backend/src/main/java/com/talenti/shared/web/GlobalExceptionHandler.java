@@ -41,6 +41,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(ApiException.class)
 	ResponseEntity<ProblemDetail> handleApiException(ApiException ex) {
 		ProblemDetail problem = problem(ex.getStatus(), ex.getCode(), ex.getViolations());
+		ex.getProperties().forEach(problem::setProperty);
 		return ResponseEntity.status(ex.getStatus()).headers(ex.getHeaders()).body(problem);
 	}
 
@@ -123,6 +124,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			case 404 -> "not-found";
 			case 405 -> "method-not-allowed";
 			case 406 -> "not-acceptable";
+			case 413 -> "payload-too-large";
 			case 415 -> "unsupported-media-type";
 			default -> status.is5xxServerError() ? "internal-error" : "request-error";
 		};

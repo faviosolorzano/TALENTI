@@ -1,0 +1,14 @@
+package com.talenti.shared.ai;
+
+import java.util.UUID;
+
+/**
+ * Interfaz pública del cupo de IA (009-28, 009-29, 009-34). Una sola fuente: la tabla {@code ai_usage_event}. Solo
+ * cuentan los usos completados ({@code SUCCESS}); una falla de la plataforma o un bloqueo no se descuentan.
+ */
+public interface AiUsageQuota {
+
+	/** Consulta sin anotar nada: primero el tope personal del mes y luego los globales (día y mes). */
+	QuotaStatus check(UUID userId, AiFunction function);
+
+}
