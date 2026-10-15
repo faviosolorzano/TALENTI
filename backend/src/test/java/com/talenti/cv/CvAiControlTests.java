@@ -198,7 +198,7 @@ class CvAiControlTests extends CvIntegrationTest {
 		assertThat(analysis.get("source").asString()).isEqualTo("AI");
 		assertThat(analysis.get("level").asString()).isEqualTo("ENHANCED");
 		assertThat(analysis.get("degraded").asBoolean()).isFalse();
-		assertThat(skillSuggestion(analysis, "typescript").get("value").get("level").asInt()).isEqualTo(1);
+		assertThat(skillSuggestion(analysis, "react").get("value").get("level").asInt()).isEqualTo(1);
 		assertThat(academicSuggestion(analysis, "CAREER").get("value").get("value").asString())
 				.isEqualTo("Ingeniería de Software");
 		Map<String, Object> row = jdbc.queryForMap("SELECT adapter, adapter_version, rule_set_version FROM cv_analysis "

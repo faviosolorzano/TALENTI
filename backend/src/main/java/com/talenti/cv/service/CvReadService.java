@@ -202,7 +202,7 @@ public class CvReadService {
 		try {
 			List<RawSuggestion> raw = withTimeout(() -> rules.extract(reducedText, catalog.all()),
 					properties.analysisTimeout().toMillis());
-			return new ReadResult(validator.validate(raw, reducedText), false, AiLevel.BASIC, rules.info(), degradedReason, false);
+			return new ReadResult(validateLogged(raw, reducedText, "reglas"), false, AiLevel.BASIC, rules.info(), degradedReason, false);
 		}
 		catch (TimedOut e) {
 			throw new ReadFailedException("TIMEOUT");
@@ -239,7 +239,7 @@ public class CvReadService {
 			try {
 				List<RawSuggestion> raw = withTimeout(() -> port.extract(limited.text(), catalog.all()),
 						ai.cv().timeout().toMillis());
-				List<SuggestionDraft> drafts = validator.validate(raw, limited.text());
+				List<SuggestionDraft> drafts = validateLogged(raw, limited.text(), "IA");
 				record(userId, readId, port.info(), AiUsageOutcome.SUCCESS, limited.text().length(),
 						outputSize(drafts));
 				return new Attempt(new ReadResult(drafts, false, AiLevel.ENHANCED, port.info(), null,
@@ -252,6 +252,15 @@ public class CvReadService {
 				return new Attempt(null, "AI_FAILED");
 			}
 		});
+	}
+
+	/** Valida y deja en el registro SOLO cuántas sugerencias se descartaron y por qué motivo (nunca contenido). */
+	private List<SuggestionDraft> validateLogged(List<RawSuggestion> raw, String sourceText, String origin) {
+		java.util.Map<String, Integer> discards = new java.util.LinkedHashMap<>();
+		List<SuggestionDraft> drafts = validator.validate(raw, sourceText, discards);
+		log.info("Lectura de CV ({}): {} sugerencias recibidas, {} aceptadas, descartes por motivo: {}", origin,
+				raw == null ? 0 : raw.size(), drafts.size(), discards);
+		return drafts;
 	}
 
 	private void record(UUID userId, UUID readId, AdapterInfo info, AiUsageOutcome outcome, int input, int output) {

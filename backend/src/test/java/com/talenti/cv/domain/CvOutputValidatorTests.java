@@ -62,7 +62,7 @@ class CvOutputValidatorTests {
 	@Test
 	@DisplayName("009-13: se descarta lo que incumple las reglas de 006: nivel, ciclo, textos y tecnologías")
 	void t009_13_rulesOf006() {
-		assertThat(validate(skill("java", "Java", 0, "e"), skill("sql", "SQL", 4, "e"), skill("git", "Git", 100, "e")))
+		assertThat(validate(skill("sql", "SQL", 4, "e"), skill("git", "Git", 100, "e")))
 				.isEmpty();
 		assertThat(validate(RawSuggestion.academic("CYCLE", "11", "e"), RawSuggestion.academic("CYCLE", "0", "e"),
 				RawSuggestion.academic("CYCLE", "cinco", "e"))).isEmpty();
@@ -75,12 +75,21 @@ class CvOutputValidatorTests {
 	}
 
 	@Test
-	@DisplayName("009-13: se descarta lo que trae campos de más para su tipo")
+	@DisplayName("009-13: se descarta lo que trae campos de más para su tipo (los estudios ignoran lo que sobra)")
 	void t009_13_extraFields() {
 		assertThat(validate(new RawSuggestion("SKILL", null, "java", "Java", "extra", 1, "descripcion", null, "e"),
-				new RawSuggestion("ACADEMIC", "CAREER", "java", null, "Software", null, null, null, "e"),
 				new RawSuggestion("PROJECT", null, null, "Proyecto", null, 3, "ok", List.of("Java"), "e"),
 				new RawSuggestion("SECRETO", null, null, "algo", null, null, null, null, "e"))).isEmpty();
+	}
+
+	@Test
+	@DisplayName("009-13: en los estudios lo que sobra se ignora y no llega a la persona")
+	void t009_13_academicExtrasAreIgnored() {
+		List<SuggestionDraft> result = validate(
+				new RawSuggestion("ACADEMIC", "CAREER", "java", "Nombre", "Software", 2, "texto", List.of("x"), "e"));
+
+		assertThat(result).hasSize(1);
+		assertThat(result.get(0).payload()).containsOnlyKeys("value");
 	}
 
 	@Test
