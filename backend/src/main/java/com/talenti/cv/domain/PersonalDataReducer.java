@@ -24,14 +24,15 @@ public final class PersonalDataReducer {
 	private static final Pattern SOCIAL_URL = Pattern.compile(
 			"(?i)(linkedin\\.|facebook\\.|fb\\.com|instagram\\.|twitter\\.|x\\.com|tiktok\\.|wa\\.me|t\\.me|wa\\.link|api\\.whatsapp)");
 
-	private static final Pattern EMAIL = Pattern.compile("[\\p{L}\\p{N}._%+\\-]+@[\\p{L}\\p{N}\\-]+(?:\\.[\\p{L}\\p{N}\\-]+)+");
+	private static final Pattern EMAIL = Pattern
+			.compile("[\\p{L}\\p{N}._%+\\-]{1,64}@[\\p{L}\\p{N}\\-]{1,63}(?:\\.[\\p{L}\\p{N}\\-]{1,63}){1,8}");
 
 	/** Una secuencia de dígitos con separadores; luego se cuentan los dígitos (teléfono o documento). */
 	private static final Pattern NUMBER_RUN = Pattern
 			.compile("(?<![\\p{L}\\p{N}])[+(]?\\d[\\d\\s().\\-]{5,}\\d(?![\\p{L}\\p{N}])");
 
 	private static final Pattern FULL_DATE = Pattern
-			.compile("(?<!\\d)\\d{1,2}\\s*[/\\-.]\\s*\\d{1,2}\\s*[/\\-.]\\s*(?:19|20)\\d{2}(?!\\d)");
+			.compile("(?<!\\d)\\d{1,2}\\s{0,3}[/\\-.]\\s{0,3}\\d{1,2}\\s{0,3}[/\\-.]\\s{0,3}(?:19|20)\\d{2}(?!\\d)");
 
 	private static final Pattern TEXT_DATE = Pattern
 			.compile("(?i)\\b\\d{1,2}\\s+de\\s+\\p{L}+\\s+(?:de(?:l)?\\s+)?(?:19|20)\\d{2}\\b");
@@ -67,6 +68,15 @@ public final class PersonalDataReducer {
 
 	private static final Pattern NAME_TOKEN = Pattern.compile("^[\\p{Lu}][\\p{L}'’.\\-]*$");
 
+	/**
+	 * Las líneas más largas se parten en trozos de este tamaño ANTES de aplicar las expresiones regulares: así el
+	 * costo de cada una queda acotado aunque el PDF traiga 100 000 caracteres sin espacios.
+	 */
+	static final int MAX_LINE = 500;
+
+	/** Tiempo total máximo de la reducción; lo que no alcanzó a revisarse se descarta (nunca pasa sin revisar). */
+	static final long MAX_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(3);
+
 	public PersonalDataReducer() {
 	}
 
@@ -79,15 +89,22 @@ public final class PersonalDataReducer {
 				.replace(' ', ' ');
 		List<String> lines = new ArrayList<>();
 		for (String raw : normalized.split("\n")) {
-			String line = stripControl(raw).strip();
-			if (!line.isEmpty()) {
-				lines.add(line);
+			String whole = stripControl(raw).strip();
+			for (int from = 0; from < whole.length(); from += MAX_LINE) {
+				String line = whole.substring(from, Math.min(whole.length(), from + MAX_LINE)).strip();
+				if (!line.isEmpty()) {
+					lines.add(line);
+				}
 			}
 		}
 		List<String> namesFound = new ArrayList<>();
 		boolean first = true;
 		List<String> kept = new ArrayList<>();
+		long deadline = System.nanoTime() + MAX_NANOS;
 		for (String line : lines) {
+			if (System.nanoTime() > deadline) {
+				break;
+			}
 			if (first) {
 				first = false;
 				if (looksLikeName(line)) {

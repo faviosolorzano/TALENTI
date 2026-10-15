@@ -77,9 +77,11 @@ public class CvAnalysisService {
 
 	private final ThreadPoolExecutor jobs;
 
+	private final FailedUploadLimiter failedUploads;
+
 	CvAnalysisService(CvRepository repository, PdfTextExtractor pdf, PersonalDataReducer reducer, CvReadService reads,
 			ProfileEditor profile, AuditRecorder audit, PlatformTransactionManager transactionManager,
-			CvProperties properties, Clock clock, ThreadPoolExecutor cvJobs) {
+			CvProperties properties, Clock clock, ThreadPoolExecutor cvJobs, FailedUploadLimiter failedUploads) {
 		this.repository = repository;
 		this.pdf = pdf;
 		this.reducer = reducer;
@@ -90,6 +92,7 @@ public class CvAnalysisService {
 		this.properties = properties;
 		this.clock = clock;
 		this.jobs = cvJobs;
+		this.failedUploads = failedUploads;
 	}
 
 	// ------------------------------------------------------------------------------------------ subir
@@ -106,8 +109,12 @@ public class CvAnalysisService {
 		if (bytes.length > properties.maxSize().toBytes()) {
 			throw CvErrors.tooLarge();
 		}
+		failedUploads.blockedFor(userId).ifPresent(wait -> {
+			throw CvErrors.limitReached(wait);
+		});
 		if (!PdfTextExtractor.hasPdfSignature(bytes)) {
-			// Mismo error que el resto de los PDF ilegibles; no queda nada guardado.
+			// Mismo error que el resto de los PDF ilegibles; no queda nada guardado. Cuenta como intento fallido.
+			failedUploads.recordFailure(userId);
 			throw new CvUnreadableException(CvUnreadableException.Reason.NOT_A_PDF);
 		}
 		String sha256 = sha256(bytes);
@@ -126,7 +133,15 @@ public class CvAnalysisService {
 			throw CvErrors.limitReached(wait);
 		}
 
-		String reduced = reducer.reduce(pdf.extract(bytes).text());
+		PdfTextExtractor.Extracted extracted;
+		try {
+			extracted = pdf.extract(bytes);
+		}
+		catch (CvUnreadableException unreadable) {
+			failedUploads.recordFailure(userId);
+			throw unreadable;
+		}
+		String reduced = reducer.reduce(extracted.text());
 		ReadPlan plan = reads.plan(userId, sha256, wantsEnhanced);
 		AdapterInfo planned = plan.level() == AiLevel.ENHANCED ? reads.enhancedInfo() : reads.basicInfo();
 

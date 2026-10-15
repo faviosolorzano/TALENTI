@@ -31,5 +31,7 @@ public record CvProperties(
 		@DefaultValue("7d") Duration retention,
 		@DefaultValue("5") int dailyLimit,
 		@DefaultValue("10") int originLimitPerMinute,
-		@DefaultValue("classpath:cv/careers.txt") String careersResource) {
+		@DefaultValue("classpath:cv/careers.txt") String careersResource,
+		@DefaultValue("2") int maxConcurrentExtractions,
+		@DefaultValue("20") int failedAttemptsPerDay) {
 }
