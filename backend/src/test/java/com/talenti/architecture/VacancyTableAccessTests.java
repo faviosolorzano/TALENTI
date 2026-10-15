@@ -73,7 +73,9 @@ class VacancyTableAccessTests {
 			own.filter(path -> path.getFileName().toString().contains("vacancy")).forEach(vacancyFiles::add);
 		}
 		try (Stream<Path> demo = Files.walk(Path.of("src", "main", "resources", "db", "demo"))) {
-			demo.filter(path -> path.toString().endsWith(".sql")).forEach(vacancyFiles::add);
+			// La semilla de la cuenta de demostración (T-10) es de datos de ejemplo de varios módulos, no de vacancy.
+			demo.filter(path -> path.toString().endsWith(".sql"))
+					.filter(path -> !path.getFileName().toString().contains("student_account")).forEach(vacancyFiles::add);
 		}
 
 		assertThat(vacancyFiles).hasSizeGreaterThan(10);
