@@ -43,6 +43,10 @@ class ArchitectureTests {
 			.ignoreDependency(resideInAPackage("com.talenti.profile.."), equivalentTo(Role.class))
 			.ignoreDependency(resideInAPackage("com.talenti.profile.."), equivalentTo(SkillCatalog.class))
 			.ignoreDependency(resideInAPackage("com.talenti.profile.."), equivalentTo(SkillInfo.class))
+			// application (spec 008) usa el usuario de la sesión y VacancyLookup con su información; nada más (lo vigila
+			// ApplicationArchitectureTests).
+			.ignoreDependency(resideInAPackage("com.talenti.application.."),
+					belongToAnyOf(CurrentUser.class, Role.class, VacancyLookup.class, VacancyInfo.class))
 			// matching (spec 007) usa el usuario de la sesión, ProfileReader con su snapshot y VacancyLookup con su información;
 			// nada más (lo vigila MatchingArchitectureTests).
 			.ignoreDependency(resideInAPackage("com.talenti.matching.."), belongToAnyOf(CurrentUser.class, Role.class,
