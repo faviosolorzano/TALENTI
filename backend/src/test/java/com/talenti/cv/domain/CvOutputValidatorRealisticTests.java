@@ -101,7 +101,7 @@ class CvOutputValidatorRealisticTests {
 	}
 
 	@Test
-	@DisplayName("009-13 (T3): una evidencia inventada de verdad se descarta, aunque la habilidad exista en el catálogo")
+	@DisplayName("009-13 (T3): una evidencia inventada se reemplaza por la línea real del CV si la habilidad está en el texto; si no está, se descarta")
 	void t009_13_inventedEvidenceIsDiscarded() {
 		List<SuggestionDraft> result = validate(
 				strictSkill("java", "Java", 3, "Lideró un equipo de diez personas en una empresa bancaria"),
@@ -109,8 +109,21 @@ class CvOutputValidatorRealisticTests {
 				new RawSuggestion("PROJECT", null, null, "App móvil de pagos", null, null, "Una app de pagos",
 						List.of("Kotlin"), "Desarrolló una aplicación móvil de pagos para un banco"));
 
-		assertThat(result).isEmpty();
-		assertThat(discards).containsEntry(CvOutputValidator.R_EVIDENCE, 3);
+		// Java sí está en el CV: se conserva, pero con la línea REAL del CV como evidencia, no con la frase inventada.
+		assertThat(result).hasSize(1);
+		assertThat(result.get(0).evidence()).startsWith("Habilidades:").doesNotContain("Lideró");
+		assertThat(discards).containsEntry(CvOutputValidator.R_EVIDENCE, 2);
+	}
+
+	@Test
+	@DisplayName("009-13: sin cita ni nombre (solo el slug) la habilidad se acepta con la línea real del CV")
+	void t009_13_missingEvidenceAndNameUseTheRealLine() {
+		List<SuggestionDraft> result = validate(new RawSuggestion("SKILL", null, "docker", null, null, null, null, null, null),
+				new RawSuggestion("SKILL", "", "react", "", "", 0, "", List.of(), ""));
+
+		assertThat(result).hasSize(2);
+		assertThat(result.get(0).payload()).containsEntry("name", "Docker");
+		assertThat(result.get(0).evidence()).isEqualTo("Habilidades: Java, Spring Boot, SQL, PostgreSQL, Git, Docker, React");
 	}
 
 	@Test
@@ -129,7 +142,7 @@ class CvOutputValidatorRealisticTests {
 				new RawSuggestion("ACADEMIC", "CYCLE", null, null, "99", null, null, null, "Instituto TECSUP, ciclo 5"),
 				strictSkill("java", "Java", null, "Habilidades: Java"), strictSkill("java", "Java", null, "Habilidades: Java"));
 
-		assertThat(discards).containsEntry(CvOutputValidator.R_SHAPE, 1).containsEntry(CvOutputValidator.R_VALUE, 1)
+		assertThat(discards).containsEntry("SKILL:SHAPE", 1).containsEntry("ACADEMIC:CICLO", 1)
 				.containsEntry(CvOutputValidator.R_DUPLICATE, 1);
 	}
 
