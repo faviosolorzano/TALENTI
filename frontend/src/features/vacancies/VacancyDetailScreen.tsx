@@ -8,6 +8,7 @@ import { Card } from '../../components/Card'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
+import { ApplyCard } from '../applications/ApplyCard'
 import { VacancyCompatibilityPanel } from '../compatibility/VacancyCompatibilityPanel'
 import { CompanyAvatar } from './CompanyAvatar'
 import { ErrorNotice } from './ErrorNotice'
@@ -85,9 +86,8 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
   const { required, desirable } = vacancy.requirements
   const returnTo = encodeURIComponent(`/oportunidades/${vacancy.id}`)
   const soonId = useId()
-  const applySoonId = useId()
-  // Signed in (any role): "Postular" is not available yet. While the session is still being
-  // checked it is shown disabled too, so a signed-in person never sees the "Inicia sesión" link.
+  // While the session is still being checked "Postular" is shown disabled, so a signed-in
+  // person never sees the "Inicia sesión" link for a moment.
   const signedIn = session.status === 'authenticated'
   const checkingSession = session.status === 'loading'
 
@@ -129,18 +129,16 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
       <div className="vacancy-detail__grid">
         <Card as="section" className="vacancy-detail__apply" aria-label={es.vacancyDetail.apply}>
           {open ? (
-            signedIn || checkingSession ? (
-              <>
-                {/* S5 will turn this into the real application; until then it only says so. */}
-                <Button disabled aria-describedby={applySoonId}>
-                  {es.vacancyDetail.apply}
-                </Button>
-                {signedIn && (
-                  <p id={applySoonId} className="vacancy-detail__notice">
-                    {es.vacancyDetail.applySoon}
-                  </p>
-                )}
-              </>
+            session.isStudent ? (
+              <ApplyCard
+                vacancyId={vacancy.id}
+                vacancyTitle={vacancy.title}
+                companyName={vacancy.company.name}
+              />
+            ) : signedIn ? (
+              <p className="vacancy-detail__notice">{es.applications.card.notAllowed}</p>
+            ) : checkingSession ? (
+              <Button disabled>{es.vacancyDetail.apply}</Button>
             ) : (
               <>
                 <Button to={`/ingresar?returnTo=${returnTo}`}>{es.vacancyDetail.apply}</Button>
@@ -217,12 +215,12 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
               <h2 id="detail-process">{es.vacancyDetail.process}</h2>
               <ol className="vacancy-detail__stages">
                 <li data-state="now">
-                  <span>{es.vacancyDetail.stageSent}</span>
+                  <span>{es.applications.stages.SUBMITTED}</span>
                 </li>
-                {es.vacancyDetail.stagesNext.map((stage) => (
+                {es.applications.stages.next.map((stage) => (
                   <li key={stage} data-state="soon">
                     <span>{stage}</span>
-                    <small>{es.vacancyDetail.stageSoon}</small>
+                    <small>{es.applications.stages.soon}</small>
                   </li>
                 ))}
               </ol>

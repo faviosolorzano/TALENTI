@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router'
-import { features } from '../app/features'
 import { es } from '../i18n/es'
 import { sessionPaths } from '../session/sessionPaths'
 import { useSession } from '../session/useSession'
@@ -135,17 +134,13 @@ export function Header() {
                   </NavLink>
                 </li>
                 <li>
-                  {features.applications ? (
-                    <NavLink
-                      className="header__link"
-                      to={sessionPaths.applications}
-                      onClick={closeMenu}
-                    >
-                      {es.nav.myApplications}
-                    </NavLink>
-                  ) : (
-                    <SoonItem label={es.nav.myApplications} />
-                  )}
+                  <NavLink
+                    className="header__link"
+                    to={sessionPaths.applications}
+                    onClick={closeMenu}
+                  >
+                    {es.nav.myApplications}
+                  </NavLink>
                 </li>
                 <li>
                   <SoonItem label={es.nav.dora} />

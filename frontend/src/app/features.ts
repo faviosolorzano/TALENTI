@@ -9,7 +9,7 @@ export const features = {
   /** Spec 007: compatibility (turns "Vacantes destacadas" into "Vacantes para ti"). */
   compatibility: false,
   /** Spec 008: applications. */
-  applications: false,
+  applications: true,
   /** Spec S8: practice sessions with DORA. */
   practice: false,
 } as const

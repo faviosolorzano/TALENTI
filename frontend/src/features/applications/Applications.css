@@ -1,0 +1,131 @@
+.applications {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  max-width: var(--cv-reader-width);
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.applications__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.applications__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.applications__title:focus {
+  outline: none;
+}
+
+.applications__lead {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+.applications__subtitle {
+  font-size: var(--font-size-xl);
+}
+
+.applications__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-min);
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+.applications__link {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+.applications__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card.application-item,
+.card.applications__empty,
+.card.applications__panel {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.application-item__title {
+  font-size: var(--font-size-lg);
+  overflow-wrap: anywhere;
+}
+
+.application-item__title a {
+  color: var(--color-text);
+}
+
+.application-item__company {
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.application-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.application-item__status {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-none);
+}
+
+.application-item__status[data-status='SUBMITTED'] {
+  border-color: var(--color-action);
+  background: var(--color-bg-tint);
+}
+
+.applications__state {
+  color: var(--color-text-muted);
+}
+
+.applications__note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+}
+
+.applications__message:empty {
+  display: none;
+}
+
+.applications__message {
+  font-weight: var(--font-weight-semibold);
+}
+
+.applications__message:focus {
+  outline: none;
+}
+
+@media (min-width: 48rem) {
+  .applications {
+    padding-top: var(--space-12);
+  }
+
+  .applications__title {
+    font-size: var(--font-size-4xl);
+  }
+}

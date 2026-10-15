@@ -1,0 +1,38 @@
+.dialog__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--color-scrim);
+  overscroll-behavior: contain;
+}
+
+.dialog {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: var(--dialog-max-width);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.dialog__title {
+  font-size: var(--font-size-2xl);
+  overflow-wrap: anywhere;
+}
+
+.dialog__title:focus {
+  outline: none;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
