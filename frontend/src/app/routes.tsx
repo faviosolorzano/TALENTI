@@ -1,4 +1,6 @@
 import type { RouteObject } from 'react-router'
+import { ApplicationDetailPage } from '../pages/ApplicationDetailPage'
+import { ApplicationsPage } from '../pages/ApplicationsPage'
 import { CvReaderPage } from '../pages/CvReaderPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { HomePage } from '../pages/HomePage'
@@ -51,6 +53,16 @@ export const routes: RouteObject[] = [
         path: sessionPaths.profile,
         element: <ProfilePage />,
         handle: { title: es.pages.profile.title } satisfies RouteHandle,
+      },
+      {
+        path: sessionPaths.applications,
+        element: <ApplicationsPage />,
+        handle: { title: es.applications.title } satisfies RouteHandle,
+      },
+      {
+        path: `${sessionPaths.applications}/:id`,
+        element: <ApplicationDetailPage />,
+        handle: { title: es.applications.title } satisfies RouteHandle,
       },
       {
         path: sessionPaths.cv,

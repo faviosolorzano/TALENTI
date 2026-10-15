@@ -116,14 +116,14 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
     expect(await within(block).findByRole('progressbar')).toBeInTheDocument()
   })
 
-  it('005-12, 005-13: Postulaciones and DORA say "Próximamente"; DORA carries the AI label and the privacy note', async () => {
+  it('005-13: DORA says "Próximamente", carries the AI label and the privacy note; Postulaciones is real (008-21)', async () => {
     openStudentApp('/')
     const dora = await screen.findByRole('region', { name: t.practice.title })
     expect(within(dora).getByText(es.ai.label)).toBeInTheDocument()
     expect(within(dora).getByText(t.practice.privacy)).toBeInTheDocument()
     expect(within(dora).queryByRole('button')).not.toBeInTheDocument()
     const applications = screen.getByRole('region', { name: t.applications.title })
-    expect(within(applications).getByText(t.soon)).toBeInTheDocument()
+    expect(within(applications).queryByText(t.soon)).not.toBeInTheDocument()
   })
 })
 
@@ -143,7 +143,7 @@ describe('Who sees what on "/" (005-02, 005-04)', () => {
 })
 
 describe('Menu by role (005-07, 005-08)', () => {
-  it('a student sees Inicio, Oportunidades, Mi perfil, Mis postulaciones and DORA, the last two disabled', async () => {
+  it('a student sees Inicio, Oportunidades, Mi perfil, Mis postulaciones and DORA, only DORA disabled', async () => {
     openStudentApp('/perfil')
     await screen.findByRole('heading', { level: 1, name: es.profile.title })
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
@@ -156,7 +156,11 @@ describe('Menu by role (005-07, 005-08)', () => {
       'href',
       '/oportunidades',
     )
-    for (const label of [es.nav.myApplications, es.nav.dora]) {
+    expect(within(nav).getByRole('link', { name: es.nav.myApplications })).toHaveAttribute(
+      'href',
+      '/postulaciones',
+    )
+    for (const label of [es.nav.dora]) {
       const item = within(nav).getByText(label, {
         exact: false,
         selector: '[aria-disabled="true"]',

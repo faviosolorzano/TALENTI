@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { es } from '../../i18n/es'
 import { mockBackend, VACANCY_IDS } from '../../test/fakeBackend'
+import { mockApplicationsBackend } from '../../test/fakeApplications'
 import { renderApp } from '../../test/renderApp'
 
 vi.mock('../../session/useSession', async () => {
@@ -126,7 +127,7 @@ describe('Page /oportunidades/:id (004-21)', () => {
       'Entrevista',
       'Revisión de la empresa',
     ])
-    expect(within(process).getAllByText(es.vacancyDetail.stageSoon)).toHaveLength(3)
+    expect(within(process).getAllByText(es.applications.stages.soon)).toHaveLength(3)
     expect(process).toHaveTextContent('La decisión final es de la empresa')
     expect(within(process).queryByRole('button')).not.toBeInTheDocument()
     expect(within(process).queryByRole('link')).not.toBeInTheDocument()
@@ -161,16 +162,16 @@ describe('"Postular" and the session (004-22)', () => {
     expect(screen.queryByText(/% de compatibilidad/)).not.toBeInTheDocument()
   })
 
-  it('with a session shows "Postular" turned off with the note "Próximamente" and no sign-in notice', async () => {
+  it('008-14: with a session "Postular" is active and there is no sign-in notice', async () => {
     vi.mocked(useSession).mockReturnValue(signedIn)
     try {
       mockBackend()
+      mockApplicationsBackend()
       renderApp(`/oportunidades/${FIRST}`)
       await title()
 
-      const button = screen.getByRole('button', { name: es.vacancyDetail.apply })
-      expect(button).toBeDisabled()
-      expect(button).toHaveAccessibleDescription(es.vacancyDetail.applySoon)
+      const button = await screen.findByRole('button', { name: es.vacancyDetail.apply })
+      expect(button).toBeEnabled()
       expect(screen.queryByRole('link', { name: es.vacancyDetail.apply })).not.toBeInTheDocument()
       expect(screen.queryByText(es.vacancyDetail.applyLoginNotice)).not.toBeInTheDocument()
     } finally {

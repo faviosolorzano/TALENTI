@@ -1,0 +1,32 @@
+.apply-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.apply-card__message:empty {
+  display: none;
+}
+
+.apply-card__message {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}
+
+.apply-card__message:focus {
+  outline: none;
+}
+
+.apply-card__title {
+  font-weight: var(--font-weight-bold);
+}
+
+.apply-card__status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+}
+
+.apply-card__link {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+}

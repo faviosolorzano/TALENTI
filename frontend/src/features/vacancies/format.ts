@@ -24,3 +24,9 @@ export function publishedLabel(publishedAt: string, now: Date = new Date()): str
   if (days === 1) return es.vacancies.publishedYesterday
   return es.vacancies.publishedOn(DATE_FORMAT.format(published))
 }
+
+/** "3 de octubre de 2026", or an empty text when the date is not valid. */
+export function formatDate(iso: string): string {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? '' : DATE_FORMAT.format(date)
+}
