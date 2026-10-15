@@ -369,10 +369,8 @@ public final class CvOutputValidator {
 	}
 
 	private SuggestionDraft academic(RawSuggestion item, String[] why) {
-		if (item.slug() != null || item.name() != null || item.level() != null || item.description() != null
-				|| item.technologies() != null) {
-			return fail(why, "SHAPE");
-		}
+		// Los modelos suelen rellenar de más (nombre, nivel...) en los datos de estudios; como el resultado solo se arma
+		// con "field" y "value", lo que sobra se ignora y no puede llegar a la persona.
 		String field = item.field() == null ? "" : item.field().strip().toUpperCase(java.util.Locale.ROOT);
 		String evidence = evidence(item.evidence());
 		if (!FIELDS.contains(field) || evidence == null) {
