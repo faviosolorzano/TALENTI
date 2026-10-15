@@ -339,7 +339,7 @@ test.describe('Sign-in failures (001-09, 001-10)', () => {
 })
 
 test.describe('returnTo and the vacancy (001, edge cases, 004-22)', () => {
-  test('coming from a vacancy, signing in comes back to it; with a session "Postular" says "Próximamente"', async ({
+  test('coming from a vacancy, signing in comes back to it; with a session "Postular" is active', async ({
     page,
   }) => {
     await page.goto('/oportunidades')
@@ -362,8 +362,7 @@ test.describe('returnTo and the vacancy (001, edge cases, 004-22)', () => {
 
     await expect(page).toHaveURL(new RegExp(`${vacancyPath}$`))
     const apply = page.getByRole('button', { name: 'Postular' })
-    await expect(apply).toBeDisabled()
-    await expect(apply).toHaveAccessibleDescription('Próximamente')
+    await expect(apply).toBeEnabled()
     await expect(page.getByText('Inicia sesión para ver tu compatibilidad')).toBeHidden()
     await expect(page.getByRole('link', { name: 'Postular' })).toHaveCount(0)
 
