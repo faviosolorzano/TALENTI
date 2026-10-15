@@ -110,7 +110,7 @@ public final class CvOutputValidator {
 
 		static Searchable of(String text) {
 			String normalized = normalize(text);
-			return new Searchable(" " + normalized + " ", Set.of(normalized.split(" ")));
+			return new Searchable(" " + normalized + " ", new HashSet<>(java.util.Arrays.asList(normalized.split(" "))));
 		}
 
 		boolean containsPhrase(String phrase) {
