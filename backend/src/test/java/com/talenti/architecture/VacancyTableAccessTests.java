@@ -81,6 +81,10 @@ class VacancyTableAccessTests {
 		assertThat(vacancyFiles).hasSizeGreaterThan(10);
 		for (Path file : vacancyFiles) {
 			String text = Files.readString(file);
+			if (file.toString().endsWith(".java")) {
+				// Los comentarios no son consultas: la palabra "application" aparece en ellos (application.yml).
+				text = text.replaceAll("(?s)/[*].*?[*]/", " ").replaceAll("(?m)//.*$", " ");
+			}
 			assertThat(foreignTables.matcher(text).find()).as("%s nombra una tabla de otro módulo", file).isFalse();
 		}
 	}
