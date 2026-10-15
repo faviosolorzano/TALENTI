@@ -40,6 +40,21 @@ Con los datos de ejemplo activos (Docker Compose los enciende por defecto, `TALE
 
 Es una cuenta inventada y su contraseña es pública a propósito: solo existe mientras la semilla de ejemplo esté activa (apagada por defecto y nunca para un despliegue real). Muestra una compatibilidad alta con la vacante "Practicante Backend Java".
 
+## Probar la lectura de CV con IA real
+Por defecto todo es simulado y no se envía nada a nadie. Para probar con tu propia clave de OpenAI:
+1. En la página de OpenAI crea una clave de API y, en la configuración de facturación, fija un **límite de gasto mensual** bajo. Copia la clave (empieza con `sk-`).
+2. En la carpeta del código, en CMD: `copy .env.example .env` (si ya tienes un `.env`, solo edítalo). El `.env` no se sube al repositorio: no lo compartas.
+3. Abre `.env` y cambia estas líneas:
+   - `AI_PROVIDER=openai`
+   - `OPENAI_API_KEY=` y pega tu clave
+   - `TALENTI_AI_CV_ENABLED=true`
+   - `TALENTI_AI_CV_MODEL=` un modelo económico, por ejemplo `gpt-4o-mini` (revisa el nombre y el precio vigentes en OpenAI)
+4. Reinicia sin borrar nada: `docker compose --env-file .env up -d --build` (no uses `down -v`: borraría tu base de datos).
+5. Entra a `http://localhost:3000`, ve a Mi perfil, sube un CV en PDF y pulsa **Leer mejor con IA**. Las sugerencias leídas por la IA llevan el rótulo de IA y tú decides cuáles aceptar.
+6. Para volver al modo simulado: pon `AI_PROVIDER=simulated` y `TALENTI_AI_CV_ENABLED=false` (puedes dejar la clave vacía) y repite el paso 4.
+
+Qué pasa si algo sale mal: cada persona tiene 3 lecturas con IA al mes y hay topes por día y por mes para todos (`TALENTI_AI_LIMITS_*`); al acabarse, la pantalla lo dice y la lectura básica sigue disponible. Si OpenAI falla o tarda más de 30 segundos, se usa la lectura básica y no se descuenta ninguna lectura. Si falta la clave o el modelo, el backend no arranca y el mensaje (`docker compose logs backend`) dice qué falta; la clave nunca aparece en los registros.
+
 ## Pruebas
 - Backend (necesita Docker, usa PostgreSQL real en un contenedor): `cd backend && ./mvnw test`
 - Frontend: `cd frontend && npm install && npm run test`
