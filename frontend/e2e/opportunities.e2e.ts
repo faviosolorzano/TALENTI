@@ -52,7 +52,16 @@ test.describe('Home page (004-15, 004-16)', () => {
     const featured = page.getByRole('region', { name: /Vacantes destacadas/ })
     await expect(featured.getByRole('article')).toHaveCount(4)
     await expect(featured.getByRole('heading', { level: 2 })).toContainText('12 vacantes abiertas')
-    await expect(featured.getByText('Datos de ejemplo')).toBeVisible()
+    // The "made-up companies" note lives only in the footer, once.
+    await expect(featured.getByText(/ficticias/)).toHaveCount(0)
+    await expect(
+      page.getByText('Las empresas y vacantes de Talenti son ficticias y de ejemplo.'),
+    ).toHaveCount(1)
+    await expect(
+      page
+        .getByRole('contentinfo')
+        .getByText('Las empresas y vacantes de Talenti son ficticias y de ejemplo.'),
+    ).toBeVisible()
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
 
     const order = await page.evaluate(() => {

@@ -52,7 +52,7 @@ describe('Home page: featured vacancies (004-15)', () => {
     expect(
       within(featured).getByRole('link', { name: new RegExp(es.landingVacancies.seeAll) }),
     ).toHaveAttribute('href', '/oportunidades')
-    expect(within(featured).getByText(es.vacancies.sampleData)).toBeInTheDocument()
+    expect(within(featured).queryByText(es.footer.sampleNote)).not.toBeInTheDocument()
   })
 
   it('shows a vacancy with company, city, modality, hours and technologies, and never a percentage', async () => {

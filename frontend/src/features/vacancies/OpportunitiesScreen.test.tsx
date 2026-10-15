@@ -738,11 +738,10 @@ describe('Vacancy card in the list (004-20)', () => {
     expect(list.querySelector('.ring')).toBeNull()
   })
 
-  it('says the data are examples at the top and at the bottom of the list', async () => {
+  it('does not repeat the "examples" note in the list: it lives only in the footer', async () => {
     mockBackend()
     renderApp('/oportunidades')
     await countHeading('12 vacantes')
-    expect(screen.getByText(es.vacancies.sampleData)).toBeInTheDocument()
-    expect(screen.getByText(es.vacancies.sampleFootnote)).toBeInTheDocument()
+    expect(within(screen.getByRole('main')).queryByText(es.footer.sampleNote)).toBeNull()
   })
 })

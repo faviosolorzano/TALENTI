@@ -54,6 +54,14 @@ describe('Footer on every screen (002-08)', () => {
     ).toBeTruthy()
   })
 
+  it('shows, only in the footer, that the companies and vacancies are made up', () => {
+    renderApp('/')
+
+    const footer = screen.getByRole('contentinfo')
+    expect(within(footer).getByText(es.footer.sampleNote)).toBeInTheDocument()
+    expect(screen.getAllByText(es.footer.sampleNote)).toHaveLength(1)
+  })
+
   // 002-08
   it('002-08: is operated with the keyboard: Tab reaches each link and Enter opens it without reloading', async () => {
     mockLegalApi()
