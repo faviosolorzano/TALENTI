@@ -11,7 +11,7 @@ import com.talenti.vacancy.SkillInfo;
 
 /**
  * Adaptador de IA SIMULADO con contador de llamadas, para comprobar cuándo se llama a la IA y cuándo no (009-25 a 009-32).
- * No hace ninguna llamada de red. Devuelve una habilidad y un proyecto; puede fallar o tardar a pedido.
+ * No hace ninguna llamada de red. Devuelve dos habilidades y un dato de estudios, todos presentes en el CV de prueba (lo que el CV no nombra, el validador lo descarta); puede fallar o tardar a pedido.
  */
 public class CountingAiAdapter implements EnhancedCvExtractionPort {
 
@@ -68,7 +68,7 @@ public class CountingAiAdapter implements EnhancedCvExtractionPort {
 		phrase = phrase.length() > 60 ? phrase.substring(0, 60).strip() : phrase;
 		List<RawSuggestion> result = new ArrayList<>();
 		result.add(RawSuggestion.skill("java", "Java", 2, phrase));
-		result.add(RawSuggestion.skill("typescript", "TypeScript", 1, phrase));
+		result.add(RawSuggestion.skill("react", "React", 1, phrase));
 		result.add(RawSuggestion.academic("CAREER", "Ingeniería de Software", phrase));
 		return result;
 	}
