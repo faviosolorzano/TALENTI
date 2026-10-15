@@ -384,9 +384,8 @@ export const es = {
     apply: {
       title: (vacancy: string) => `Postular a ${vacancy}`,
       company: (name: string) => `Empresa: ${name}`,
-      shared:
-        'La empresa verá tu carrera, instituto y ciclo, tus habilidades con su nivel, tu disponibilidad y tus proyectos.',
-      notShared: 'No comparte tu correo, tu contraseña ni tus sesiones de práctica.',
+      shared: 'La empresa verá tu perfil completo y tu CV.',
+      notShared: 'Tus sesiones de práctica con DORA son privadas y no se comparten.',
       profile: (percent: number) => `Tu perfil está al ${percent} %.`,
       completeProfile: 'Completar mi perfil',
       loading: 'Preparando tu postulación…',
