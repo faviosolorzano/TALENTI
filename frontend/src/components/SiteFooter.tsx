@@ -35,6 +35,7 @@ export function SiteFooter() {
           </li>
         </ul>
       </nav>
+      <p className="container site-footer__note">{es.footer.sampleNote}</p>
     </footer>
   )
 }

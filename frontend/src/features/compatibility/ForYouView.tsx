@@ -7,7 +7,6 @@ import { es } from '../../i18n/es'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import { FOR_YOU_SEARCH, OpportunitiesIntro } from '../vacancies/OpportunitiesIntro'
 import { Pagination } from '../vacancies/Pagination'
-import { SampleFootnote } from '../vacancies/SampleNote'
 import { VacancyListSkeleton } from '../vacancies/Skeletons'
 import { VacancyCard } from '../vacancies/VacancyCard'
 import '../vacancies/OpportunitiesScreen.css'
@@ -137,10 +136,6 @@ export function ForYouView() {
               onNavigate={() => headingRef.current?.focus()}
             />
           )}
-
-          <div className="opportunities__footnote">
-            <SampleFootnote />
-          </div>
         </section>
       </div>
     </div>

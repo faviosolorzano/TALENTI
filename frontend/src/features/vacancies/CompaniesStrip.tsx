@@ -4,7 +4,6 @@ import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { CompanyAvatar } from './CompanyAvatar'
 import { ErrorNotice } from './ErrorNotice'
-import { SampleNote } from './SampleNote'
 import { CompanySkeletons } from './Skeletons'
 import './CompaniesStrip.css'
 
@@ -26,7 +25,6 @@ export function CompaniesStrip() {
           <h2 id="companies-title" className="companies__title">
             {es.landingVacancies.companiesTitle}
           </h2>
-          <SampleNote />
         </div>
 
         {companies.state.status === 'loading' && <CompanySkeletons count={4} />}

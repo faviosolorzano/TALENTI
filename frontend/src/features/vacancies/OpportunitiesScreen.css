@@ -123,10 +123,6 @@
   transition: opacity var(--duration-fast);
 }
 
-.opportunities__footnote {
-  margin-top: var(--space-10);
-}
-
 @media (min-width: 48rem) {
   .opportunities__intro {
     padding-block: var(--space-12);

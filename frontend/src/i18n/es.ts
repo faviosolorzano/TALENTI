@@ -510,8 +510,6 @@ export const es = {
     },
   },
   vacancies: {
-    sampleData: 'Datos de ejemplo',
-    sampleFootnote: 'Las empresas y vacantes son ficticias; las reales llegarán con los convenios.',
     modality: {
       REMOTE: 'Remoto',
       HYBRID: 'Híbrido',
@@ -876,6 +874,8 @@ export const es = {
     cookies: 'Política de Cookies',
     transparency: 'Transparencia',
     cookiePreferences: 'Preferencias de cookies',
+    /** Discreet note shown only here: the companies and vacancies are made up. */
+    sampleNote: 'Las empresas y vacantes de Talenti son ficticias y de ejemplo.',
   },
   legal: {
     draftNotice: 'Borrador: pendiente de revisión legal y sujeto a cambios',
