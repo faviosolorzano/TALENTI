@@ -235,10 +235,6 @@
   font-weight: var(--font-weight-medium);
 }
 
-.vacancy-detail__footnote {
-  margin-top: var(--space-12);
-}
-
 @media (min-width: 48rem) {
   .vacancy-detail {
     padding-top: var(--space-8);

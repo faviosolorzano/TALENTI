@@ -11,7 +11,6 @@ import { useSession } from '../../session/useSession'
 import { VacancyCompatibilityPanel } from '../compatibility/VacancyCompatibilityPanel'
 import { CompanyAvatar } from './CompanyAvatar'
 import { ErrorNotice } from './ErrorNotice'
-import { SampleFootnote, SampleNote } from './SampleNote'
 import { VacancyDetailSkeleton } from './Skeletons'
 import { publishedLabel } from './format'
 import './VacancyDetailScreen.css'
@@ -106,7 +105,6 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
             <strong>{vacancy.company.name}</strong>
             <span>{vacancy.company.city}</span>
           </p>
-          <SampleNote />
         </div>
         {/* 004-34: the entry point of the company profile. It leads nowhere yet, so it is not a
             link: a button marked aria-disabled (it stays reachable so its note is read). */}
@@ -232,10 +230,6 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
             </section>
           )}
         </div>
-      </div>
-
-      <div className="vacancy-detail__footnote">
-        <SampleFootnote />
       </div>
     </div>
   )

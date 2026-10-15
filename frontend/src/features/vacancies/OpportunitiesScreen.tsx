@@ -19,7 +19,6 @@ import { OpportunitiesIntro } from './OpportunitiesIntro'
 import { FilterPanel } from './FilterPanel'
 import { Pagination } from './Pagination'
 import { RecentVacancies } from './RecentVacancies'
-import { SampleFootnote } from './SampleNote'
 import { SearchForm } from './SearchForm'
 import { VacancyListSkeleton } from './Skeletons'
 import { VacancyCard } from './VacancyCard'
@@ -280,10 +279,6 @@ function AllVacancies() {
               onNavigate={focusResults}
             />
           )}
-
-          <div className="opportunities__footnote">
-            <SampleFootnote />
-          </div>
         </section>
       </div>
     </div>

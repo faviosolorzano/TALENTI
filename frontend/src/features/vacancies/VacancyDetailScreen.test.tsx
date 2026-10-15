@@ -31,8 +31,7 @@ describe('Page /oportunidades/:id (004-21)', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getAllByText('Andes Tech').length).toBeGreaterThan(0)
     expect(screen.getByText(/Descripción de Practicante Backend Java/)).toBeInTheDocument()
-    expect(screen.getByText(es.vacancies.sampleData)).toBeInTheDocument()
-    expect(screen.getByText(es.vacancies.sampleFootnote)).toBeInTheDocument()
+    expect(within(screen.getByRole('main')).queryByText(es.footer.sampleNote)).toBeNull()
     // The tab title is set in an effect after the heading is drawn: wait for it, do not race it.
     await waitFor(() => expect(document.title).toBe(`Practicante Backend Java · ${es.app.name}`))
   })

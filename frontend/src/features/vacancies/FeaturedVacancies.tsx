@@ -3,7 +3,6 @@ import { fetchFeaturedVacancies, fetchFilters } from '../../api/vacancies'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { ErrorNotice } from './ErrorNotice'
-import { SampleNote } from './SampleNote'
 import { VacancyListSkeleton } from './Skeletons'
 import { VacancyCard } from './VacancyCard'
 import './FeaturedVacancies.css'
@@ -40,7 +39,6 @@ export function FeaturedVacancies() {
                 </>
               )}
             </h2>
-            <SampleNote />
           </div>
           <Link className="featured__all" to="/oportunidades">
             {es.landingVacancies.seeAll}

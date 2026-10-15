@@ -36,3 +36,9 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.site-footer__note {
+  padding-bottom: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}

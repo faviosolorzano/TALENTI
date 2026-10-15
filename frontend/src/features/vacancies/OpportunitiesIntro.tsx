@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
-import { SampleNote } from './SampleNote'
 import './OpportunitiesIntro.css'
 
 export const FOR_YOU_SEARCH = '?vista=para-ti'
@@ -25,7 +24,6 @@ export function OpportunitiesIntro({ lead, view, children }: OpportunitiesIntroP
           <h1 id="opportunities-title" className="opportunities__title">
             {es.opportunities.title}
           </h1>
-          <SampleNote />
         </div>
         <p className="opportunities__lead">{lead}</p>
         {session.isStudent && (
