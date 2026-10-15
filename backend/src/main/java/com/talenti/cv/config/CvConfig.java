@@ -102,7 +102,8 @@ class CvConfig {
 		void check() {
 			if (ai.cv().enabled() && adapter.getIfAvailable() == null) {
 				throw new IllegalStateException("talenti.ai.cv.enabled=true pero no hay un adaptador de IA para la "
-						+ "lectura del CV (AI_PROVIDER=" + ai.provider() + "). La lectura mejorada llega con S10.");
+						+ "lectura del CV (AI_PROVIDER=" + ai.provider() + "). Para usar la IA real pon AI_PROVIDER=openai, "
+						+ "TALENTI_AI_CV_MODEL y OPENAI_API_KEY; si no, pon TALENTI_AI_CV_ENABLED=false.");
 			}
 		}
 
