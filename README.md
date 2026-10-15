@@ -30,6 +30,16 @@ Para apagar todo: `docker compose down`. Para borrar también los datos de la ba
 
 La IA y la voz funcionan con adaptadores simulados: no necesitas ninguna cuenta ni clave para probar.
 
+## Cuenta de demostración
+Con los datos de ejemplo activos (Docker Compose los enciende por defecto, `TALENTI_DEMO_DATA=true`) existe una cuenta de estudiante con el perfil lleno, para presentar sin crear una cuenta:
+
+| Dato | Valor |
+|---|---|
+| Correo | `demo@example.test` |
+| Contraseña | `Demo-Talenti-2026` |
+
+Es una cuenta inventada y su contraseña es pública a propósito: solo existe mientras la semilla de ejemplo esté activa (apagada por defecto y nunca para un despliegue real). Muestra una compatibilidad alta con la vacante "Practicante Backend Java".
+
 ## Pruebas
 - Backend (necesita Docker, usa PostgreSQL real en un contenedor): `cd backend && ./mvnw test`
 - Frontend: `cd frontend && npm install && npm run test`
