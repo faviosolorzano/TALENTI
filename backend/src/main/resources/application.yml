@@ -131,6 +131,8 @@ talenti:
     daily-limit: 5              # análisis nuevos por persona en 24 horas
     origin-limit-per-minute: 10
     careers-resource: classpath:cv/careers.txt
+    max-concurrent-extractions: 2   # PDF leyéndose a la vez en todo el servidor (cada uno en un proceso hijo)
+    failed-attempts-per-day: 20     # subidas fallidas (PDF ilegible) por persona en 24 horas
     expiry-interval: PT1H       # cada cuánto se borra lo vencido
   ai:
     # Control de consumo de IA (spec 009, sección 3.1). La IA real está APAGADA hasta S10: sin cv.enabled=true, un

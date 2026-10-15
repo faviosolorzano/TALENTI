@@ -22,7 +22,7 @@ class PdfTextExtractorTests {
 
 	private static PdfTextExtractor extractor(int maxTextChars) {
 		return new PdfTextExtractor(new CvProperties(DataSize.ofMegabytes(2), 10, 200, maxTextChars,
-				Duration.ofSeconds(5), Duration.ofSeconds(15), Duration.ofDays(7), 5, 10, "classpath:cv/careers.txt"));
+				Duration.ofSeconds(5), Duration.ofSeconds(15), Duration.ofDays(7), 5, 10, "classpath:cv/careers.txt", 2, 20));
 	}
 
 	private static CvUnreadableException.Reason reasonOf(Runnable action) {

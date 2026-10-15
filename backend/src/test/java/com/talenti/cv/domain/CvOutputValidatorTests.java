@@ -130,4 +130,19 @@ class CvOutputValidatorTests {
 		assertThat(Optional.of(result.get(0).kind())).contains(SuggestionKind.SKILL);
 	}
 
+
+	@Test
+	@DisplayName("009-13 (T3): una evidencia que no aparece en el texto leído descarta la sugerencia; si aparece (sin mayúsculas ni tildes) se conserva")
+	void t009_13_evidenceMustAppearInTheText() {
+		String text = "Experiencia\nProgramación en Java con Spring Boot\nProyecto   Tienda en línea";
+
+		List<SuggestionDraft> result = validator.validate(List.of(
+				skill("java", "Java", 2, "PROGRAMACION en java con spring boot"),
+				skill("sql", "SQL", 1, "Dominio avanzado de SQL en banca"),
+				RawSuggestion.project("Tienda", "Una tienda en línea", List.of("Java"), "proyecto tienda en linea")), text);
+
+		assertThat(result).extracting(SuggestionDraft::kind).containsExactly(SuggestionKind.SKILL, SuggestionKind.PROJECT);
+		assertThat(result.get(0).payload()).containsEntry("slug", "java");
+	}
+
 }

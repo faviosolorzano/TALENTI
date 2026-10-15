@@ -63,10 +63,13 @@ public class CountingAiAdapter implements EnhancedCvExtractionPort {
 		if (mode == Mode.FAIL) {
 			throw new CvExtractionException("falla simulada de la plataforma");
 		}
+		// La evidencia debe aparecer de verdad en el texto leído (T3): se toma una frase del propio texto.
+		String phrase = reducedText.lines().map(String::strip).filter(line -> !line.isEmpty()).findFirst().orElse("");
+		phrase = phrase.length() > 60 ? phrase.substring(0, 60).strip() : phrase;
 		List<RawSuggestion> result = new ArrayList<>();
-		result.add(RawSuggestion.skill("java", "Java", 2, "Mención de Java según la IA"));
-		result.add(RawSuggestion.skill("typescript", "TypeScript", 1, "Mención de TypeScript según la IA"));
-		result.add(RawSuggestion.academic("CAREER", "Ingeniería de Software", "Estudia ingeniería de software"));
+		result.add(RawSuggestion.skill("java", "Java", 2, phrase));
+		result.add(RawSuggestion.skill("typescript", "TypeScript", 1, phrase));
+		result.add(RawSuggestion.academic("CAREER", "Ingeniería de Software", phrase));
 		return result;
 	}
 

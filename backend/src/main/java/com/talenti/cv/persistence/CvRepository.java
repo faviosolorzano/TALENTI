@@ -228,6 +228,16 @@ public class CvRepository {
 		}
 	}
 
+	/**
+	 * Candados de la transacción en curso para reservar el cupo de IA: uno global y uno de la persona, siempre en el
+	 * mismo orden (sin riesgo de bloqueo mutuo). Se sueltan solos al terminar la transacción.
+	 */
+	public void lockAiQuota(UUID userId) {
+		jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended('talenti:ai:cv-read:global', 0))").query().singleRow();
+		jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))").param("key", "talenti:ai:cv-read:user:" + userId)
+				.query().singleRow();
+	}
+
 	/** La lectura falló (plataforma o tiempo). Solo si seguía en curso. */
 	public boolean fail(UUID id, UUID readId, String reason) {
 		return jdbc.sql("""

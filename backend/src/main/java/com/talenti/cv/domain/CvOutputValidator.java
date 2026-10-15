@@ -65,6 +65,18 @@ public final class CvOutputValidator {
 		this.maxCycle = maxCycle;
 	}
 
+	/**
+	 * Como {@link #validate(List)}, y además descarta toda sugerencia cuya evidencia no aparezca realmente en el texto
+	 * que se leyó (sin distinguir mayúsculas, tildes ni espacios): una "frase del CV" inventada no respalda nada (T3).
+	 */
+	public List<SuggestionDraft> validate(List<RawSuggestion> raw, String sourceText) {
+		String haystack = Fold.of(sourceText);
+		return validate(raw).stream().filter(draft -> {
+			String needle = Fold.of(draft.evidence());
+			return !needle.isEmpty() && haystack.contains(needle);
+		}).toList();
+	}
+
 	public List<SuggestionDraft> validate(List<RawSuggestion> raw) {
 		List<SuggestionDraft> result = new ArrayList<>();
 		if (raw == null) {

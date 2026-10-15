@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.talenti.cv.AdapterInfo;
 import com.talenti.cv.CvExtractionPort;
@@ -75,11 +77,14 @@ public class CvReadService {
 
 	private final Clock clock;
 
+	private final TransactionTemplate transaction;
+
 	private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 	CvReadService(RulesCvExtractionAdapter rules, ObjectProvider<EnhancedCvExtractionPort> enhanced,
 			SkillCatalog catalog, AiUsageQuota quota, AiUsageRecorder recorder, AiCvProperties ai,
-			CvProperties properties, CvRepository repository, Clock clock) {
+			CvProperties properties, CvRepository repository, Clock clock,
+			PlatformTransactionManager transactionManager) {
 		this.rules = rules;
 		this.enhanced = enhanced;
 		this.catalog = catalog;
@@ -90,6 +95,7 @@ public class CvReadService {
 		this.properties = properties;
 		this.repository = repository;
 		this.clock = clock;
+		this.transaction = new TransactionTemplate(transactionManager);
 	}
 
 	@PreDestroy
@@ -183,20 +189,11 @@ public class CvReadService {
 			}
 			else {
 				TextLimiter.Limited limited = TextLimiter.limit(reducedText, ai.cv().maxInputChars());
-				try {
-					List<RawSuggestion> raw = withTimeout(() -> port.extract(limited.text(), catalog.all()),
-							ai.cv().timeout().toMillis());
-					List<SuggestionDraft> drafts = validator.validate(raw);
-					record(userId, readId, port.info(), AiUsageOutcome.SUCCESS, limited.text().length(),
-							outputSize(drafts));
-					return new ReadResult(drafts, false, AiLevel.ENHANCED, port.info(), null, limited.truncated());
+				Attempt attempt = attemptEnhanced(userId, readId, port, limited);
+				if (attempt.result() != null) {
+					return attempt.result();
 				}
-				catch (RuntimeException failure) {
-					// Falla de la plataforma, no de la persona: se anota y NO cuenta en el cupo.
-					log.warn("La lectura mejorada falló ({}); se usa la lectura básica", failure.getClass().getSimpleName());
-					record(userId, readId, port.info(), AiUsageOutcome.FAILED_PLATFORM, limited.text().length(), 0);
-					degradedReason = "AI_FAILED";
-				}
+				degradedReason = attempt.degradedReason();
 			}
 			if (hasPrevious) {
 				return ReadResult.keep(degradedReason);
@@ -205,7 +202,7 @@ public class CvReadService {
 		try {
 			List<RawSuggestion> raw = withTimeout(() -> rules.extract(reducedText, catalog.all()),
 					properties.analysisTimeout().toMillis());
-			return new ReadResult(validator.validate(raw), false, AiLevel.BASIC, rules.info(), degradedReason, false);
+			return new ReadResult(validator.validate(raw, reducedText), false, AiLevel.BASIC, rules.info(), degradedReason, false);
 		}
 		catch (TimedOut e) {
 			throw new ReadFailedException("TIMEOUT");
@@ -217,6 +214,45 @@ public class CvReadService {
 	}
 
 	// ------------------------------------------------------------------------------------------ piezas
+
+	private record Attempt(ReadResult result, String degradedReason) {
+	}
+
+	/**
+	 * La llamada a la IA, con el cupo reservado de verdad (009-28): bajo un candado por persona y otro global (de
+	 * PostgreSQL, que se suelta al terminar la transacción) se vuelve a mirar el cupo, se llama una vez a la IA y se
+	 * anota el uso. Así varias lecturas simultáneas no pueden pasar los topes: la segunda espera, ve el uso de la
+	 * primera y se degrada. Solo hay dos trabajos de lectura a la vez, así que la espera es corta y acotada.
+	 */
+	private Attempt attemptEnhanced(UUID userId, UUID readId, EnhancedCvExtractionPort port, TextLimiter.Limited limited) {
+		return transaction.execute(status -> {
+			repository.lockAiQuota(userId);
+			QuotaStatus quotaStatus = quota.check(userId, AiFunction.CV_READ);
+			if (quotaStatus.blockedBy() == QuotaStatus.Block.PERSONAL) {
+				record(userId, readId, port.info(), AiUsageOutcome.BLOCKED_PERSONAL_QUOTA, 0, 0);
+				return new Attempt(null, "PERSONAL_LIMIT");
+			}
+			if (quotaStatus.blockedBy() == QuotaStatus.Block.GLOBAL) {
+				record(userId, readId, port.info(), AiUsageOutcome.BLOCKED_GLOBAL_QUOTA, 0, 0);
+				return new Attempt(null, "GLOBAL_LIMIT");
+			}
+			try {
+				List<RawSuggestion> raw = withTimeout(() -> port.extract(limited.text(), catalog.all()),
+						ai.cv().timeout().toMillis());
+				List<SuggestionDraft> drafts = validator.validate(raw, limited.text());
+				record(userId, readId, port.info(), AiUsageOutcome.SUCCESS, limited.text().length(),
+						outputSize(drafts));
+				return new Attempt(new ReadResult(drafts, false, AiLevel.ENHANCED, port.info(), null,
+						limited.truncated()), null);
+			}
+			catch (RuntimeException failure) {
+				// Falla de la plataforma, no de la persona: se anota y NO cuenta en el cupo.
+				log.warn("La lectura mejorada falló ({}); se usa la lectura básica", failure.getClass().getSimpleName());
+				record(userId, readId, port.info(), AiUsageOutcome.FAILED_PLATFORM, limited.text().length(), 0);
+				return new Attempt(null, "AI_FAILED");
+			}
+		});
+	}
 
 	private void record(UUID userId, UUID readId, AdapterInfo info, AiUsageOutcome outcome, int input, int output) {
 		recorder.record(new AiUsageEvent(readId, userId, AiFunction.CV_READ, AiLevel.ENHANCED, info.name(),
