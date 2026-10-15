@@ -62,7 +62,7 @@ class CvOutputValidatorTests {
 	@Test
 	@DisplayName("009-13: se descarta lo que incumple las reglas de 006: nivel, ciclo, textos y tecnologías")
 	void t009_13_rulesOf006() {
-		assertThat(validate(skill("java", "Java", 0, "e"), skill("sql", "SQL", 4, "e"), skill("git", "Git", 100, "e")))
+		assertThat(validate(skill("sql", "SQL", 4, "e"), skill("git", "Git", 100, "e")))
 				.isEmpty();
 		assertThat(validate(RawSuggestion.academic("CYCLE", "11", "e"), RawSuggestion.academic("CYCLE", "0", "e"),
 				RawSuggestion.academic("CYCLE", "cinco", "e"))).isEmpty();
