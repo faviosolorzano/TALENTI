@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { es } from '../i18n/es'
 import { mockBackend, VACANCY_IDS } from '../test/fakeBackend'
+import { mockApplicationsBackend } from '../test/fakeApplications'
 import { mockProfileBackend } from '../test/fakeProfile'
 import { clearCsrfCookie, holdNextRequest, mockIdentityBackend } from '../test/fakeIdentity'
 import { renderAppWithSession } from '../test/renderApp'
@@ -315,18 +316,14 @@ describe('Header with and without a session (003-09)', () => {
 describe('"Postular" and the session (004-22)', () => {
   const FIRST = VACANCY_IDS[0] as string
 
-  it('with a session the button is off, says "Próximamente" and the sign-in notice is gone', async () => {
+  it('008-14: with a session the button is active and the sign-in notice is gone', async () => {
     mockBackend()
+    mockApplicationsBackend()
     mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
     renderAppWithSession(`/oportunidades/${FIRST}`)
 
     const button = await screen.findByRole('button', { name: es.vacancyDetail.apply })
-    expect(button).toBeDisabled()
-    const applyCard = screen.getByRole('region', { name: es.vacancyDetail.apply })
-    await waitFor(() =>
-      expect(within(applyCard).getByText(es.vacancyDetail.applySoon)).toBeInTheDocument(),
-    )
-    expect(button).toHaveAccessibleDescription(es.vacancyDetail.applySoon)
+    expect(button).toBeEnabled()
     expect(screen.queryByText(es.vacancyDetail.applyLoginNotice)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: es.vacancyDetail.apply })).not.toBeInTheDocument()
   })
@@ -343,6 +340,7 @@ describe('"Postular" and the session (004-22)', () => {
 
   it('a visitor who signs in from a vacancy comes back to that vacancy (returnTo)', async () => {
     mockBackend()
+    mockApplicationsBackend()
     mockIdentityBackend({ accounts: STUDENT })
     const { router } = renderAppWithSession(`/oportunidades/${FIRST}`)
     const user = userEvent.setup()
@@ -353,8 +351,7 @@ describe('"Postular" and the session (004-22)', () => {
     await user.type(screen.getByLabelText(es.identity.form.passwordLabel), PASSWORD)
     await user.click(screen.getByRole('button', { name: es.identity.login.submit }))
 
-    const applyCard = await screen.findByRole('region', { name: es.vacancyDetail.apply })
-    expect(await within(applyCard).findByText(es.vacancyDetail.applySoon)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: es.vacancyDetail.apply })).toBeEnabled()
     expect(router.state.location.pathname).toBe(`/oportunidades/${FIRST}`)
   })
 })
