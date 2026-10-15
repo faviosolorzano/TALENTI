@@ -42,7 +42,7 @@ Tu CV, tus proyectos y tus respuestas siguen siendo tuyos. Nos autorizas, solo p
 Las sesiones de práctica son **privadas**: no se comparten con empresas ni afectan tus postulaciones. Puedes borrarlas cuando quieras.
 
 ## 9. Postulaciones y empresas
-Cuando postulas, se comparte con la empresa la parte de tu perfil que te mostramos antes de confirmar. Las empresas son responsables de sus ofertas y de sus decisiones. Talenti no responde por el contenido de las vacantes ni por la conducta de las empresas.
+Cuando postulas, la empresa a la que postulas ve tu perfil completo y tu CV. Las empresas son responsables de sus ofertas y de sus decisiones. Talenti no responde por el contenido de las vacantes ni por la conducta de las empresas.
 
 ## 10. Planes y pagos
 Por ahora el servicio es gratuito. Si en el futuro se ofrecen planes de pago, te avisaremos con anticipación y te pediremos aceptar sus condiciones. **El pago nunca mejorará tus resultados, tu porcentaje de compatibilidad ni tu posición ante las empresas.**

@@ -25,14 +25,14 @@ No pidas ni subas a Talenti datos sensibles como salud, religión, afiliación p
 - Crear y proteger tu cuenta.
 - Recomendarte vacantes y explicarte por qué te encajan.
 - Permitirte postular y seguir tus postulaciones.
-- Leer tu CV y proponerte un perfil, **solo si lo autorizas**.
-- Ayudarte a practicar entrevistas con DORA, **solo si lo autorizas**.
+- Leer tu CV con inteligencia artificial para proponerte un perfil: tú decides qué sugerencias se guardan.
+- Ayudarte a practicar entrevistas con DORA, nuestra asistente de inteligencia artificial.
 - Mantener la seguridad del servicio y cumplir obligaciones legales.
 
 La base para tratar tus datos es **tu consentimiento** y la necesidad de prestarte el servicio que pides. No vendemos tus datos ni los usamos para publicidad.
 
 ## 5. Con quién los compartimos
-- **Empresas:** solo cuando postulas, y únicamente la parte de tu perfil que te mostramos antes de confirmar. **Tus sesiones de práctica nunca se comparten con empresas.**
+- **Empresas:** solo cuando postulas: la empresa a la que postulas ve tu perfil completo y tu CV, como evidencia de lo que sabes hacer. **Tus sesiones de práctica nunca se comparten con empresas.**
 - **Proveedores que nos prestan servicios (encargados):** servicios de inteligencia artificial para leer el CV, generar preguntas y evaluar respuestas; servicios de voz para convertir voz en texto y texto en voz; y servicios de alojamiento y almacenamiento en la nube. Reciben solo lo necesario para su tarea.
 - **Autoridades,** cuando la ley lo exija.
 
