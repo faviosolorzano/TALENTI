@@ -28,6 +28,8 @@ class MatchingArchitectureTests {
 	private static final Set<String> ALLOWED_FOREIGN = Set.of("com.talenti.identity.CurrentUser",
 			"com.talenti.identity.Role", "com.talenti.profile.ProfileReader", "com.talenti.profile.ProfileSnapshot",
 			"com.talenti.profile.ProfileSnapshot$Skill", "com.talenti.profile.WorkModality",
+			// 013-13: la fuente real del nivel (DECLARED u OBSERVED) solo se muestra, no entra en el cálculo.
+			"com.talenti.profile.SkillEvidence",
 			"com.talenti.vacancy.VacancyLookup", "com.talenti.vacancy.VacancyInfo",
 			"com.talenti.vacancy.VacancyInfo$Modality", "com.talenti.vacancy.VacancyInfo$Status",
 			"com.talenti.vacancy.VacancyInfo$RequirementKind", "com.talenti.vacancy.VacancyInfo$Company",

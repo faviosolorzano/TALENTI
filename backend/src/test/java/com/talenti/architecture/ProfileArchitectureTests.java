@@ -15,6 +15,7 @@ import com.talenti.profile.ProfileEditor;
 import com.talenti.profile.ProfileReader;
 import com.talenti.profile.ProfileSnapshot;
 import com.talenti.profile.ProfileView;
+import com.talenti.profile.SkillEvidenceWriter;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.Dependency;
@@ -97,9 +98,21 @@ class ProfileArchitectureTests {
 	@ArchTest
 	static void onlyCvMayUseProfileEditorAndView(JavaClasses classes) {
 		noClasses().that().resideOutsideOfPackages(PROFILE, "com.talenti.cv..").should().dependOnClassesThat()
-				.belongToAnyOf(ProfileEditor.class, ProfileView.class, ConfirmedChanges.class)
-				.as("solo el módulo cv puede usar ProfileEditor, ProfileView y ConfirmedChanges; los demás usan ProfileReader")
+				.belongToAnyOf(ProfileEditor.class, ConfirmedChanges.class)
+				.as("solo el módulo cv puede usar ProfileEditor y ConfirmedChanges; los demás usan ProfileReader")
 				.check(classes);
+		// 013-12: github devuelve el perfil (de 006) tras confirmar sus sugerencias; nadie más lo ve completo.
+		noClasses().that().resideOutsideOfPackages(PROFILE, "com.talenti.cv..", "com.talenti.github..").should()
+				.dependOnClassesThat().belongToAnyOf(ProfileView.class)
+				.as("solo cv y github pueden usar ProfileView; los demás usan ProfileReader").check(classes);
+	}
+
+	/** 013-12, 013-16: la interfaz que escribe evidencia OBSERVED es solo de github. */
+	@ArchTest
+	static void t013_16_onlyGithubMayUseSkillEvidenceWriter(JavaClasses classes) {
+		noClasses().that().resideOutsideOfPackages(PROFILE, "com.talenti.github..").should().dependOnClassesThat()
+				.belongToAnyOf(SkillEvidenceWriter.class)
+				.as("solo el módulo github puede usar SkillEvidenceWriter").check(classes);
 	}
 
 	// ------------------------------------------------------------------------------------------ ProfileReader
