@@ -5,16 +5,19 @@ import java.util.UUID;
 
 /**
  * Un intento de uso de IA o voz. Es solo medición: NUNCA lleva contenido (ni texto del CV, ni sugerencias, ni la
- * huella del archivo), solo tamaños (009-31).
+ * huella del archivo, ni transcripciones, ni preguntas), solo tamaños (009-31, 012-30).
  *
- * @param readId     id de la lectura o sesión: clave de idempotencia (una lectura se anota una sola vez)
- * @param userId     la persona; puede quedar nulo si la cuenta se elimina después
- * @param model      nulo si el adaptador no tiene un modelo
- * @param inputSize  tamaño de la entrada (caracteres)
- * @param outputSize tamaño de la salida (caracteres)
+ * @param readId              id de la lectura, de la sesión o de cada llamada: clave de idempotencia (se anota una sola
+ *                            vez)
+ * @param userId              la persona; puede quedar nulo si la cuenta se elimina después
+ * @param model               nulo si el adaptador no tiene un modelo
+ * @param inputSize           tamaño de la entrada (caracteres; en voz a texto, milisegundos de audio)
+ * @param outputSize          tamaño de la salida (caracteres; en texto a voz, milisegundos de audio)
+ * @param estimatedCostMicros costo estimado en millonésimas de dólar con los precios de la configuración; nulo si no
+ *                            se estima
  */
 public record AiUsageEvent(UUID readId, UUID userId, AiFunction function, AiLevel level, String adapter, String model,
-		AiUsageOutcome outcome, int inputSize, int outputSize) {
+		AiUsageOutcome outcome, int inputSize, int outputSize, Long estimatedCostMicros) {
 
 	public AiUsageEvent {
 		Objects.requireNonNull(readId, "readId");
@@ -22,6 +25,15 @@ public record AiUsageEvent(UUID readId, UUID userId, AiFunction function, AiLeve
 		Objects.requireNonNull(level, "level");
 		Objects.requireNonNull(adapter, "adapter");
 		Objects.requireNonNull(outcome, "outcome");
+		if (estimatedCostMicros != null && estimatedCostMicros < 0) {
+			throw new IllegalArgumentException("estimatedCostMicros no puede ser negativo");
+		}
+	}
+
+	/** Sin costo estimado (la lectura de CV, spec 009). */
+	public AiUsageEvent(UUID readId, UUID userId, AiFunction function, AiLevel level, String adapter, String model,
+			AiUsageOutcome outcome, int inputSize, int outputSize) {
+		this(readId, userId, function, level, adapter, model, outcome, inputSize, outputSize, null);
 	}
 
 }

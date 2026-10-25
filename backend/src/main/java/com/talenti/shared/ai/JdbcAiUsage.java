@@ -32,9 +32,9 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 	public boolean record(AiUsageEvent event) {
 		return jdbc.sql("""
 				INSERT INTO ai_usage_event (id, occurred_at, user_id, function, level, adapter, model, outcome,
-				                            input_size, output_size, read_id)
+				                            input_size, output_size, read_id, estimated_cost_micros)
 				VALUES (:id, :occurredAt, :userId, :function, :level, :adapter, :model, :outcome,
-				        :inputSize, :outputSize, :readId)
+				        :inputSize, :outputSize, :readId, :cost)
 				ON CONFLICT (read_id) DO NOTHING""")
 				.param("id", UUID.randomUUID())
 				.param("occurredAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
@@ -47,6 +47,7 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 				.param("inputSize", Math.max(0, event.inputSize()))
 				.param("outputSize", Math.max(0, event.outputSize()))
 				.param("readId", event.readId())
+				.param("cost", event.estimatedCostMicros())
 				.update() == 1;
 	}
 
@@ -75,6 +76,20 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 			return new QuotaStatus(QuotaStatus.Block.GLOBAL, used, limit, nextMonth);
 		}
 		return new QuotaStatus(null, used, limit, nextMonth);
+	}
+
+	@Override
+	public boolean monthlySpendReached() {
+		ZonedDateTime now = clock.instant().atZone(limits.zone());
+		Instant monthStart = now.toLocalDate().withDayOfMonth(1).atStartOfDay(limits.zone()).toInstant();
+		Instant nextMonth = now.toLocalDate().withDayOfMonth(1).plusMonths(1).atStartOfDay(limits.zone()).toInstant();
+		Long spent = jdbc.sql("""
+				SELECT coalesce(sum(estimated_cost_micros), 0) FROM ai_usage_event
+				WHERE estimated_cost_micros IS NOT NULL AND occurred_at >= :from AND occurred_at < :until""")
+				.param("from", OffsetDateTime.ofInstant(monthStart, ZoneOffset.UTC))
+				.param("until", OffsetDateTime.ofInstant(nextMonth, ZoneOffset.UTC))
+				.query(Long.class).single();
+		return spent >= limits.monthlySpendMicros();
 	}
 
 	/** Usos completados en la ventana; con {@code userId} nulo, de todas las personas. */

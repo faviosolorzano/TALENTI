@@ -60,14 +60,39 @@ public class ApplicationRepository {
 		addEvent(id, null, ApplicationStatus.SUBMITTED, now);
 	}
 
-	/** Retira la postulación si sigue enviada. Devuelve falso si ya no lo estaba (otro retiro llegó antes). */
-	public boolean withdraw(UUID id, UUID userId, Instant now) {
+	/**
+	 * Retira la postulación si sigue en la etapa {@code from} (una de las que se pueden retirar). Devuelve falso si ya
+	 * no lo estaba (otro cambio llegó antes).
+	 */
+	public boolean withdraw(UUID id, UUID userId, ApplicationStatus from, Instant now) {
+		if (!from.canWithdraw()) {
+			return false;
+		}
 		int updated = jdbc.sql("""
 				UPDATE application SET status = 'WITHDRAWN', withdrawn_at = :now, updated_at = :now
-				WHERE id = :id AND user_id = :userId AND status = 'SUBMITTED'""")
-				.param("id", id).param("userId", userId).param("now", utc(now)).update();
+				WHERE id = :id AND user_id = :userId AND status = :from""")
+				.param("id", id).param("userId", userId).param("from", from.name()).param("now", utc(now)).update();
 		if (updated == 1) {
-			addEvent(id, ApplicationStatus.SUBMITTED, ApplicationStatus.WITHDRAWN, now);
+			addEvent(id, from, ApplicationStatus.WITHDRAWN, now);
+		}
+		return updated == 1;
+	}
+
+	/**
+	 * Cambia la etapa de {@code from} a {@code to} (spec 012: etapas de la entrevista) con su evento de historial.
+	 * Devuelve falso si la postulación no es de la persona o ya no estaba en {@code from}.
+	 */
+	public boolean transition(UUID id, UUID userId, ApplicationStatus from, ApplicationStatus to, Instant now) {
+		if (!from.canMoveTo(to)) {
+			return false;
+		}
+		int updated = jdbc.sql("""
+				UPDATE application SET status = :to, updated_at = :now
+				WHERE id = :id AND user_id = :userId AND status = :from""")
+				.param("id", id).param("userId", userId).param("from", from.name()).param("to", to.name())
+				.param("now", utc(now)).update();
+		if (updated == 1) {
+			addEvent(id, from, to, now);
 		}
 		return updated == 1;
 	}

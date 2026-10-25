@@ -24,6 +24,8 @@ public class ApiException extends RuntimeException {
 
 	private final Map<String, Object> properties;
 
+	private String messageKey;
+
 	public ApiException(HttpStatus status, String code) {
 		this(status, code, List.of(), new HttpHeaders());
 	}
@@ -45,6 +47,21 @@ public class ApiException extends RuntimeException {
 		this.violations = List.copyOf(violations);
 		this.headers = headers;
 		this.properties = new LinkedHashMap<>(properties);
+		this.messageKey = code;
+	}
+
+	/**
+	 * El mismo código estable con otros textos: por ejemplo {@code ai-quota-reached} de la práctica con DORA usa los
+	 * textos de {@code practice-quota-reached}. Devuelve esta misma excepción.
+	 */
+	public ApiException withMessages(String key) {
+		this.messageKey = key;
+		return this;
+	}
+
+	/** Clave de los textos en {@code messages.properties}; por defecto, el código. */
+	public String getMessageKey() {
+		return messageKey;
 	}
 
 	public HttpStatus getStatus() {

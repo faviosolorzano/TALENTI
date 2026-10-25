@@ -148,13 +148,59 @@ talenti:
     openai:
       api-key: ${OPENAI_API_KEY:}           # solo por variable de entorno; nunca en el código
       base-url: https://api.openai.com/v1
+    dora:
+      # DORA por voz (spec 012, 012-31). APAGADA: con false se usan adaptadores simulados y no sale nada hacia
+      # ningún servicio externo. Con true hacen falta OPENAI_API_KEY, los tres modelos y la voz (si no, no arranca).
+      enabled: ${TALENTI_AI_DORA_ENABLED:false}
+      models:
+        dialog: ${TALENTI_AI_DORA_MODELS_DIALOG:}   # conversación (plan, frase puente, retroalimentación); a confirmar
+        stt: ${TALENTI_AI_DORA_MODELS_STT:}         # voz a texto; a confirmar
+        tts: ${TALENTI_AI_DORA_MODELS_TTS:}         # texto a voz; a confirmar
+      voice: ${TALENTI_AI_DORA_VOICE:}              # voz femenina de DORA (D-14); a confirmar
+      prices:
+        # Precios en dólares para ESTIMAR el costo (012-30). A CONFIRMAR con la página de precios del proveedor antes
+        # de la prueba 012-34; no son una factura. Tokens estimados como caracteres / 4.
+        dialog-input-per-million-tokens: ${TALENTI_AI_DORA_PRICE_DIALOG_INPUT:0.15}
+        dialog-output-per-million-tokens: ${TALENTI_AI_DORA_PRICE_DIALOG_OUTPUT:0.60}
+        stt-per-minute: ${TALENTI_AI_DORA_PRICE_STT_MINUTE:0.003}
+        tts-per-million-chars: ${TALENTI_AI_DORA_PRICE_TTS_MILLION_CHARS:15}
     limits:
       per-user-monthly:
         cv-read: 3              # lecturas mejoradas por persona y mes calendario (009-28)
-        # practice-session: lo fija S8 (el plan gratuito de D-10 propone 2)
-      global-daily: 100         # lecturas mejoradas por día entre todos (009-29)
+        practice-session: ${PRACTICE_SESSIONS_PER_MONTH:20}   # sesiones de práctica con DORA por persona y mes (RN-13, duda 2)
+      global-daily: 100         # usos completados por día entre todos, por función (009-29)
       global-monthly: 1500
       zone: America/Lima        # define el día y el mes calendario
+      # Tope del costo ESTIMADO del mes entre todos, en dólares (012-30). Al llegar, DORA se degrada: banco base,
+      # plantillas, solo texto y retroalimentación no disponible. Provisional: lo fija Favio al cargar la clave.
+      monthly-spend: ${TALENTI_AI_LIMITS_MONTHLY_SPEND:5}
+  dora:
+    # DORA (spec 012, sección 5). La fluidez manda: cada paso tiene su tiempo máximo y, al agotarse, se degrada.
+    question-timeout: 8s        # planificar las preguntas con la IA; después, banco base (012-04)
+    bridge-timeout: 1500ms      # primer fragmento de la frase puente; después, plantilla (012-09)
+    bridge-max: 6s              # frase puente completa
+    bridge-max-tokens: 80
+    stt-timeout: 6s             # voz a texto, con un reintento si queda tiempo (012-11)
+    tts-timeout: 4s             # cada síntesis de voz (012-11)
+    feedback-timeout: 15s       # retroalimentación (012-19)
+    max-audio-bytes: 3MB        # audio de un turno (012-07); nginx admite 4 MB en /api/v1/dora/
+    max-audio: 120s
+    max-transcript: 4000
+    inactivity-timeout: 15m     # sin actividad, la sesión se cierra (012-14)
+    sweep-interval: PT1M
+    retry-per-question: 1       # repetir la última respuesta en la práctica (duda 11)
+    turns-per-minute: 30        # por persona (012-32)
+    max-questions: 5            # RN-09
+    rubric-weights:             # total de la retroalimentación (deben sumar 100)
+      "[TECHNICAL_ACCURACY]": 25
+      "[CLARITY]": 25
+      "[STRUCTURE]": 25
+      "[EXAMPLES]": 25
+    interview:
+      enabled: true             # entrevista evaluada para postulaciones enviadas (duda 9)
+      max-attempts: 2           # intentos tras desconexión o falla (duda 10)
+      question-count: 5
+      notice-version: v1        # classpath:practice/interview-notice-v1.md (borrador, revisión legal pendiente)
   demo-data:
     # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
     # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.
