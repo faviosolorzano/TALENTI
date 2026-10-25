@@ -29,20 +29,6 @@
   }
 }
 
-.skeleton--avatar {
-  flex: none;
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  border-radius: var(--radius-button);
-}
-
-.skeleton--avatar-sm {
-  flex: none;
-  width: var(--avatar-size-sm);
-  height: var(--avatar-size-sm);
-  border-radius: var(--radius-button);
-}
-
 .skeleton--title {
   width: 70%;
   height: var(--space-6);
@@ -80,21 +66,6 @@
   display: grid;
   flex: 1;
   gap: var(--space-3);
-}
-
-.company-skeletons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--company-item-min-width), 1fr));
-  gap: var(--space-4);
-}
-
-.company-skeletons__item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .vacancy-detail-skeleton {

@@ -54,6 +54,17 @@
   border-color: var(--color-text);
 }
 
+/* Plain: text only, no fill and no border. Still 44 px tall. */
+.btn--plain {
+  padding-inline: var(--space-3);
+  background: transparent;
+  color: var(--color-link);
+}
+
+.btn--plain:hover {
+  background: var(--color-bg-tint);
+}
+
 /* Quiet on a navy background */
 .btn--quiet.btn--on-dark {
   color: var(--color-text-inverse);

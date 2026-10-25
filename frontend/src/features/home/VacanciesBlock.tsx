@@ -13,7 +13,6 @@ import { ApiError } from '../../api/client'
 import { CompatibilityBadge } from '../compatibility/CompatibilityBadge'
 import { sectionPath } from '../profile/sections'
 import { FOR_YOU_SEARCH } from '../vacancies/OpportunitiesIntro'
-import { CompanyAvatar } from '../vacancies/CompanyAvatar'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import '../vacancies/Skeletons.css'
 import { HomeBlock } from './HomeBlock'
@@ -71,7 +70,6 @@ export function VacanciesBlock() {
           </p>
           {Array.from({ length: HOME_VACANCIES }, (_, index) => (
             <div key={index} className="home-vacancy home-vacancy--skeleton" aria-hidden="true">
-              <span className="skeleton skeleton--avatar-sm" />
               <span className="home-vacancy__lines">
                 <span className="skeleton skeleton--line" />
                 <span className="skeleton skeleton--line skeleton--short" />
@@ -101,7 +99,6 @@ export function VacanciesBlock() {
           <ul className="home-vacancies" aria-label={featured ? t.listLabel : t.forYouListLabel}>
             {tiles.map(({ vacancy, compatibility }) => (
               <li key={vacancy.id} className="home-vacancy">
-                <CompanyAvatar name={vacancy.company.name} size="sm" />
                 <div className="home-vacancy__body">
                   <h3 className="home-vacancy__title">
                     <Link

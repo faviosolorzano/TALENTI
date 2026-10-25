@@ -8,173 +8,140 @@
 }
 
 .header[data-scrolled] {
-  border-bottom-color: var(--color-border);
+  border-bottom-color: var(--color-separator);
 }
 
-/* Phone and tablet: logo, "Crear cuenta" and the menu button. */
+/* One row at every width: nothing folds into a menu (011-07). */
 .header__bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
+  gap: 0;
   min-height: var(--header-height);
 }
 
 .header__brand {
-  display: block;
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  margin-right: auto;
   border-radius: var(--radius-xs);
 }
 
+.header__nav,
 .header__actions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin-left: auto;
-}
-
-.header__login {
-  display: none;
-}
-
-.header__menu-button {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch-target-min);
-  padding: var(--space-2) var(--space-4);
-  border: var(--border-width-strong) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-text);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-ui);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-none);
-  cursor: pointer;
-}
-
-/* Folded menu: a panel under the bar, closed unless the button opened it. */
-.header__menu {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  padding: var(--space-3) var(--page-gutter) var(--space-5);
-  border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-bg);
-}
-
-.header__menu[data-open='true'] {
-  display: block;
 }
 
 .header__list {
-  display: grid;
-  margin: 0 auto;
+  display: flex;
+  margin: 0;
   padding: 0;
-  max-width: var(--content-max-width);
   list-style: none;
 }
 
+.header__actions {
+  gap: 0;
+}
+
+/* Text links: no fill, no pill. The current page is marked by its color and by aria-current. */
 .header__link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   min-height: var(--touch-target-min);
-  padding: var(--space-3) var(--space-2);
-  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-xs);
   color: var(--color-text-muted);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-ui);
   font-weight: var(--font-weight-nav);
-  text-decoration: none;
-  transition:
-    color var(--duration-base),
-    background-color var(--duration-base);
-}
-
-.header__link:hover {
-  background: var(--color-bg-tint);
-  color: var(--color-text);
-}
-
-.header__link[aria-current='page'] {
-  background: var(--color-bg-tint);
-  color: var(--color-text);
-}
-
-/* An entry that is not available yet: drawn quiet, with its tag, and it goes nowhere */
-.header__link--soon {
-  gap: var(--space-2);
-  cursor: not-allowed;
-}
-
-.header__link--soon:hover {
-  background: none;
-  color: var(--color-text-muted);
-}
-
-.header__soon {
-  padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--tracking-tag);
   line-height: var(--line-height-none);
+  text-decoration: none;
   white-space: nowrap;
+  transition: color var(--duration-base);
 }
 
-/* Wide: the menu opens up into a row and "Ingresar" becomes a button on the right. */
-@media (min-width: 53.75rem) {
-  .header__bar {
-    gap: var(--space-7);
-  }
-
-  .header__menu-button,
-  .header__list-login {
-    display: none;
-  }
-
-  .header__login {
-    display: inline-flex;
-  }
-
-  .header__menu {
-    position: static;
-    display: block;
-    margin-left: var(--space-3);
-    padding: 0;
-    border: 0;
-    background: none;
-  }
-
-  .header__list {
-    display: flex;
-    gap: var(--space-1);
-    margin: 0;
-  }
-
-  .header__link {
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--font-size-base);
-  }
+.header__link:hover,
+.header__link[aria-current='page'] {
+  color: var(--color-text);
 }
 
-/* "Cerrar sesión" inside the folded menu: a button that looks like the links around it */
+/* "Crear cuenta": the brand blue as text, never a filled button (011-01). */
+.header__link--accent,
+.header__link--accent:hover,
+.header__link--accent[aria-current='page'] {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+.header__link--accent:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 .header__link--button {
   appearance: none;
-  width: 100%;
   border: 0;
   background: none;
   font-family: var(--font-family-base);
-  text-align: left;
   cursor: pointer;
 }
 
 .header__link--button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* A student under 860 px signs out from the last row of Mi perfil (011-06). */
+.header__actions[data-student] .header__logout {
+  display: none;
+}
+
+@media (min-width: 32.5rem) {
+  .header__bar {
+    gap: 0 var(--space-2);
+  }
+
+  .header__link {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-md);
+  }
+}
+
+@media (min-width: 53.75rem) {
+  .header__bar {
+    gap: 0 var(--space-6);
+  }
+
+  /* The sections sit next to the logo; the account actions go to the right. */
+  .header__brand {
+    margin-right: 0;
+  }
+
+  .header__actions {
+    margin-left: auto;
+  }
+
+  .header__actions[data-student] .header__logout {
+    display: inline-flex;
+  }
+
+  /* The current section: the same short line as the student links (TabBar.css). */
+  .header__nav .header__link {
+    position: relative;
+  }
+
+  .header__nav .header__link[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    right: var(--space-3);
+    bottom: 0;
+    left: var(--space-3);
+    height: var(--border-width-strong);
+    border-radius: var(--radius-full);
+    background: var(--color-action);
+  }
 }
 
 /* A line under the bar: the session could not be checked, or signing out failed */

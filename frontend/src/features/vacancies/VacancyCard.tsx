@@ -4,7 +4,6 @@ import type { VacancyCardData } from '../../api/vacancies'
 import { Card } from '../../components/Card'
 import { es } from '../../i18n/es'
 import { CompatibilityBadge } from '../compatibility/CompatibilityBadge'
-import { CompanyAvatar } from './CompanyAvatar'
 import { publishedLabel } from './format'
 import './VacancyCard.css'
 
@@ -30,7 +29,6 @@ export function VacancyCard({ vacancy, from, compatibility }: VacancyCardProps) 
 
   return (
     <Card as="article" className="vacancy-card">
-      <CompanyAvatar name={vacancy.company.name} />
       <div className="vacancy-card__body">
         <h3 className="vacancy-card__title">
           <Link

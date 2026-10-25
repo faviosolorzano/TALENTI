@@ -48,7 +48,20 @@
   order: 3;
 }
 
-/* The announcements (CV, GitHub) travel together after the cards */
+/* "Cerrar sesión": always the last row of the profile (011-06) */
+.profile__account {
+  order: 4;
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.profile__account-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}
+
 .profile__soon {
   display: grid;
   gap: var(--space-4);
@@ -89,5 +102,12 @@
     grid-column: 1;
     grid-row: 1;
     order: 0;
+  }
+
+  .profile__account {
+    grid-column: 1;
+    grid-row: 2;
+    order: 0;
+    margin-top: 0;
   }
 }

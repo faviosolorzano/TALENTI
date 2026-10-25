@@ -1,29 +1,34 @@
-/* The page scrolls with room for the notice at the bottom (set by CookieBanner.tsx). */
+/* The page scrolls with room for the notice and the bottom bars (set by CookieBanner.tsx and
+   Layout.css), so a focused element is never left behind them. */
 html {
-  scroll-padding-bottom: var(--cookie-banner-space, 0);
+  scroll-padding-bottom: calc(var(--cookie-banner-space, 0px) + var(--bottom-bars, 0px));
 }
 
-/* Not a modal: it sticks to the bottom edge while it is on screen and, at the end of the page,
-   rests right above the footer. */
+/* Not a modal: it sticks to the bottom edge (above the tab bar) while it is on screen and, at
+   the end of the page, rests right above the footer. */
 .cookie-banner {
   position: sticky;
-  bottom: 0;
+  bottom: var(--bottom-bars, 0px);
   z-index: var(--z-cookie-banner);
   max-height: var(--cookie-banner-max-height);
   overflow-y: auto;
-  border-top: var(--border-width) solid var(--color-border);
+  border-top: var(--border-width) solid var(--color-separator);
   background: var(--color-bg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .cookie-banner__inner {
-  display: grid;
-  gap: var(--space-3);
-  padding-block: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-block: var(--space-3);
 }
 
 .cookie-banner__text {
-  font-size: var(--font-size-ui);
+  flex: 1 1 var(--notice-message-basis);
+  font-size: var(--font-size-sm);
   line-height: var(--line-height-snug);
 }
 
@@ -33,46 +38,17 @@ html {
   text-underline-offset: 0.2em;
 }
 
-/* Aceptar and Rechazar share the row and are identical; Configurar goes below on phones. */
+/* Aceptar and Rechazar share the row and are identical (002-12). */
 .cookie-banner__actions {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-2) var(--space-3);
-}
-
-.cookie-banner__configure {
-  appearance: none;
-  grid-column: 1 / -1;
-  min-height: var(--touch-target-min);
-  padding: var(--space-2) var(--space-4);
-  border: 0;
-  border-radius: var(--radius-button);
-  background: none;
-  color: var(--color-link);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-  cursor: pointer;
-}
-
-.cookie-banner__configure:hover {
-  color: var(--color-action-hover);
+  gap: var(--space-2);
 }
 
 @media (min-width: 48rem) {
-  .cookie-banner__inner {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: var(--space-6);
-  }
-
   .cookie-banner__actions {
-    grid-template-columns: repeat(3, auto);
-  }
-
-  .cookie-banner__configure {
-    grid-column: auto;
+    flex: 0 0 auto;
+    grid-template-columns: repeat(2, auto);
   }
 }

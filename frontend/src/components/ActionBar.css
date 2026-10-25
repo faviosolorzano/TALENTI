@@ -1,0 +1,41 @@
+/* Phones and tablets: fixed at the bottom, above the tab bar (--tabbar-space, Layout.css). */
+.action-bar {
+  position: fixed;
+  right: 0;
+  bottom: var(--tabbar-space, 0px);
+  left: 0;
+  z-index: var(--z-action-bar);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--page-gutter);
+  border-top: var(--border-width) solid var(--color-separator);
+  background: var(--color-bg);
+}
+
+/* The main action takes the width it needs to be easy to reach with a thumb. */
+.action-bar > .btn--primary {
+  flex: 1 1 auto;
+}
+
+/* While a field has the focus (the keyboard is open), the bar goes back into the page so it
+   never covers what the person is typing. */
+.layout:has(:is(input, textarea, select):focus) .action-bar {
+  position: static;
+  padding-inline: 0;
+  border-top: 0;
+}
+
+@media (min-width: 53.75rem) {
+  .action-bar {
+    position: static;
+    padding: 0;
+    border-top: 0;
+    background: none;
+  }
+
+  .action-bar > .btn--primary {
+    flex: 0 0 auto;
+  }
+}

@@ -1,5 +1,4 @@
 import { Link } from 'react-router'
-import { BrandMark } from '../../components/BrandMark'
 import { Button } from '../../components/Button'
 import { es } from '../../i18n/es'
 import { CompatibilityCard } from './CompatibilityCard'
@@ -9,7 +8,6 @@ import './Hero.css'
 export function Hero() {
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <BrandMark />
       <div className="container hero__grid">
         <div>
           <h1 id="hero-title" className="hero__title">

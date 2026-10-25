@@ -6,7 +6,6 @@ import './Skeletons.css'
 export function VacancyCardSkeleton() {
   return (
     <Card as="div" className="vacancy-skeleton" aria-hidden="true">
-      <span className="skeleton skeleton--avatar" />
       <div className="vacancy-skeleton__body">
         <span className="skeleton skeleton--title" />
         <span className="skeleton skeleton--line" />
@@ -28,21 +27,6 @@ export function VacancyListSkeleton({ count, className }: SkeletonListProps) {
       <span className="visually-hidden">{es.vacancies.loadingLabel}</span>
       {Array.from({ length: count }, (_, index) => (
         <VacancyCardSkeleton key={index} />
-      ))}
-    </div>
-  )
-}
-
-/** Placeholder for the companies strip. */
-export function CompanySkeletons({ count }: { count: number }) {
-  return (
-    <div className="company-skeletons" aria-busy="true">
-      <span className="visually-hidden">{es.vacancies.loadingLabel}</span>
-      {Array.from({ length: count }, (_, index) => (
-        <div className="company-skeletons__item" key={index} aria-hidden="true">
-          <span className="skeleton skeleton--avatar-sm" />
-          <span className="skeleton skeleton--line" />
-        </div>
       ))}
     </div>
   )

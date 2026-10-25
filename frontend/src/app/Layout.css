@@ -31,3 +31,25 @@
   flex: 1;
   width: 100%;
 }
+
+/* Room at the bottom for the bars fixed there under 860 px (spec 011): the tab bar of a student
+   and the action bar of a screen. Nothing on the page stays hidden behind them (011-06). */
+:root:has(.tabbar) {
+  --tabbar-space: calc(var(--tabbar-height) + var(--safe-area-bottom));
+}
+
+:root {
+  --bottom-bars: calc(var(--tabbar-space, 0px) + var(--action-bar-space, 0px));
+}
+
+@media (min-width: 53.75rem) {
+  :root,
+  :root:has(.tabbar) {
+    --tabbar-space: 0px;
+    --bottom-bars: 0px;
+  }
+}
+
+.layout {
+  padding-bottom: var(--bottom-bars);
+}

@@ -1,0 +1,109 @@
+.grouped__title {
+  margin-bottom: var(--space-2);
+  padding-inline: var(--list-row-padding-x);
+  color: var(--color-text-muted);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
+  line-height: var(--line-height-snug);
+}
+
+/* One surface: a soft border and rows separated by a hairline, no shadow. */
+.grouped__list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-separator);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  list-style: none;
+}
+
+.list-row + .list-row {
+  border-top: var(--border-width) solid var(--color-separator);
+}
+
+.list-row__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--list-row-padding-y) var(--list-row-padding-x);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  text-align: left;
+  text-decoration: none;
+}
+
+/* A row that is a link or a button: the whole row reacts. */
+.list-row__inner--target {
+  appearance: none;
+  border: 0;
+  background: none;
+  font-family: var(--font-family-base);
+  cursor: pointer;
+  transition: background-color var(--duration-base);
+}
+
+.list-row__inner--target:hover {
+  background: var(--color-bg-subtle);
+}
+
+.list-row__inner--target:focus-visible {
+  outline-offset: calc(-1 * var(--focus-ring-width));
+  border-radius: var(--radius-md);
+}
+
+.list-row__inner--target:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.list-row__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.list-row__title {
+  overflow-wrap: anywhere;
+}
+
+.list-row__detail {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.list-row__trailing {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.list-row__chevron {
+  flex: none;
+  width: var(--space-4);
+  height: var(--space-4);
+  fill: none;
+  stroke: var(--color-neutral-400);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A row that is an action ("Cerrar sesión"): the text carries the color, the row stays calm. */
+.list-row[data-tone='action'] .list-row__title {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+.list-row[data-tone='danger'] .list-row__title {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}

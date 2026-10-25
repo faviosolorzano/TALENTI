@@ -10,13 +10,15 @@ import './CookieBanner.css'
 const SPACE_VARIABLE = '--cookie-banner-space'
 
 /**
- * Cookie notice (002-11 to 002-13, 002-15). It is not a modal: no layer, no focus trap. It
- * sticks to the bottom edge of the window while it is on screen, and its place in the page is
- * right before the footer, so the footer stays reachable. "Aceptar" and "Rechazar" are the same
- * button in size and style, one click each. Which categories exist comes from the catalog.
+ * Cookie notice (002-11 to 002-13, 002-15, 011-08). It is not a modal: no layer, no focus trap.
+ * It sticks to the bottom edge of the window (above the tab bar of a student) while it is on
+ * screen, takes at most a fifth of its height, and its place in the page is right before the
+ * footer, so the footer stays reachable. One line of text and "Aceptar" and "Rechazar", the same
+ * button in size and style, one click each. The preferences open from "Cookies" in the footer.
+ * Which categories exist comes from the catalog.
  */
 export function CookieBanner() {
-  const { catalog, consent, acceptAll, rejectOptional, openPanel } = useCookieConsent()
+  const { catalog, consent, acceptAll, rejectOptional } = useCookieConsent()
   const bannerRef = useRef<HTMLElement>(null)
   const visible = consent === null
 
@@ -54,19 +56,12 @@ export function CookieBanner() {
           </p>
         </div>
         <div className="cookie-banner__actions">
-          <Button variant="quiet" onClick={acceptAll}>
+          <Button variant="quiet" size="sm" onClick={acceptAll}>
             {es.cookies.banner.accept}
           </Button>
-          <Button variant="quiet" onClick={rejectOptional}>
+          <Button variant="quiet" size="sm" onClick={rejectOptional}>
             {es.cookies.banner.reject}
           </Button>
-          <button
-            type="button"
-            className="cookie-banner__configure"
-            onClick={(event) => openPanel(event.currentTarget)}
-          >
-            {es.cookies.banner.configure}
-          </button>
         </div>
       </div>
     </section>

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { BrandMark } from '../../components/BrandMark'
 import { Card } from '../../components/Card'
 import { es } from '../../i18n/es'
 import './AuthLayout.css'
@@ -30,7 +29,6 @@ export function AuthLayout({ title, lead, aside = true, children }: AuthLayoutPr
 
         {aside && (
           <aside className="auth__aside" aria-label={es.identity.aside.title}>
-            <BrandMark />
             <p className="auth__aside-title">{es.identity.aside.title}</p>
             <p>{es.identity.aside.body}</p>
             <p className="auth__aside-note">{es.identity.aside.privacy}</p>

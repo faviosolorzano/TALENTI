@@ -4,10 +4,12 @@ import './Button.css'
 
 type CommonProps = {
   /**
-   * `primary` is the single main action of a screen; `quiet` is the outlined, discreet one;
-   * `danger` confirms something that cannot be undone.
+   * `primary` is the single main action of a screen (exactly one per screen, never in the
+   * header, the footer or the cookie notice: 011-01); `quiet` is the outlined, discreet one;
+   * `plain` is text only, with no fill and no border (Cancelar, Ver vacantes); `danger`
+   * confirms something that cannot be undone.
    */
-  variant?: 'primary' | 'quiet' | 'danger'
+  variant?: 'primary' | 'quiet' | 'plain' | 'danger'
   size?: 'md' | 'sm'
   /** Colors for a navy background (only meaningful for `quiet`). */
   onDark?: boolean

@@ -167,8 +167,8 @@ export function AcceptDocumentsPage() {
             <ul className="accept__links">
               {(
                 [
-                  [LEGAL_PATHS.terms, es.footer.terms],
-                  [LEGAL_PATHS.privacy, es.footer.privacy],
+                  [LEGAL_PATHS.terms, es.legal.fallbackTitles.terms],
+                  [LEGAL_PATHS.privacy, es.legal.fallbackTitles.privacy],
                 ] as const
               ).map(([to, label]) => (
                 <li key={to}>
