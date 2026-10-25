@@ -205,6 +205,36 @@ talenti:
       max-attempts: 2           # intentos tras desconexión o falla (duda 10)
       question-count: 5
       notice-version: v1        # classpath:practice/interview-notice-v1.md (borrador, revisión legal pendiente)
+  github:
+    # GitHub (spec 013, sección 5). Ninguna clave vive aquí: llegan solo por variables de entorno (vacías por defecto).
+    base-url: https://api.github.com
+    api-version: "2022-11-28"   # cabecera X-GitHub-Api-Version (revisar en la documentación de GitHub al cambiarla)
+    token: ${GITHUB_TOKEN:}     # clave de servidor OPCIONAL (sube el límite de la API pública); vacía = sin autenticación
+    include-forks: false        # los forks no se muestran (duda 2)
+    max-pages: 1                # páginas de 100 repositorios (los 100 más recientes)
+    max-selected: 6             # repositorios que se pueden elegir
+    min-language-share: 10      # % mínimo de un lenguaje en un repositorio elegido para sugerirlo
+    cache-ttl: 24h              # vigencia de lo leído de GitHub
+    refresh-interval: 10m       # "actualizar" como máximo una vez cada 10 minutos por persona
+    reserve-calls: 5            # con estas llamadas restantes o menos, no se llama más hasta el reinicio del límite
+    connect-timeout: 3s
+    read-timeout: 5s
+    requests-per-minute: 30     # límite general por persona en /github
+    zone: America/Lima          # para decir la hora de reintento
+    technology-map: classpath:github/technology-map.properties
+    oauth:
+      # Inicio de sesión con GitHub (OAuth App, sin scope; el token NO se guarda). APAGADO por defecto. Para encenderlo:
+      # TALENTI_GITHUB_OAUTH_ENABLED=true, GITHUB_CLIENT_ID y GITHUB_CLIENT_SECRET (solo en el .env). Encendido sin
+      # alguna de ellas, el arranque falla y dice cuál falta.
+      enabled: ${TALENTI_GITHUB_OAUTH_ENABLED:false}
+      client-id: ${GITHUB_CLIENT_ID:}
+      client-secret: ${GITHUB_CLIENT_SECRET:}
+      base-url: https://github.com
+      # Debe ser igual a la "Authorization callback URL" de la OAuth App.
+      redirect-uri: ${TALENTI_GITHUB_OAUTH_REDIRECT_URI:http://localhost:3000/api/v1/github/oauth/callback}
+      # Página del frontend a la que se vuelve con ?github=linked o ?github=error&code=...
+      return-url: ${TALENTI_GITHUB_OAUTH_RETURN_URL:http://localhost:3000/perfil}
+      state-ttl: 10m
   demo-data:
     # DATOS DE EJEMPLO FICTICIOS (spec 004): 8 empresas y 12 vacantes de programación, sin marcas reales ni logos.
     # Encendida = un segundo Flyway (historial flyway_schema_history_demo) carga también classpath:db/demo.

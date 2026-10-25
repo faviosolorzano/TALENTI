@@ -154,24 +154,64 @@ public class ProfileRepository {
 				.param("modalities", modalities).param("location", data.location()).param("userId", userId).update();
 	}
 
-	/** Reemplaza TODAS las habilidades de la persona (006-06), siempre como declaradas. */
+	/**
+	 * Reemplaza TODAS las habilidades de la persona (006-06): quita las que no vienen y agrega o actualiza las demás.
+	 * Las que ya estaban conservan su evidencia (013-13); las nuevas nacen declaradas.
+	 */
 	public void replaceSkills(UUID userId, List<ProfileRules.SkillData> skills) {
-		jdbc.sql("DELETE FROM student_skill WHERE user_id = :userId").param("userId", userId).update();
+		String[] keep = skills.stream().map(skill -> skill.skillId().toString()).toArray(String[]::new);
+		jdbc.sql("DELETE FROM student_skill WHERE user_id = :userId AND NOT (skill_id = ANY (CAST(:keep AS uuid[])))")
+				.param("userId", userId).param("keep", keep).update();
 		upsertSkills(userId, skills);
 	}
 
-	/** Agrega las habilidades que faltan y actualiza el nivel de las que ya están (siempre como declaradas). */
+	/**
+	 * Agrega las habilidades que faltan (declaradas) y actualiza el nivel de las que ya están, sin tocar su evidencia
+	 * (013-13: lo visto en GitHub no se pierde al editar el nivel).
+	 */
 	public void upsertSkills(UUID userId, List<ProfileRules.SkillData> skills) {
 		for (ProfileRules.SkillData skill : skills) {
 			jdbc.sql("""
 					INSERT INTO student_skill (user_id, skill_id, level, evidence)
 					VALUES (:userId, :skillId, :level, 'DECLARED')
 					ON CONFLICT (user_id, skill_id)
-					DO UPDATE SET level = EXCLUDED.level, evidence = 'DECLARED', updated_at = now()""")
+					DO UPDATE SET level = EXCLUDED.level, updated_at = now()""")
 					.param("userId", userId).param("skillId", skill.skillId()).param("level", skill.level(),
 							java.sql.Types.SMALLINT)
 					.update();
 		}
+	}
+
+	/** Una habilidad confirmada desde GitHub (013-12): nivel y evidencia ya decididos por el servicio. */
+	public record ObservedRow(UUID skillId, int level, SkillEvidence evidence) {
+
+		@Override
+		public String toString() {
+			return "ObservedRow[...]";
+		}
+
+	}
+
+	/** Agrega o actualiza habilidades con la evidencia dada (013-12). Antes hay que llamar a {@link #touch}. */
+	public void saveObserved(UUID userId, List<ObservedRow> rows) {
+		for (ObservedRow row : rows) {
+			jdbc.sql("""
+					INSERT INTO student_skill (user_id, skill_id, level, evidence)
+					VALUES (:userId, :skillId, :level, :evidence)
+					ON CONFLICT (user_id, skill_id)
+					DO UPDATE SET level = EXCLUDED.level, evidence = EXCLUDED.evidence, updated_at = now()""")
+					.param("userId", userId).param("skillId", row.skillId())
+					.param("level", row.level(), java.sql.Types.SMALLINT).param("evidence", row.evidence().name())
+					.update();
+		}
+	}
+
+	/** 013-15: lo visto en GitHub pasa a declarado. */
+	public void downgradeObserved(UUID userId) {
+		jdbc.sql("""
+				UPDATE student_skill SET evidence = 'DECLARED', updated_at = now()
+				WHERE user_id = :userId AND evidence = 'OBSERVED'""")
+				.param("userId", userId).update();
 	}
 
 	public UUID insertProject(UUID userId, ProfileRules.ProjectData project) {

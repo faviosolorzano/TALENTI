@@ -20,8 +20,19 @@ public record ProfileSnapshot(List<Skill> skills, Integer hoursPerWeek, Set<Work
 		projects = List.copyOf(projects);
 	}
 
-	/** Una habilidad del catálogo con su nivel (1 básico, 2 intermedio, 3 avanzado). */
-	public record Skill(String slug, int level) {
+	/**
+	 * Una habilidad del catálogo con su nivel (1 básico, 2 intermedio, 3 avanzado) y de dónde sale (RN-03). La
+	 * evidencia se muestra pero no suma puntos: una {@code OBSERVED} cuenta igual que una {@code DECLARED} (013-14).
+	 */
+	public record Skill(String slug, int level, SkillEvidence evidence) {
+
+		public Skill {
+			evidence = evidence == null ? SkillEvidence.DECLARED : evidence;
+		}
+
+		public Skill(String slug, int level) {
+			this(slug, level, SkillEvidence.DECLARED);
+		}
 
 		@Override
 		public String toString() {

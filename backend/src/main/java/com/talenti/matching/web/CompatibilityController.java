@@ -36,7 +36,7 @@ class CompatibilityController {
 		Detail detail = compatibility.forVacancy(user.id(), vacancyId);
 		UUID id = detail.evaluated().vacancy().id();
 		return Responses.Compatibility.of(id, detail.evaluated().result(), detail.explanation(),
-				compatibility.calculator().parameters());
+				compatibility.calculator().parameters(), detail.evidence());
 	}
 
 	@GetMapping("/recommended")

@@ -79,7 +79,7 @@ public record CompatibilityResult(Status status, List<Reason> reasons, Integer p
 	public sealed interface Item permits RequirementItem, ConditionItem, ProfileItem {
 	}
 
-	/** Un requisito con su evidencia: la fuente del nivel es siempre {@code DECLARED} en el E2 (RN-03). */
+	/** Un requisito del cálculo. La fuente del nivel (RN-03) la agrega la respuesta: no entra en el cálculo (013-14). */
 	public record RequirementItem(String slug, String name, RequirementKind kind, int requiredLevel,
 			Integer profileLevel, Outcome outcome) implements Item {
 	}
