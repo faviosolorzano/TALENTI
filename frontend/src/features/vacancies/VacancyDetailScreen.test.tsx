@@ -37,31 +37,14 @@ describe('Page /oportunidades/:id (004-21)', () => {
     await waitFor(() => expect(document.title).toBe(`Practicante Backend Java · ${es.app.name}`))
   })
 
-  it('has a disabled "Ver perfil de la empresa" button described by "Próximamente" (004-34)', async () => {
+  it('011-02: has no "Ver perfil de la empresa" entry, no "Próximamente" and no company avatar', async () => {
     mockBackend()
-    const { router } = renderApp(`/oportunidades/${FIRST}`)
+    renderApp(`/oportunidades/${FIRST}`)
     await title()
 
-    const button = screen.getByRole('button', { name: es.vacancyDetail.companyProfile })
-    expect(button).toHaveAttribute('aria-disabled', 'true')
-    expect(button).toHaveAccessibleDescription(es.vacancyDetail.companyProfileSoon)
-    expect(
-      within(button.parentElement as HTMLElement).getByText(es.vacancyDetail.companyProfileSoon),
-    ).toBeVisible()
-    // It is not a link: no address and nothing broken to follow.
-    expect(button.tagName).toBe('BUTTON')
-    expect(button).not.toHaveAttribute('href')
-    expect(
-      screen.queryByRole('link', { name: es.vacancyDetail.companyProfile }),
-    ).not.toBeInTheDocument()
-
-    const path = router.state.location.pathname
-    await userEvent.click(button)
-    button.focus()
-    await userEvent.keyboard('{Enter}')
-    await userEvent.keyboard(' ')
-    expect(router.state.location.pathname).toBe(path)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ver perfil de la empresa')).toBeNull()
+    expect(screen.queryByText('Próximamente')).toBeNull()
+    expect(document.querySelector('.company-avatar')).toBeNull()
   })
 
   it('separates "Obligatorios" and "Deseables", each with a badge and the minimum level in words', async () => {
@@ -127,7 +110,7 @@ describe('Page /oportunidades/:id (004-21)', () => {
       'Entrevista',
       'Revisión de la empresa',
     ])
-    expect(within(process).getAllByText(es.applications.stages.soon)).toHaveLength(3)
+    expect(within(process).queryByText('Próximamente')).toBeNull()
     expect(process).toHaveTextContent('La decisión final es de la empresa')
     expect(within(process).queryByRole('button')).not.toBeInTheDocument()
     expect(within(process).queryByRole('link')).not.toBeInTheDocument()
@@ -259,9 +242,9 @@ describe('Detail states and "Volver" (004-23)', () => {
   })
 })
 
-describe('Header: Oportunidades (004-24)', () => {
+describe('Header: Vacantes (004-24, spec 011)', () => {
   it.each(['/oportunidades', `/oportunidades/${FIRST}`])(
-    'marks "Oportunidades" as the current section in %s',
+    'marks "Vacantes" as the current section in %s',
     async (path) => {
       mockBackend()
       renderApp(path)
@@ -270,27 +253,17 @@ describe('Header: Oportunidades (004-24)', () => {
         'aria-current',
         'page',
       )
-      expect(within(nav).getByRole('link', { name: es.nav.home })).not.toHaveAttribute(
-        'aria-current',
-      )
     },
   )
 
-  it('lists Inicio, Oportunidades, Cómo funciona and DORA in that order, also in the folded menu', async () => {
+  it('"Vacantes" in the header opens the list, whose title is "Vacantes" (the address stays /oportunidades)', async () => {
     mockBackend()
-    renderApp('/')
+    const { router } = renderApp('/')
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    expect(
-      within(nav)
-        .getAllByRole('link')
-        .map((link) => link.textContent)
-        .slice(0, 4),
-    ).toEqual([es.nav.home, es.nav.opportunities, es.nav.how, es.nav.dora])
 
-    await userEvent.click(screen.getByRole('button', { name: es.nav.menu }))
     await userEvent.click(within(nav).getByRole('link', { name: es.nav.opportunities }))
-    expect(
-      await screen.findByRole('heading', { level: 1, name: es.opportunities.title }),
-    ).toBeInTheDocument()
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Vacantes' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/oportunidades')
   })
 })

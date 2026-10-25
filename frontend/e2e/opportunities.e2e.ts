@@ -54,13 +54,9 @@ test.describe('Home page (004-15, 004-16)', () => {
     await expect(featured.getByRole('heading', { level: 2 })).toContainText('12 vacantes abiertas')
     // The "made-up companies" note lives only in the footer, once.
     await expect(featured.getByText(/ficticias/)).toHaveCount(0)
+    await expect(page.getByText('Empresas y vacantes de ejemplo')).toHaveCount(1)
     await expect(
-      page.getByText('Las empresas y vacantes de Talenti son ficticias y de ejemplo.'),
-    ).toHaveCount(1)
-    await expect(
-      page
-        .getByRole('contentinfo')
-        .getByText('Las empresas y vacantes de Talenti son ficticias y de ejemplo.'),
+      page.getByRole('contentinfo').getByText('Empresas y vacantes de ejemplo'),
     ).toBeVisible()
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
 
@@ -70,53 +66,41 @@ test.describe('Home page (004-15, 004-16)', () => {
       return {
         card: top('#compatibilidad-card'),
         featured: top('.featured'),
-        companies: top('.companies'),
         how: top('#como-funciona'),
         dora: top('#dora'),
       }
     })
     expect(order.card).toBeLessThan(order.featured)
-    expect(order.featured).toBeLessThan(order.companies)
-    expect(order.companies).toBeLessThan(order.how)
+    expect(order.featured).toBeLessThan(order.how)
     expect(order.how).toBeLessThan(order.dora)
   })
 
-  test('the strip of companies leads to the list searched by the company name', async ({
+  test('draws no strip of companies and loads no image but the brand (spec 011)', async ({
     page,
   }) => {
-    await page.goto('/')
-    const strip = page.getByRole('region', { name: 'Empresas que buscan talento' })
-    await expect(strip.getByRole('link')).toHaveCount(4)
-    await strip.getByRole('link').first().click()
-    await expect(page).toHaveURL(/\/oportunidades\?q=/)
-    const count = await loadedCount(page)
-    expect(count).toBeGreaterThanOrEqual(1)
-    await expect(page.getByRole('textbox', { name: '¿Qué sabes hacer?' })).not.toHaveValue('')
-  })
-
-  test('loads no image for the companies (no third party, no logo)', async ({ page }) => {
     const images: string[] = []
     page.on('request', (request) => {
       if (request.resourceType() === 'image') images.push(request.url())
     })
     await page.goto('/')
-    await expect(page.getByRole('region', { name: 'Empresas que buscan talento' })).toBeVisible()
+    await expect(page.getByRole('region', { name: /Vacantes destacadas/ })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Empresas que buscan talento' })).toHaveCount(0)
     expect(images.filter((url) => !new URL(url).pathname.startsWith('/brand/'))).toEqual([])
   })
 })
 
 test.describe('Main journey (004-17 to 004-22)', () => {
-  test('home, Oportunidades, search "JS", filter, paginate, detail and "Postular" with returnTo', async ({
+  test('home, Vacantes, search "JS", filter, paginate, detail and "Postular" with returnTo', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/')
 
     await page
-      .getByRole('navigation', { name: 'Navegación principal' })
-      .getByRole('link', { name: 'Oportunidades' })
+      .getByRole('navigation', { name: 'Principal' })
+      .getByRole('link', { name: 'Vacantes', exact: true })
       .click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Oportunidades' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Vacantes' })).toBeVisible()
     expect(await loadedCount(page)).toBe(12)
     await expect(page.getByText('Mostrando 1–9 de 12')).toBeVisible()
 
@@ -136,7 +120,7 @@ test.describe('Main journey (004-17 to 004-22)', () => {
     expect(await loadedCount(page)).toBeLessThan(withJs + 1)
 
     // Back to everything and paginate.
-    await page.getByRole('link', { name: 'Oportunidades' }).first().click()
+    await page.getByRole('banner').getByRole('link', { name: 'Vacantes', exact: true }).click()
     await page.goto('/oportunidades')
     expect(await loadedCount(page)).toBe(12)
     await page.getByRole('link', { name: 'Página 2' }).click()
@@ -243,7 +227,7 @@ test.describe('Main journey (004-17 to 004-22)', () => {
         name: 'Esta vacante no existe o ya no está disponible',
       }),
     ).toBeVisible()
-    await page.getByRole('link', { name: 'Ver todas las oportunidades' }).click()
+    await page.getByRole('link', { name: 'Ver todas las vacantes' }).click()
     await expect(page).toHaveURL(/\/oportunidades$/)
   })
 
@@ -464,24 +448,18 @@ test.describe('Search without results (004-33)', () => {
   }
 })
 
-test.describe('Company profile button in the detail (004-34)', () => {
+test.describe('Vacancy detail without what does not exist (011-02)', () => {
   for (const width of WIDTHS) {
-    test(`at ${width} px the disabled "Ver perfil de la empresa" is described, goes nowhere, is 44 px tall and the detail has no serious axe violations`, async ({
+    test(`at ${width} px the detail has no "Ver perfil de la empresa", no "Próximamente" and no serious axe violations`, async ({
       page,
     }) => {
       test.setTimeout(120_000)
       await page.setViewportSize({ width, height: 900 })
       const id = await firstVacancyId(page)
       await page.goto(`/oportunidades/${id}`)
-      const button = page.getByRole('button', { name: 'Ver perfil de la empresa' })
-      await expect(button).toBeVisible()
-      await expect(button).toHaveAttribute('aria-disabled', 'true')
-      await expect(button).toHaveAccessibleDescription('Próximamente')
-      expect((await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43.9)
-
-      await button.click({ force: true }) // aria-disabled: Playwright would wait for it to be enabled
-      await button.press('Enter')
-      await expect(page).toHaveURL(new RegExp(`/oportunidades/${id}$`))
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      await expect(page.getByText('Ver perfil de la empresa')).toHaveCount(0)
+      await expect(page.getByText('Próximamente')).toHaveCount(0)
 
       await page.evaluate(() => document.fonts.ready)
       const size = await horizontalScroll(page)

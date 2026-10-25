@@ -80,7 +80,8 @@ test.describe('Same-origin loading and fonts with the real CSP (003-03)', () => 
         h1: family('h1'),
         h2: family('h2'),
         h3: family('h3'),
-        h4: family('h4'),
+        // The home page may have no h4 (spec 011 removed the strip of companies).
+        h4: document.querySelector('h4') ? family('h4') : family('h3'),
         body: family('body'),
       }
     })

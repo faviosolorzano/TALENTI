@@ -51,21 +51,11 @@ describe('Sign-in form (001-22, 001-23)', () => {
     expect(passwordField()).toHaveAttribute('type', 'text')
   })
 
-  it('001-23: "¿Olvidaste tu contraseña?" leads to an information page that recovers nothing', async () => {
-    const { backend, user } = await openLogin()
+  it('011-02: offers no "¿Olvidaste tu contraseña?" until account recovery exists', async () => {
+    await openLogin()
 
-    await user.click(screen.getByRole('link', { name: es.identity.login.forgot }))
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: es.identity.recover.title }),
-    ).toBeVisible()
-    expect(screen.getByText(es.identity.recover.body)).toBeVisible()
-    expect(screen.queryByLabelText(es.identity.form.emailLabel)).not.toBeInTheDocument()
-    expect(backend.requests.filter((request) => request.method === 'POST')).toHaveLength(0)
-    expect(screen.getByRole('link', { name: es.identity.recover.back })).toHaveAttribute(
-      'href',
-      '/ingresar',
-    )
+    expect(screen.queryByRole('link', { name: /Olvidaste/ })).toBeNull()
+    expect(screen.queryByText(/Olvidaste/)).toBeNull()
   })
 
   it('offers to create an account', async () => {

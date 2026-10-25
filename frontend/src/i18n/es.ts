@@ -8,37 +8,35 @@ export const es = {
     logoAlt: 'Talenti',
     homeLink: 'Talenti, inicio',
     skipToContent: 'Saltar al contenido',
-    mainNavLabel: 'Navegación principal',
+    mainNavLabel: 'Principal',
   },
   nav: {
     home: 'Inicio',
-    opportunities: 'Oportunidades',
-    how: 'Cómo funciona',
-    dora: 'DORA',
+    opportunities: 'Vacantes',
     register: 'Crear cuenta',
     login: 'Ingresar',
     dashboard: 'Mi panel',
-    myProfile: 'Mi perfil',
-    myApplications: 'Mis postulaciones',
-    soon: 'Próximamente',
-    soonNote: 'Próximamente: esta opción aún no está disponible.',
-    menu: 'Menú',
+    myProfile: 'Perfil',
+    myApplications: 'Postulaciones',
   },
-  placeholder: {
-    underConstruction: 'En construcción',
-    description: 'Esta pantalla todavía no está lista. Estamos trabajando en ella.',
+  /** Text for screen readers next to each state symbol (the symbol alone is never enough). */
+  statusMark: {
+    have: 'Cumples',
+    reinforce: 'Refuerza',
+    missing: 'Te falta',
+    done: 'Hecho',
+    pending: 'Pendiente',
   },
   pages: {
     home: { title: 'Inicio' },
     register: { title: 'Crear cuenta' },
     login: { title: 'Ingresar' },
-    opportunities: { title: 'Oportunidades' },
+    opportunities: { title: 'Vacantes' },
     vacancy: { title: 'Vacante' },
     dashboard: { title: 'Mi panel' },
     profile: { title: 'Mi perfil' },
     notFound: {
       title: 'No encontramos esta página',
-      description: 'Revisa la dirección o vuelve al inicio.',
       backHome: 'Volver al inicio',
     },
   },
@@ -97,7 +95,6 @@ export const es = {
       continueHint: 'Ingresa para continuar donde estabas.',
       submit: 'Ingresar',
       submitting: 'Ingresando…',
-      forgot: '¿Olvidaste tu contraseña?',
       noAccount: '¿Aún no tienes cuenta?',
       goToRegister: 'Crear cuenta',
       invalidCredentials:
@@ -121,7 +118,7 @@ export const es = {
     dashboard: {
       welcomeTitle: 'Tu cuenta está lista',
       greeting: (email: string) => `Hola, ${email}`,
-      explore: 'Ver oportunidades',
+      explore: 'Ver vacantes',
       noScreensTitle: 'Esta cuenta aún no tiene pantallas',
       noScreensBody: 'Por ahora solo puedes cerrar la sesión o recorrer las secciones públicas.',
       logout: 'Cerrar sesión',
@@ -156,7 +153,7 @@ export const es = {
     vacancies: {
       featuredTitle: 'Vacantes destacadas',
       forYouTitle: 'Vacantes para ti',
-      seeAll: 'Ver todas las oportunidades',
+      seeAll: 'Ver todas las vacantes',
       empty: 'Todavía no hay vacantes abiertas',
       error: 'No pudimos cargar las vacantes.',
       listLabel: 'Vacantes destacadas',
@@ -171,7 +168,7 @@ export const es = {
       loading: 'Cargando tus postulaciones…',
       error: 'No pudimos cargar tus postulaciones.',
       none: 'Aún no te postulaste a ninguna vacante',
-      seeOpportunities: 'Ver oportunidades',
+      seeOpportunities: 'Ver vacantes',
       active: (count: number) =>
         count === 0
           ? 'No tienes postulaciones activas'
@@ -181,13 +178,6 @@ export const es = {
       latest: 'La más reciente',
       seeAll: 'Ver mis postulaciones',
     },
-    practice: {
-      title: 'Práctica con DORA',
-      body: 'Practica entrevistas con DORA, nuestra asistente de inteligencia artificial.',
-      privacy:
-        'Tus sesiones de práctica son privadas: no se comparten con empresas ni afectan tus postulaciones.',
-    },
-    soon: 'Próximamente',
   },
 
   // ---- Student profile (spec 006) ----
@@ -198,6 +188,8 @@ export const es = {
     loadError: 'No pudimos cargar tu perfil.',
     studentsOnlyTitle: 'Esta pantalla es para estudiantes',
     studentsOnlyBody: 'Tu cuenta no tiene un perfil de estudiante.',
+    /** Name, for screen readers, of the last group of /perfil ("Cerrar sesión"). */
+    accountLabel: 'Tu cuenta',
     summary: {
       title: 'Tu avance',
       percentLead: 'Tu perfil está al',
@@ -254,11 +246,6 @@ export const es = {
         'Presentación profesional en pocas líneas: quién eres, qué estudias y qué buscas. Es opcional.',
       counter: (used: number, max: number) => `${used} de ${max} caracteres`,
       notSet: 'Sin indicar',
-    },
-    github: {
-      title: 'Enlaza tu GitHub',
-      soon: 'Próximamente',
-      body: 'Con tu permiso, la IA podrá revisar los repositorios públicos que elijas para entender qué sabes hacer. Tú confirmas cada sugerencia.',
     },
     academic: {
       title: 'Datos académicos',
@@ -354,7 +341,7 @@ export const es = {
     loading: 'Cargando tus postulaciones…',
     loadError: 'No pudimos cargar tus postulaciones.',
     empty: 'Aún no te postulaste a ninguna vacante',
-    seeOpportunities: 'Ver oportunidades',
+    seeOpportunities: 'Ver vacantes',
     listLabel: 'Tus postulaciones',
     /** The names of the stages live here and nowhere else (008-21). */
     stages: {
@@ -362,7 +349,6 @@ export const es = {
       WITHDRAWN: 'Retirada',
       unknown: 'En proceso',
       next: ['Examen técnico', 'Entrevista', 'Revisión de la empresa'] as readonly string[],
-      soon: 'Próximamente',
     },
     statusLabel: 'Estado',
     submittedOn: (date: string) => `Enviada el ${date}`,
@@ -620,12 +606,9 @@ export const es = {
       count === 1 ? '1 vacante abierta' : `${count} vacantes abiertas`,
     seeAll: 'Ver todas las vacantes',
     featuredError: 'No pudimos cargar las vacantes destacadas.',
-    companiesTitle: 'Empresas que buscan talento',
-    companiesError: 'No pudimos cargar las empresas.',
-    companiesList: 'Empresas destacadas',
   },
   opportunities: {
-    title: 'Oportunidades',
+    title: 'Vacantes',
     lead: 'Explora vacantes de prácticas preprofesionales sin crear cuenta.',
     view: {
       label: 'Qué vacantes ver',
@@ -701,8 +684,6 @@ export const es = {
   },
   vacancyDetail: {
     back: 'Volver a los resultados',
-    companyProfile: 'Ver perfil de la empresa',
-    companyProfileSoon: 'Próximamente',
     about: 'Sobre la vacante',
     company: 'Sobre la empresa',
     requirements: 'Requisitos',
@@ -723,7 +704,7 @@ export const es = {
     closedHint: 'Puedes mirar otras vacantes que sí lo están.',
     seeOthers: 'Ver otras vacantes',
     notFoundTitle: 'Esta vacante no existe o ya no está disponible',
-    notFoundLink: 'Ver todas las oportunidades',
+    notFoundLink: 'Ver todas las vacantes',
     errorTitle: 'No pudimos cargar la vacante.',
   },
 
@@ -913,7 +894,7 @@ export const es = {
     flow: [
       { label: 'Sesión de práctica', state: 'Privada' },
       { label: 'Postulación enviada', state: 'Hoy' },
-      { label: 'Revisión de la empresa', state: 'Próximamente' },
+      { label: 'Revisión de la empresa', state: 'Pendiente' },
     ],
   },
   dora: {
@@ -946,13 +927,13 @@ export const es = {
   // API (GET /legal/current); only the frame around them is written here. ----
   footer: {
     label: 'Información legal',
-    terms: 'Términos y Condiciones',
-    privacy: 'Política de Privacidad',
-    cookies: 'Política de Cookies',
+    terms: 'Términos',
+    privacy: 'Privacidad',
     transparency: 'Transparencia',
-    cookiePreferences: 'Preferencias de cookies',
+    /** Opens the cookie preferences (the panel links to the Cookie Policy). */
+    cookies: 'Cookies',
     /** Discreet note shown only here: the companies and vacancies are made up. */
-    sampleNote: 'Las empresas y vacantes de Talenti son ficticias y de ejemplo.',
+    sampleNote: 'Empresas y vacantes de ejemplo',
   },
   legal: {
     draftNotice: 'Borrador: pendiente de revisión legal y sujeto a cambios',
@@ -1042,7 +1023,6 @@ export const es = {
       policyLink: 'Política de Cookies',
       accept: 'Aceptar',
       reject: 'Rechazar',
-      configure: 'Configurar',
     },
     panel: {
       title: 'Preferencias de cookies',

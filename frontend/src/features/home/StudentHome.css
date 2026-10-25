@@ -198,30 +198,6 @@
   }
 }
 
-/* DORA */
-.home-practice {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.home-practice__orb {
-  flex: none;
-  width: var(--home-orb-size);
-}
-
-.home-practice__text {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-  font-size: var(--font-size-ui);
-}
-
-.home-practice__privacy {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
 /* Placeholder while the session is checked */
 .home-loading__title {
   width: 50%;

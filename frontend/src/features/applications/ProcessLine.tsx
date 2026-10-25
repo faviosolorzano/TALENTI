@@ -38,7 +38,6 @@ export function ProcessLine({ application }: { application: Application }) {
         names.next.map((stage) => (
           <li key={stage} data-state="soon">
             <span className="process-line__name">{stage}</span>
-            <small>{names.soon}</small>
           </li>
         ))}
     </ol>

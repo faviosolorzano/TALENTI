@@ -1,0 +1,105 @@
+/* Phones and tablets: a bar of four tabs fixed at the bottom (like the apps of a phone). */
+.tabbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding-bottom: var(--safe-area-bottom);
+  border-top: var(--border-width) solid var(--color-separator);
+  background: var(--color-bg);
+}
+
+.tabbar__list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: var(--tabbar-height);
+  margin: 0 auto;
+  padding: 0;
+  max-width: var(--content-max-width);
+  list-style: none;
+}
+
+.tabbar__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  height: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-1) var(--space-1) var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-none);
+  text-align: center;
+  text-decoration: none;
+  transition: color var(--duration-base);
+}
+
+.tabbar__link:focus-visible {
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.tabbar__link[aria-current='page'] {
+  color: var(--color-action);
+}
+
+.tabbar__icon {
+  width: var(--tabbar-icon-size);
+  height: var(--tabbar-icon-size);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Desktop: the same links, as text in the header row. */
+@media (min-width: 53.75rem) {
+  .tabbar {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .tabbar__list {
+    display: flex;
+    gap: var(--space-1);
+    min-height: 0;
+    margin: 0;
+  }
+
+  .tabbar__icon {
+    display: none;
+  }
+
+  .tabbar__link {
+    position: relative;
+    flex-direction: row;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-nav);
+  }
+
+  .tabbar__link:hover {
+    color: var(--color-text);
+  }
+
+  .tabbar__link[aria-current='page'] {
+    color: var(--color-text);
+  }
+
+  /* A short line under the current section: where you are, without a pill. */
+  .tabbar__link[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    right: var(--space-3);
+    bottom: 0;
+    left: var(--space-3);
+    height: var(--border-width-strong);
+    border-radius: var(--radius-full);
+    background: var(--color-action);
+  }
+}

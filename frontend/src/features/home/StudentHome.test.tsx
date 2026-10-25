@@ -14,16 +14,11 @@ const t = es.home
 const homeHeading = (name: string) => screen.findByRole('heading', { level: 1, name })
 
 describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
-  it('shows "Hola de nuevo" and exactly the four blocks, no landing sections', async () => {
+  it('shows "Hola de nuevo" and exactly three blocks (DORA is not drawn until it exists), no landing sections', async () => {
     openStudentApp('/')
     await homeHeading(t.title)
 
-    for (const title of [
-      t.profile.title,
-      t.vacancies.forYouTitle,
-      t.applications.title,
-      t.practice.title,
-    ]) {
+    for (const title of [t.profile.title, t.vacancies.forYouTitle, t.applications.title]) {
       expect(screen.getByRole('region', { name: title })).toBeInTheDocument()
     }
     expect(screen.queryByText(es.how.title)).not.toBeInTheDocument()
@@ -116,14 +111,11 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
     expect(await within(block).findByRole('progressbar')).toBeInTheDocument()
   })
 
-  it('005-13: DORA says "Próximamente", carries the AI label and the privacy note; Postulaciones is real (008-21)', async () => {
+  it('011-02: there is no DORA block and nothing says "Próximamente"; Postulaciones is real (008-21)', async () => {
     openStudentApp('/')
-    const dora = await screen.findByRole('region', { name: t.practice.title })
-    expect(within(dora).getByText(es.ai.label)).toBeInTheDocument()
-    expect(within(dora).getByText(t.practice.privacy)).toBeInTheDocument()
-    expect(within(dora).queryByRole('button')).not.toBeInTheDocument()
-    const applications = screen.getByRole('region', { name: t.applications.title })
-    expect(within(applications).queryByText(t.soon)).not.toBeInTheDocument()
+    await screen.findByRole('region', { name: t.applications.title })
+    expect(screen.queryByRole('region', { name: /DORA/ })).toBeNull()
+    expect(screen.queryByText('Próximamente')).toBeNull()
   })
 })
 
@@ -142,12 +134,17 @@ describe('Who sees what on "/" (005-02, 005-04)', () => {
   })
 })
 
-describe('Menu by role (005-07, 005-08)', () => {
-  it('a student sees Inicio, Oportunidades, Mi perfil, Mis postulaciones and DORA, only DORA disabled', async () => {
+describe('Menu by role (011-06, 011-07)', () => {
+  it('a student sees Inicio, Vacantes, Postulaciones and Perfil, and "Cerrar sesión"; nothing that does not exist', async () => {
     openStudentApp('/perfil')
     await screen.findByRole('heading', { level: 1, name: es.profile.title })
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
 
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([es.nav.home, es.nav.opportunities, es.nav.myApplications, es.nav.myProfile])
     expect(within(nav).getByRole('link', { name: es.nav.myProfile })).toHaveAttribute(
       'aria-current',
       'page',
@@ -160,28 +157,21 @@ describe('Menu by role (005-07, 005-08)', () => {
       'href',
       '/postulaciones',
     )
-    for (const label of [es.nav.dora]) {
-      const item = within(nav).getByText(label, {
-        exact: false,
-        selector: '[aria-disabled="true"]',
-      })
-      expect(item).toHaveAttribute('aria-disabled', 'true')
-      expect(item).toHaveAccessibleDescription(es.nav.soonNote)
+    const banner = screen.getByRole('banner')
+    for (const text of ['DORA', 'Próximamente', 'Cómo funciona', es.nav.dashboard]) {
+      expect(within(banner).queryByText(text)).toBeNull()
     }
-    expect(within(nav).queryByText(es.nav.how)).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: es.nav.dashboard })).not.toBeInTheDocument()
-    expect(
-      within(screen.getByRole('banner')).getAllByRole('button', { name: es.identity.nav.logout })
-        .length,
-    ).toBeGreaterThan(0)
+    expect(within(banner).getByRole('button', { name: es.identity.nav.logout })).toBeInTheDocument()
   })
 
-  it('a visitor keeps the public menu with "Cómo funciona" and DORA as links', async () => {
+  it('a visitor sees Vacantes, Ingresar and Crear cuenta, and no student section', async () => {
     openStudentApp('/', { signedOut: true })
     const nav = await screen.findByRole('navigation', { name: es.app.mainNavLabel })
-    expect(within(nav).getByRole('link', { name: es.nav.how })).toBeInTheDocument()
-    expect(within(nav).getByRole('link', { name: es.nav.dora })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: es.nav.opportunities })).toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: es.nav.myProfile })).not.toBeInTheDocument()
+    const banner = screen.getByRole('banner')
+    expect(within(banner).getByRole('link', { name: es.nav.login })).toBeInTheDocument()
+    expect(within(banner).getByRole('link', { name: es.nav.register })).toBeInTheDocument()
   })
 })
 

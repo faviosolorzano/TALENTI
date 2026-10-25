@@ -54,8 +54,8 @@ test('apply, follow, withdraw and apply again from the real vacancy detail', asy
   await expect(block.getByText('Aún no te postulaste a ninguna vacante')).toBeVisible()
   await expect(block.getByText('Próximamente')).toHaveCount(0)
   await expect(
-    page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', {
-      name: 'Mis postulaciones',
+    page.getByRole('navigation', { name: 'Principal' }).getByRole('link', {
+      name: 'Postulaciones',
     }),
   ).toBeVisible()
 
@@ -91,8 +91,8 @@ test('apply, follow, withdraw and apply again from the real vacancy detail', asy
 
   // ---- Mis postulaciones ----
   await page
-    .getByRole('navigation', { name: 'Navegación principal' })
-    .getByRole('link', { name: 'Mis postulaciones' })
+    .getByRole('navigation', { name: 'Principal' })
+    .getByRole('link', { name: 'Postulaciones' })
     .click()
   await expect(page).toHaveURL(/\/postulaciones$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Mis postulaciones' })).toBeVisible()

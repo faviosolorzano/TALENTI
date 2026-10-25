@@ -88,7 +88,7 @@ export function SearchForm({ q, location, locations, onSearch }: SearchFormProps
         </select>
       </div>
 
-      <Button type="submit" className="search-form__submit">
+      <Button type="submit" variant="quiet" className="search-form__submit">
         {es.opportunities.submit}
       </Button>
     </form>

@@ -4,13 +4,14 @@ import { ApiError } from '../../api/client'
 import { fetchProfile, type Profile } from '../../api/profile'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
+import { GroupedList, ListRow } from '../../components/GroupedList'
 import { useSession } from '../../session/useSession'
+import { useSignOut } from '../../session/useSignOut'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import { AboutForm, AboutSummary } from './AboutSection'
 import { AcademicForm, AcademicSummary } from './AcademicSection'
 import { AvailabilityForm, AvailabilitySummary } from './AvailabilitySection'
 import { CvCard } from './CvCard'
-import { GithubCard } from './GithubCard'
 import { ProfileSkeleton } from './ProfileSkeleton'
 import { ProfileSummary } from './ProfileSummary'
 import { ProjectsEditor, ProjectsSummary } from './ProjectsSection'
@@ -80,6 +81,7 @@ function ProfileView({ initial }: { initial: Profile }) {
   // Cards with unsaved changes stay open when the person opens another one.
   const [dirty, setDirty] = useState<ReadonlySet<SectionKey>>(new Set())
   const [savedKey, setSavedKey] = useState<SectionKey | null>(null)
+  const { signOut, pending: signingOut, failed: signOutFailed } = useSignOut()
 
   useEffect(() => {
     if (savedKey === null) return
@@ -219,10 +221,25 @@ function ProfileView({ initial }: { initial: Profile }) {
           />
           <div className="profile__soon">
             <CvCard />
-            <GithubCard />
           </div>
         </div>
         <div className="profile__sections">{SECTION_ORDER.map((section) => cards[section])}</div>
+        <div className="profile__account">
+          {/* The last row of the profile (011-06): on a phone, the only place to sign out. */}
+          <GroupedList label={es.profile.accountLabel}>
+            <ListRow
+              title={es.identity.nav.logout}
+              tone="action"
+              disabled={signingOut}
+              onClick={() => void signOut()}
+            />
+          </GroupedList>
+          {signOutFailed && (
+            <p className="profile__account-error" role="alert">
+              {es.identity.dashboard.logoutFailed}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )

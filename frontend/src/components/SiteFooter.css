@@ -1,14 +1,24 @@
 .site-footer {
-  border-top: var(--border-width) solid var(--color-border);
-  background: var(--color-bg-subtle);
+  border-top: var(--border-width) solid var(--color-separator);
+  background: var(--color-bg);
+}
+
+/* One line from 768 px; on a phone the note goes to a second line (011-08). */
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--space-6);
+  padding-block: var(--space-2);
 }
 
 .site-footer__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-6);
+  gap: 0 var(--space-4);
   margin: 0;
-  padding: var(--space-4) 0;
+  padding: 0;
   list-style: none;
 }
 
@@ -17,14 +27,17 @@
   display: inline-flex;
   align-items: center;
   min-height: var(--touch-target-min);
-  color: var(--color-text);
-  font-size: var(--font-size-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  text-decoration: none;
   text-underline-offset: 0.2em;
 }
 
 .site-footer__list a:hover,
 .site-footer__list button:hover {
-  color: var(--color-link);
+  color: var(--color-text);
+  text-decoration: underline;
 }
 
 .site-footer__list button {
@@ -33,12 +46,10 @@
   border: 0;
   background: none;
   font-family: var(--font-family-base);
-  text-decoration: underline;
   cursor: pointer;
 }
 
 .site-footer__note {
-  padding-bottom: var(--space-4);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }

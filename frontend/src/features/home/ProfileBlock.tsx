@@ -1,33 +1,20 @@
 import type { ProfileResource } from './useProfileResource'
 import { Button } from '../../components/Button'
 import { es } from '../../i18n/es'
-import { features } from '../../app/features'
 import { sessionPaths } from '../../session/sessionPaths'
 import { ProgressHeadline } from '../profile/ProgressHeadline'
 import { sectionOfItem, sectionPath } from '../profile/sections'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import '../vacancies/Skeletons.css'
-import { HomeBlock, SoonTag } from './HomeBlock'
+import { HomeBlock } from './HomeBlock'
 
 const t = es.home.profile
 
 /**
  * "Tu perfil" (005-10): the percentage the server calculated and ONE next step. Everything
- * else that is missing lives in /perfil. Until the profile slice is integrated it only says
- * "Próximamente" and calls nothing.
+ * else that is missing lives in /perfil.
  */
 export function ProfileBlock({ resource }: { resource: ProfileResource }) {
-  if (!features.profile) {
-    return (
-      <HomeBlock
-        title={t.title}
-        className="home-block--wide"
-        tag={<SoonTag>{es.home.soon}</SoonTag>}
-      >
-        <p className="home-block__text">{es.profile.lead}</p>
-      </HomeBlock>
-    )
-  }
   return <LiveProfileBlock resource={resource} />
 }
 

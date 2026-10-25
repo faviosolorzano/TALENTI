@@ -82,16 +82,18 @@ async function registerViaUi(page: Page, email: string) {
   await expect(panelTitle(page)).toBeVisible()
 }
 
-/** Signs out from the header (the student Home has no button of its own). */
+/**
+ * Signs out from the header; under 860 px a student signs out from the last row of Mi perfil
+ * (011-06), because the header leaves its place to the tab bar.
+ */
 async function logout(page: Page) {
-  const menu = page.getByRole('button', { name: 'Menú' })
-  if (await menu.isVisible()) await menu.click()
-  await page
-    .getByRole('banner')
-    .getByRole('button', { name: 'Cerrar sesión' })
-    .filter({ visible: true })
-    .first()
-    .click()
+  const header = page.getByRole('banner').getByRole('button', { name: 'Cerrar sesión' })
+  if (await header.isVisible()) {
+    await header.click()
+    return
+  }
+  await page.goto('/perfil')
+  await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
 }
 
 async function logoutViaPanel(page: Page) {
@@ -151,9 +153,9 @@ test.describe('Sign-up, sign-out and sign-in (001-01, 001-12, 001-13)', () => {
     await expect(page.getByText('Tu cuenta está lista')).toBeVisible()
     await expect(page.getByText(account.email)).toHaveCount(0)
     // 001-25: the navigation bar is there and the public sections are one click away.
-    const nav = page.getByRole('navigation', { name: 'Navegación principal' })
-    await nav.getByRole('link', { name: 'Oportunidades' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Oportunidades' })).toBeVisible()
+    const nav = page.getByRole('navigation', { name: 'Principal' })
+    await nav.getByRole('link', { name: 'Vacantes', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Vacantes' })).toBeVisible()
     await page.getByRole('banner').getByRole('link', { name: 'Inicio', exact: true }).click()
     await expect(panelTitle(page)).toBeVisible()
     await expect(page.getByText('Tu cuenta está lista')).toBeHidden()
@@ -171,7 +173,8 @@ test.describe('Sign-up, sign-out and sign-in (001-01, 001-12, 001-13)', () => {
     // 001-12: sign out.
     await logoutViaPanel(page)
     await expect(page.getByText('Cerraste sesión.')).toBeVisible()
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
+    // On /ingresar the header offers only the logo and Vacantes (011-07); the form offers the rest.
+    await expect(page.getByRole('main').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
 
     // 001-13: the panel asks to sign in again, and so does the back button.
     await page.goto('/panel')
@@ -184,7 +187,9 @@ test.describe('Sign-up, sign-out and sign-in (001-01, 001-12, 001-13)', () => {
     await expect(panelTitle(page)).toBeVisible()
     await expect(page.getByText(account.email)).toHaveCount(0)
     await expect(page.getByText('Tu cuenta está lista')).toBeHidden()
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'Perfil', exact: true }),
+    ).toBeVisible()
     await logoutViaPanel(page)
   })
 
@@ -404,7 +409,9 @@ test.describe('Session expired (001-14)', () => {
   }) => {
     expect(await loginViaApi(page, account.email, account.password)).toBe(200)
     await page.goto('/oportunidades')
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'Perfil', exact: true }),
+    ).toBeVisible()
 
     // The server forgets the session (30 idle minutes): here, the browser holds an unknown id.
     await page
@@ -419,16 +426,13 @@ test.describe('Session expired (001-14)', () => {
   })
 })
 
-test.describe('Recovery notice (001-23)', () => {
-  test('"¿Olvidaste tu contraseña?" shows an information page and recovers nothing', async ({
+test.describe('No recovery link yet (011-02)', () => {
+  test('the sign-in page does not offer "¿Olvidaste tu contraseña?" until it exists', async ({
     page,
   }) => {
     await page.goto('/ingresar')
-    await page.getByRole('link', { name: '¿Olvidaste tu contraseña?' }).click()
-
-    await expect(page.getByRole('heading', { level: 1, name: 'Recuperar tu cuenta' })).toBeVisible()
-    await expect(page.getByText('Pronto podrás recuperar tu cuenta con tu correo.')).toBeVisible()
-    await expect(page.getByLabel('Correo')).toHaveCount(0)
+    await expect(page.getByRole('heading', { level: 1, name: 'Ingresa a tu cuenta' })).toBeVisible()
+    await expect(page.getByText(/Olvidaste/)).toHaveCount(0)
   })
 })
 
@@ -518,24 +522,21 @@ test.describe('Responsive layout (001-22)', () => {
     expect(small).toEqual([])
   })
 
-  test('in the folded menu a person with a session sees "Mi panel" and "Cerrar sesión" at 360 px', async ({
+  test('at 360 px a student signs out from the last row of Mi perfil (011-06)', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 800 })
     expect(await loginViaApi(page, account.email, account.password)).toBe(200)
-    await page.goto('/')
-    await page.getByRole('button', { name: 'Menú' }).click()
-    const menu = page.getByRole('navigation', { name: 'Navegación principal' })
-    await expect(menu.getByRole('link', { name: 'Inicio', exact: true })).toBeVisible()
-    await expect(menu.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible()
+    await page.goto('/perfil')
+    const tabs = page.getByRole('navigation', { name: 'Principal' })
+    await expect(tabs.getByRole('link', { name: 'Inicio', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('banner').getByRole('button', { name: 'Cerrar sesión' }),
+    ).toBeHidden()
     expect(await seriousViolations(page)).toEqual([])
 
-    await menu.getByRole('button', { name: 'Cerrar sesión' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Cerrar sesión' }).click()
     await expect(loginTitle(page)).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Menú' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
   })
 })
 
@@ -723,7 +724,9 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
     expect(await loginViaApi(page, account.email, account.password)).toBe(200)
     await pendingStudent(page)
     await page.goto('/oportunidades')
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'Perfil', exact: true }),
+    ).toBeVisible()
     // A mark that a full page load would erase.
     await page.evaluate(() => {
       ;(window as unknown as { __noReload: boolean }).__noReload = true
@@ -754,7 +757,9 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
     expect(
       await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload),
     ).toBe(true)
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Mi perfil' })).toBeVisible()
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'Perfil', exact: true }),
+    ).toBeVisible()
     await logoutViaPanel(page)
   })
 
@@ -773,7 +778,8 @@ test.describe('Identity and legal framework together (001-30, 002-09, 002-18, 00
 
     await expect(page).toHaveURL(/\/ingresar$/)
     await expect(page.getByText('Cerraste sesión.')).toBeVisible()
-    await expect(page.getByRole('banner').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
+    // On /ingresar the header offers only the logo and Vacantes (011-07); the form offers the rest.
+    await expect(page.getByRole('main').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
     expect(
       await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload),
     ).toBe(true)
@@ -803,12 +809,7 @@ test.describe('Session that cannot be checked (M1, M2)', () => {
     await expect(banner.getByRole('button', { name: 'Reintentar' })).toBeVisible()
     await expect(banner.getByRole('link', { name: 'Crear cuenta' })).toHaveCount(0)
     await expect(banner.getByRole('link', { name: 'Ingresar' })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Menú' }).click()
-    await expect(
-      page
-        .getByRole('navigation', { name: 'Navegación principal' })
-        .getByRole('button', { name: 'Cerrar sesión' }),
-    ).toBeVisible()
+    await expect(banner.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible()
     expect(await seriousViolations(page)).toEqual([])
   })
 
@@ -829,7 +830,7 @@ test.describe('Session that cannot be checked (M1, M2)', () => {
     expect(await loginViaApi(page, account.email, account.password)).toBe(200)
     await page.goto('/oportunidades')
     const banner = page.getByRole('banner')
-    await expect(banner.getByRole('link', { name: 'Mi perfil' })).toBeVisible()
+    await expect(banner.getByRole('link', { name: 'Perfil', exact: true })).toBeVisible()
     await page.route('**/api/v1/auth/logout', (route) => route.abort())
 
     await banner.getByRole('button', { name: 'Cerrar sesión' }).click()

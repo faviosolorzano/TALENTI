@@ -24,12 +24,12 @@ test.describe('axe (003-27)', () => {
     })
   }
 
-  test('with the menu open at 360 px there are no serious or critical violations', async ({
+  test('with the whole header in one row at 360 px there are no serious or critical violations', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 800 })
     await page.goto('/')
-    await page.getByRole('button', { name: 'Menú' }).click()
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
     expect(await seriousViolations(page)).toEqual([])
   })
 
@@ -89,15 +89,10 @@ test.describe('Keyboard only (003-27)', () => {
       expect(outline.color).toBe(i === 0 ? 'rgb(255, 255, 255)' : 'rgb(37, 99, 235)')
     }
     expect(names[0]).toBe('Saltar al contenido')
-    expect(names.slice(1, 5)).toEqual([
-      'Talenti, inicio',
-      'Inicio',
-      'Oportunidades',
-      'Cómo funciona',
-    ])
+    expect(names.slice(1, 5)).toEqual(['Talenti, inicio', 'Vacantes', 'Ingresar', 'Crear cuenta'])
     const heroAction = names.indexOf('Ver mis vacantes')
     const firstChip = names.findIndex((n) => n.startsWith('Java,'))
-    expect(heroAction).toBeGreaterThan(5)
+    expect(heroAction).toBeGreaterThan(4)
     expect(firstChip).toBeGreaterThan(heroAction)
   })
 
@@ -156,21 +151,5 @@ test.describe('Keyboard only (003-27)', () => {
       page.getByText('Háblame de un proyecto del que te sientas orgulloso.'),
     ).toBeVisible()
     await expect(page.getByRole('button', { name: 'Probar con mi micrófono' })).toBeVisible()
-  })
-
-  test('the folded menu opens with the keyboard, takes the focus in and closes with Esc returning it to the button', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 360, height: 800 })
-    const button = page.getByRole('button', { name: 'Menú' })
-    await button.focus()
-    await page.keyboard.press('Enter')
-    await expect(button).toHaveAttribute('aria-expanded', 'true')
-    await expect(
-      page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link').first(),
-    ).toBeFocused()
-    await page.keyboard.press('Escape')
-    await expect(button).toHaveAttribute('aria-expanded', 'false')
-    await expect(button).toBeFocused()
   })
 })

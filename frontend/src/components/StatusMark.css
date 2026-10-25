@@ -1,0 +1,45 @@
+.status-mark {
+  display: inline-flex;
+  flex: none;
+  width: var(--status-mark-size);
+  height: var(--status-mark-size);
+  vertical-align: middle;
+}
+
+.status-mark svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.status-mark__stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.status-mark__fill {
+  fill: currentColor;
+}
+
+.status-mark[data-kind='have'] {
+  color: var(--color-mark-have);
+}
+
+.status-mark[data-kind='reinforce'] {
+  color: var(--color-mark-reinforce);
+}
+
+.status-mark[data-kind='missing'] {
+  color: var(--color-mark-missing);
+}
+
+.status-mark[data-kind='done'] {
+  color: var(--color-mark-done);
+}
+
+.status-mark[data-kind='pending'] {
+  color: var(--color-mark-pending);
+}

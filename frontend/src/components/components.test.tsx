@@ -14,6 +14,8 @@ import { Button } from './Button'
 import { Card } from './Card'
 import { CompatibilityRing } from './CompatibilityRing'
 import { Header } from './Header'
+import type { SessionUser } from '../api/identity'
+import { SessionContext, visitorSession, type SessionState } from '../session/sessionContext'
 import { LevelChip } from './LevelChip'
 import type { ChipLevel } from './chipLevel'
 import { Steps } from './Steps'
@@ -336,7 +338,33 @@ describe('Steps (003-08)', () => {
   })
 })
 
-describe('Header (003-09)', () => {
+const studentSession: SessionState = {
+  ...visitorSession,
+  status: 'authenticated',
+  user: { id: 'u-1', email: 'ana.prueba@example.test', role: 'STUDENT' } satisfies SessionUser,
+  isStudent: true,
+}
+
+const companySession: SessionState = {
+  ...studentSession,
+  user: { id: 'u-2', email: 'empresa@example.test', role: 'COMPANY' } satisfies SessionUser,
+  isStudent: false,
+}
+
+function renderHeader(path = '/', session: SessionState = visitorSession) {
+  return render(
+    <SessionContext.Provider value={session}>
+      <MemoryRouter initialEntries={[path]}>
+        <Header />
+      </MemoryRouter>
+    </SessionContext.Provider>,
+  )
+}
+
+/** Texts the header no longer draws (011-03, "Se quita"). */
+const REMOVED_FROM_HEADER = ['Cómo funciona', 'DORA', 'Próximamente', 'Menú', 'Oportunidades']
+
+describe('Header (003-09, spec 011)', () => {
   afterEach(() => {
     Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
   })
@@ -349,7 +377,7 @@ describe('Header (003-09)', () => {
   }
 
   it('shows the bottom line only after scrolling more than 8 px', () => {
-    renderInRouter(<Header />)
+    renderHeader()
     const header = screen.getByRole('banner')
     expect(header).not.toHaveAttribute('data-scrolled')
     scrollTo(8)
@@ -360,68 +388,88 @@ describe('Header (003-09)', () => {
     expect(header).not.toHaveAttribute('data-scrolled')
   })
 
-  it('has the menu button with aria-expanded and aria-controls that opens and closes it', async () => {
-    renderInRouter(<Header />)
-    const button = screen.getByRole('button', { name: es.nav.menu })
-    const menu = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    expect(button).toHaveAttribute('aria-expanded', 'false')
-    expect(button).toHaveAttribute('aria-controls', menu.id)
-    expect(menu).toHaveAttribute('data-open', 'false')
-
-    await userEvent.click(button)
-    expect(button).toHaveAttribute('aria-expanded', 'true')
-    expect(menu).toHaveAttribute('data-open', 'true')
-
-    await userEvent.click(button)
-    expect(button).toHaveAttribute('aria-expanded', 'false')
-  })
-
-  it('closes with Esc and returns the focus to the button', async () => {
-    renderInRouter(<Header />)
-    const button = screen.getByRole('button', { name: es.nav.menu })
-    await userEvent.click(button)
-    const menu = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    expect(within(menu).getAllByRole('link')[0]).toHaveFocus()
-
-    await userEvent.keyboard('{Escape}')
-    expect(button).toHaveAttribute('aria-expanded', 'false')
-    expect(button).toHaveFocus()
-  })
-
-  it('closes when a link of the menu is chosen', async () => {
-    renderInRouter(<Header />)
-    const button = screen.getByRole('button', { name: es.nav.menu })
-    await userEvent.click(button)
-    const menu = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    await userEvent.click(within(menu).getByRole('link', { name: es.nav.how }))
-    expect(button).toHaveAttribute('aria-expanded', 'false')
-  })
-
-  it('has Inicio, Oportunidades, Cómo funciona and DORA in the center (004-24), with Ingresar and Crear cuenta, and no "Para empresas"', () => {
-    renderInRouter(<Header />)
-    const menu = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    const names = within(menu)
-      .getAllByRole('link')
-      .map((link) => link.textContent)
-    expect(names.slice(0, 4)).toEqual([es.nav.home, es.nav.opportunities, es.nav.how, es.nav.dora])
-    expect(screen.getAllByRole('link', { name: es.nav.login }).length).toBeGreaterThan(0)
-    expect(screen.getByRole('link', { name: es.nav.register })).toHaveAttribute('href', '/registro')
-    expect(screen.queryByText(/empresas/i)).not.toBeInTheDocument()
-  })
-
-  it('points the anchors to the sections of the home page from any page', () => {
-    renderInRouter(<Header />, '/ingresar')
-    expect(screen.getByRole('link', { name: es.nav.how })).toHaveAttribute(
+  it('011-07: a visitor sees logo, Vacantes, Ingresar and Crear cuenta, with no menu to unfold', () => {
+    renderHeader()
+    const banner = screen.getByRole('banner')
+    const nav = within(banner).getByRole('navigation', { name: es.app.mainNavLabel })
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([es.nav.opportunities])
+    expect(within(banner).getByRole('link', { name: es.app.homeLink })).toHaveAttribute('href', '/')
+    expect(within(banner).getByRole('link', { name: es.nav.login })).toHaveAttribute(
       'href',
-      '/#como-funciona',
+      '/ingresar',
     )
-    expect(screen.getByRole('link', { name: es.nav.dora })).toHaveAttribute('href', '/#dora')
+    expect(within(banner).getByRole('link', { name: es.nav.register })).toHaveAttribute(
+      'href',
+      '/registro',
+    )
+    expect(within(banner).queryAllByRole('button')).toEqual([])
+    expect(within(banner).queryByRole('button', { expanded: false })).toBeNull()
+    for (const text of REMOVED_FROM_HEADER) {
+      expect(within(banner).queryByText(text)).toBeNull()
+    }
   })
 
-  it('folds the menu below 860 px and opens it into a row above (CSS uses the 860 px breakpoint)', () => {
+  it.each(['/registro', '/ingresar'])(
+    '011-07: on %s the header offers only the logo and Vacantes',
+    (path) => {
+      renderHeader(path)
+      const banner = screen.getByRole('banner')
+      expect(
+        within(banner)
+          .getAllByRole('link')
+          .map((link) => link.textContent || link.getAttribute('aria-label')),
+      ).toEqual([es.app.homeLink, es.nav.opportunities])
+    },
+  )
+
+  it.each([
+    ['visitor', visitorSession],
+    ['student', studentSession],
+    ['another role', companySession],
+  ] as const)('011-01: for a %s nothing in the header is a primary button', (_name, session) => {
+    renderHeader('/', session)
+    expect(screen.getByRole('banner').querySelector('.btn--primary')).toBeNull()
+  })
+
+  it('011-06: a student has the four sections, "Cerrar sesión" and nothing that does not exist', () => {
+    renderHeader('/', studentSession)
+    const banner = screen.getByRole('banner')
+    const nav = within(banner).getByRole('navigation', { name: es.app.mainNavLabel })
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([es.nav.home, es.nav.opportunities, es.nav.myApplications, es.nav.myProfile])
+    expect(within(banner).getByRole('button', { name: es.identity.nav.logout })).toBeInTheDocument()
+    expect(within(banner).queryByText(es.nav.dashboard)).toBeNull()
+    expect(within(banner).queryByText(es.nav.login)).toBeNull()
+    for (const text of REMOVED_FROM_HEADER) {
+      expect(within(banner).queryByText(text)).toBeNull()
+    }
+  })
+
+  it('another role keeps Vacantes, "Mi panel" and "Cerrar sesión", as text', () => {
+    renderHeader('/', companySession)
+    const banner = screen.getByRole('banner')
+    expect(within(banner).getByRole('link', { name: es.nav.dashboard })).toHaveAttribute(
+      'href',
+      '/panel',
+    )
+    expect(within(banner).getByRole('button', { name: es.identity.nav.logout })).toBeInTheDocument()
+    expect(within(banner).queryByRole('link', { name: es.nav.myProfile })).toBeNull()
+  })
+
+  it('011-06/011-07: nothing folds; under 860 px the student sections go to a tab bar fixed at the bottom', () => {
     const header = css('Header.css')
-    expect(header).toContain('@media (min-width: 53.75rem)')
-    expect(header).toMatch(/\.header__menu \{\s*display: none;/)
+    const tabbar = css('TabBar.css')
     expect(header).toMatch(/position: sticky;/)
+    expect(header).not.toMatch(/menu-button|data-open/)
+    expect(tabbar).toMatch(/\.tabbar \{\s*position: fixed;/)
+    expect(tabbar).toContain('@media (min-width: 53.75rem)')
+    expect(tabbar.split('@media (min-width: 53.75rem)')[1]).toMatch(/position: static;/)
   })
 })

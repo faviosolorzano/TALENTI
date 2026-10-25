@@ -1,58 +1,34 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import { Link, NavLink } from 'react-router'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router'
 import { es } from '../i18n/es'
 import { sessionPaths } from '../session/sessionPaths'
 import { useSession } from '../session/useSession'
 import { useSignOut } from '../session/useSignOut'
-import { Button } from './Button'
 import { Logo } from './Logo'
+import { TabBar } from './TabBar'
 import './Header.css'
 
 /** Scroll distance (px) after which the header shows its bottom line. */
 const SCROLLED_AFTER = 8
 
-/**
- * A menu entry that is not available yet ("Próximamente"): it is drawn disabled, goes nowhere
- * and a note tied to it with `aria-describedby` says why (005-07).
- */
-function SoonItem({ label }: { label: string }) {
-  const noteId = useId()
-  return (
-    <>
-      <span
-        className="header__link header__link--soon"
-        role="link"
-        aria-disabled="true"
-        aria-describedby={noteId}
-      >
-        {label}
-        <span className="header__soon">{es.nav.soon}</span>
-      </span>
-      <span id={noteId} className="visually-hidden">
-        {es.nav.soonNote}
-      </span>
-    </>
-  )
-}
-
 /** After this many ms without an answer about the session, "Cerrar sesión" is offered anyway. */
 const SLOW_SESSION_MS = 1500
 
 /**
- * Fixed header. It shows a bottom line once the page scrolls more than 8 px. Under tablet
- * width the menu folds into the "Menú" button (`aria-expanded`, `aria-controls`); it closes
- * when a link is chosen or with Esc, and then focus goes back to the button.
+ * Fixed header (spec 011). It never uses the primary button: the main action of each screen
+ * lives in the page. Nothing folds into a menu:
+ * - visitor: logo · Vacantes · Ingresar · Crear cuenta (on /registro and /ingresar, only the
+ *   logo and Vacantes, so the page's own form is the only way forward);
+ * - student: from 860 px, logo · Inicio · Vacantes · Postulaciones · Perfil · Cerrar sesión;
+ *   under 860 px, the logo here and the four sections in the tab bar at the bottom;
+ * - another role: logo · Vacantes · Mi panel · Cerrar sesión.
  */
 export function Header() {
-  const menuId = useId()
   const session = useSession()
+  const { pathname } = useLocation()
   const { signOut, pending: signingOut, failed: signOutFailed } = useSignOut()
   const [slow, setSlow] = useState(false)
-  const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(() => window.scrollY > SCROLLED_AFTER)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLElement>(null)
-  const focusFirstLink = useRef(false)
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > SCROLLED_AFTER)
@@ -67,187 +43,73 @@ export function Header() {
     return () => clearTimeout(timer)
   }, [session.status])
 
-  useEffect(() => {
-    if (!open) return
-    // Opening with the button moves focus to the first link, so the keyboard continues
-    // inside the menu (the menu is drawn after the button has been pressed).
-    if (focusFirstLink.current) {
-      focusFirstLink.current = false
-      menuRef.current?.querySelector('a')?.focus()
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      setOpen(false)
-      buttonRef.current?.focus()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
-
-  function toggleMenu() {
-    focusFirstLink.current = !open
-    setOpen(!open)
-  }
-
-  const closeMenu = () => setOpen(false)
   const status = session.status
-  // A student has their own menu (005-07); other roles keep the public one plus "Mi panel".
-  const student = session.isStudent
+  const student = status === 'authenticated' && session.isStudent
   const unavailable = status === 'unavailable'
   // "Cerrar sesión" does not depend on `GET /auth/me`: it is offered whenever a session may exist.
   const canSignOut = status === 'authenticated' || unavailable || (status === 'loading' && slow)
-  const logout = () => {
-    closeMenu()
-    void signOut()
-  }
+  // On the sign-up and sign-in pages the header does not offer the other door (011-07).
+  const onAuthPage = pathname === sessionPaths.register || pathname === sessionPaths.login
 
   return (
     <header className="header" data-scrolled={scrolled || undefined}>
       <div className="container header__bar">
-        <Link className="header__brand" to="/" aria-label={es.app.homeLink} onClick={closeMenu}>
+        <Link className="header__brand" to="/" aria-label={es.app.homeLink}>
           <Logo />
         </Link>
 
-        <nav
-          ref={menuRef}
-          id={menuId}
-          className="header__menu"
-          aria-label={es.app.mainNavLabel}
-          data-open={open}
-        >
-          <ul className="header__list">
-            <li>
-              <NavLink className="header__link" to="/" end onClick={closeMenu}>
-                {es.nav.home}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink className="header__link" to="/oportunidades" onClick={closeMenu}>
-                {es.nav.opportunities}
-              </NavLink>
-            </li>
-            {student ? (
-              <>
-                <li>
-                  <NavLink className="header__link" to={sessionPaths.profile} onClick={closeMenu}>
-                    {es.nav.myProfile}
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    className="header__link"
-                    to={sessionPaths.applications}
-                    onClick={closeMenu}
-                  >
-                    {es.nav.myApplications}
-                  </NavLink>
-                </li>
-                <li>
-                  <SoonItem label={es.nav.dora} />
-                </li>
-              </>
-            ) : (
-              <>
-                <li>
-                  <Link
-                    className="header__link"
-                    to={{ pathname: '/', hash: 'como-funciona' }}
-                    onClick={closeMenu}
-                  >
-                    {es.nav.how}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    className="header__link"
-                    to={{ pathname: '/', hash: 'dora' }}
-                    onClick={closeMenu}
-                  >
-                    {es.nav.dora}
-                  </Link>
-                </li>
-              </>
-            )}
-            {/* Only in the folded menu: on wide screens the account actions sit on the right. */}
-            {status === 'authenticated' && !student && (
-              <li className="header__list-login">
-                <NavLink className="header__link" to={sessionPaths.dashboard} onClick={closeMenu}>
-                  {es.nav.dashboard}
+        {student ? (
+          <TabBar />
+        ) : (
+          <nav className="header__nav" aria-label={es.app.mainNavLabel}>
+            <ul className="header__list">
+              <li>
+                <NavLink className="header__link" to="/oportunidades">
+                  {es.nav.opportunities}
                 </NavLink>
               </li>
-            )}
-            {canSignOut && (
-              <li className="header__list-login">
-                <button
-                  type="button"
-                  className="header__link header__link--button"
-                  disabled={signingOut}
-                  onClick={logout}
-                >
-                  {es.identity.nav.logout}
-                </button>
-              </li>
-            )}
-            {status === 'visitor' && (
-              <li className="header__list-login">
-                <NavLink className="header__link" to="/ingresar" onClick={closeMenu}>
-                  {es.nav.login}
-                </NavLink>
-              </li>
-            )}
-          </ul>
-        </nav>
+              {status === 'authenticated' && (
+                <li>
+                  <NavLink className="header__link" to={sessionPaths.dashboard}>
+                    {es.nav.dashboard}
+                  </NavLink>
+                </li>
+              )}
+            </ul>
+          </nav>
+        )}
 
-        <div className="header__actions">
+        <div className="header__actions" data-student={student || undefined}>
+          {unavailable && (
+            <button
+              type="button"
+              className="header__link header__link--button"
+              onClick={() => void session.refresh()}
+            >
+              {es.common.retry}
+            </button>
+          )}
           {canSignOut && (
-            <Button
-              className="header__login"
-              variant="quiet"
-              size="sm"
+            <button
+              type="button"
+              className="header__link header__link--button header__logout"
               disabled={signingOut}
-              onClick={logout}
+              onClick={() => void signOut()}
             >
               {es.identity.nav.logout}
-            </Button>
+            </button>
           )}
-          {status === 'authenticated' && !student && (
-            <Button size="sm" to={sessionPaths.dashboard} onClick={closeMenu}>
-              {es.nav.dashboard}
-            </Button>
-          )}
-          {unavailable && (
-            <Button size="sm" onClick={() => void session.refresh()}>
-              {es.common.retry}
-            </Button>
-          )}
-          {status === 'visitor' && (
+          {status === 'visitor' && !onAuthPage && (
             <>
-              <Button
-                className="header__login"
-                variant="quiet"
-                size="sm"
-                to="/ingresar"
-                onClick={closeMenu}
-              >
+              <NavLink className="header__link" to={sessionPaths.login}>
                 {es.nav.login}
-              </Button>
-              <Button size="sm" to="/registro" onClick={closeMenu}>
+              </NavLink>
+              <NavLink className="header__link header__link--accent" to={sessionPaths.register}>
                 {es.nav.register}
-              </Button>
+              </NavLink>
             </>
           )}
         </div>
-
-        <button
-          ref={buttonRef}
-          type="button"
-          className="header__menu-button"
-          aria-expanded={open}
-          aria-controls={menuId}
-          onClick={toggleMenu}
-        >
-          {es.nav.menu}
-        </button>
 
         {/* Visible notes under the bar: the session could not be checked / sign-out failed. */}
         {unavailable && (

@@ -5,7 +5,6 @@ import { es } from '../../i18n/es'
 import { ProfileBlock } from './ProfileBlock'
 import { useProfileResource } from './useProfileResource'
 import { ApplicationsBlock } from './ApplicationsBlock'
-import { PracticeBlock } from './SoonBlocks'
 import { VacanciesBlock } from './VacanciesBlock'
 import './StudentHome.css'
 
@@ -55,7 +54,6 @@ export function StudentHome() {
         <VacanciesBlock />
         <div className="home__side">
           <ApplicationsBlock />
-          <PracticeBlock />
         </div>
       </div>
     </div>

@@ -117,10 +117,6 @@ export function LoginScreen() {
           error={errors.fields.password}
         />
 
-        <p className="auth__alt">
-          <Link to={sessionPaths.recover}>{es.identity.login.forgot}</Link>
-        </p>
-
         <Button type="submit" className="auth-form__submit" disabled={submitting}>
           {submitting ? es.identity.login.submitting : es.identity.login.submit}
         </Button>

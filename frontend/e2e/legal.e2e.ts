@@ -352,7 +352,7 @@ test.describe('Index and focus (002-04)', () => {
         [selector, name] as const,
       )
 
-    await tabUntil(focusedIn('footer', 'Política de Privacidad'))
+    await tabUntil(focusedIn('footer', 'Privacidad'))
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/privacidad$/)
     await expect(page.locator('main h2.legal-section__heading').first()).toBeVisible()
@@ -530,11 +530,10 @@ test.describe('Footer (002-08)', () => {
         const footer = page.getByRole('contentinfo')
         await expect(footer).toBeVisible()
         await expect(footer.getByRole('listitem')).toHaveText([
-          'Términos y Condiciones',
-          'Política de Privacidad',
-          'Política de Cookies',
+          'Términos',
+          'Privacidad',
           'Transparencia',
-          'Preferencias de cookies',
+          'Cookies',
         ])
         for (const item of await footer.getByRole('listitem').all()) {
           const box = (await item.boundingBox())!
@@ -552,15 +551,13 @@ test.describe('Footer (002-08)', () => {
     // A static public page: /panel is private now and would redirect (and move the focus).
     await page.goto('/recuperar-cuenta')
     const footer = page.getByRole('contentinfo')
-    await footer.getByRole('link', { name: 'Términos y Condiciones' }).focus()
+    await footer.getByRole('link', { name: 'Términos' }).focus()
     await page.keyboard.press('Tab')
-    await expect(footer.getByRole('link', { name: 'Política de Privacidad' })).toBeFocused()
-    await page.keyboard.press('Tab')
-    await expect(footer.getByRole('link', { name: 'Política de Cookies' })).toBeFocused()
+    await expect(footer.getByRole('link', { name: 'Privacidad' })).toBeFocused()
     await page.keyboard.press('Tab')
     await expect(footer.getByRole('link', { name: 'Transparencia' })).toBeFocused()
     await page.keyboard.press('Tab')
-    await expect(footer.getByRole('button', { name: 'Preferencias de cookies' })).toBeFocused()
+    await expect(footer.getByRole('button', { name: 'Cookies' })).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('dialog', { name: 'Preferencias de cookies' })).toBeVisible()
   })
@@ -590,7 +587,7 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
       'href',
       '/cookies',
     )
-    await expect(region.getByRole('button')).toHaveText(['Aceptar', 'Rechazar', 'Configurar'])
+    await expect(region.getByRole('button')).toHaveText(['Aceptar', 'Rechazar'])
     expect(await storedCookie(page)).toBeUndefined()
   })
 
@@ -657,7 +654,7 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
     await expect(banner(second)).toHaveCount(0)
   })
 
-  test('002-14: "Preferencias de cookies" in the footer changes the choice and renews the 12 months', async ({
+  test('002-14: "Cookies" in the footer changes the choice and renews the 12 months', async ({
     page,
   }) => {
     await page.goto('/')
@@ -666,9 +663,7 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
     const firstValue = JSON.parse(decodeURIComponent(first.value)) as { t: string }
     await page.waitForTimeout(1100)
 
-    const opener = page
-      .getByRole('contentinfo')
-      .getByRole('button', { name: 'Preferencias de cookies' })
+    const opener = page.getByRole('contentinfo').getByRole('button', { name: 'Cookies' })
     await opener.click()
     const dialog = page.getByRole('dialog', { name: 'Preferencias de cookies' })
     await expect(dialog).toBeVisible()
@@ -685,11 +680,11 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
     expect(second.expires).toBeGreaterThan(first.expires)
   })
 
-  test('002-14: "Configurar" opens the panel; focus enters and stays inside; Esc closes it and gives focus back', async ({
+  test('002-14: "Cookies" in the footer opens the panel; focus enters and stays inside; Esc closes it and gives focus back', async ({
     page,
   }) => {
     await page.goto('/')
-    const configure = banner(page).getByRole('button', { name: 'Configurar' })
+    const configure = page.getByRole('contentinfo').getByRole('button', { name: 'Cookies' })
     await configure.click()
     const dialog = page.getByRole('dialog', { name: 'Preferencias de cookies' })
     await expect(dialog).toBeVisible()
@@ -717,23 +712,25 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
 
   test('002-14: the page behind the panel cannot be reached while it is open', async ({ page }) => {
     await page.goto('/')
-    await banner(page).getByRole('button', { name: 'Configurar' }).click()
+    await page.getByRole('contentinfo').getByRole('button', { name: 'Cookies' }).click()
     await expect(page.locator('#root')).toHaveAttribute('inert', '')
     await page.keyboard.press('Escape')
     await expect(page.locator('#root')).not.toHaveAttribute('inert', '')
   })
 
-  test('002-14: "Guardar preferencias" from the notice saves the cookie and closes both', async ({
+  test('002-14: "Guardar preferencias" with the notice open saves the cookie and closes both', async ({
     page,
   }) => {
     await page.goto('/')
-    await banner(page).getByRole('button', { name: 'Configurar' }).click()
+    await page.getByRole('contentinfo').getByRole('button', { name: 'Cookies' }).click()
     await page.getByRole('button', { name: 'Guardar preferencias' }).click()
 
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(banner(page)).toHaveCount(0)
     expect(await storedCookie(page)).toBeDefined()
-    await expect(page.locator('main')).toBeFocused()
+    await expect(
+      page.getByRole('contentinfo').getByRole('button', { name: 'Cookies' }),
+    ).toBeFocused()
   })
 
   test('002-15: the notice is not modal: no layer, the page and the footer stay usable', async ({
@@ -779,21 +776,23 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
       }),
     ).toBe('FOOTER')
 
-    await region.getByRole('button', { name: 'Configurar' }).focus()
+    await region.getByRole('button', { name: 'Rechazar' }).focus()
     await page.keyboard.press('Tab')
     await expect(
-      page.getByRole('contentinfo').getByRole('link', { name: 'Términos y Condiciones' }),
+      page.getByRole('contentinfo').getByRole('link', { name: 'Términos' }),
     ).toBeFocused()
   })
 
-  test('002-15: at 360 px the notice takes at most 40 % of the window height', async ({ page }) => {
+  test('002-15, 011-08: at 360 px the notice takes at most 20 % of the window height', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 360, height: 640 })
     await page.goto('/')
     await expect(banner(page)).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
 
     const box = (await banner(page).boundingBox())!
-    expect(box.height).toBeLessThanOrEqual(640 * 0.4)
+    expect(box.height).toBeLessThanOrEqual(640 * 0.2)
     // "Aceptar" and "Rechazar" are equal in size.
     const accept = (await banner(page).getByRole('button', { name: 'Aceptar' }).boundingBox())!
     const reject = (await banner(page).getByRole('button', { name: 'Rechazar' }).boundingBox())!
@@ -904,7 +903,7 @@ test.describe('Cookie notice (002-11 to 002-16)', () => {
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
       expect(await seriousViolations(page)).toEqual([])
 
-      await banner(page).getByRole('button', { name: 'Configurar' }).click()
+      await page.getByRole('contentinfo').getByRole('button', { name: 'Cookies' }).click()
       await expect(page.getByRole('dialog')).toBeVisible()
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0)
       expect(await seriousViolations(page)).toEqual([])

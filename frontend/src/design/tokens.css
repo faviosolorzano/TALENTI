@@ -82,15 +82,14 @@
   --color-focus-inverse: var(--color-brand-white);
   --color-overlay-inverse-soft: color-mix(in srgb, var(--color-brand-white) 8%, transparent);
   --color-overlay-inverse-line: color-mix(in srgb, var(--color-brand-white) 28%, transparent);
-  --color-mark-watermark: var(--color-brand-blue);
-
-  /* Company avatars: three tones of the brand (no logos). Text on each reaches 4.5:1. */
-  --color-avatar-1-bg: var(--color-brand-navy);
-  --color-avatar-1-text: var(--color-brand-white);
-  --color-avatar-2-bg: var(--color-brand-blue);
-  --color-avatar-2-text: var(--color-brand-white);
-  --color-avatar-3-bg: color-mix(in srgb, var(--color-brand-blue) 14%, var(--color-brand-white));
-  --color-avatar-3-text: var(--color-brand-navy);
+  /* Hairline between the rows of a grouped list (spec 011) */
+  --color-separator: var(--color-border);
+  /* State marks (spec 011): each one also has its own shape and hidden text */
+  --color-mark-have: var(--color-success);
+  --color-mark-reinforce: var(--color-warning);
+  --color-mark-missing: var(--color-danger);
+  --color-mark-done: var(--color-action);
+  --color-mark-pending: var(--color-neutral-500);
 
   /* Loading skeletons */
   --color-skeleton: var(--color-neutral-100);
@@ -197,7 +196,7 @@
   --touch-target-min: 2.75rem; /* 44 px */
   --header-height: 4.125rem; /* 66 px on phones */
   --header-min-height: var(--header-height);
-  --logo-height: 2rem;
+  --logo-height: 1.75rem; /* 28 px on phones: the visitor header fits in one row at 360 px */
   --section-padding: var(--space-19);
   --scroll-offset: calc(var(--header-height) + var(--space-4));
   --z-header: 30;
@@ -207,7 +206,7 @@
   --reading-measure: 50ch; /* about 70 characters per line in the body font */
   --toc-width: 15rem; /* 240 px: side index of the legal pages */
   --dialog-max-width: 36rem; /* 576 px: cookie preferences panel */
-  --cookie-banner-max-height: 40vh;
+  --cookie-banner-max-height: 20vh; /* 011-08: at most a fifth of the screen */
   --color-scrim: color-mix(in srgb, var(--color-brand-navy) 55%, transparent);
   --z-cookie-banner: 20;
   --z-modal: 50;
@@ -216,8 +215,6 @@
   --ring-size: 8.25rem; /* 132 px on phones */
   --orb-max-size: 27.5rem; /* 440 px */
   --stage-min-height: 21.25rem; /* 340 px */
-  --avatar-size: 3rem; /* 48 px */
-  --avatar-size-sm: 2.5rem; /* 40 px */
   --filters-width: 16.25rem; /* 260 px: side column of /oportunidades */
   --detail-aside-width: 22rem; /* 352 px: apply and side column of a vacancy */
   --notice-message-basis: 14rem; /* 224 px: width at which an error message wraps its button */
@@ -228,7 +225,6 @@
   /* ---- Forms (identity screens) ---- */
   --form-card-width: 30rem; /* 480 px: sign-in and sign-up card */
   --auth-aside-width: 26rem; /* 416 px: side message next to the form on wide screens */
-  --auth-mark-size: 20rem; /* 320 px: watermark inside the side panel */
   --checkbox-size: var(--space-6); /* 24 px */
 
   /* ---- Student home and profile (specs 005 and 006) ---- */
@@ -237,9 +233,17 @@
   --tick-size: 1.75rem; /* 28 px: done / pending mark of a section */
   --profile-aside-width: 22.5rem; /* 360 px: progress column of /perfil */
   --picker-max-height: 15rem; /* 240 px: list of the skill search */
-  --home-orb-size: 4.5rem; /* 72 px: DORA orb in the home block */
   --textarea-min-height: 8rem; /* 128 px */
   --level-option-min-width: 6rem; /* 96 px: one option of a level group */
+
+  /* ---- Navigation and base components (spec 011) ---- */
+  --tabbar-height: 3.75rem; /* 60 px: bottom tab bar of a student under 860 px */
+  --tabbar-icon-size: 1.5rem; /* 24 px */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --status-mark-size: 1.25rem; /* 20 px: ✓ ◐ ✗ ● ○ */
+  --list-row-padding-x: var(--space-4);
+  --list-row-padding-y: var(--space-3);
+  --z-action-bar: 22;
 
   /* ---- Focus ring ---- */
   --focus-ring-width: 3px;
