@@ -44,6 +44,9 @@ public class UsageMeter {
 
 	private final AiLevel level;
 
+	/** Pocas escrituras de medición a la vez: nunca acaparan las conexiones que necesita la conversación. */
+	private final java.util.concurrent.Semaphore writers = new java.util.concurrent.Semaphore(2);
+
 	UsageMeter(AiUsageRecorder recorder, AiUsageQuota quota, DoraAiProperties ai,
 			@Qualifier("doraExecutor") ExecutorService executor, ConversationPort conversation) {
 		this.recorder = recorder;
@@ -54,15 +57,33 @@ public class UsageMeter {
 		this.level = ai.enabled() ? AiLevel.ENHANCED : AiLevel.BASIC;
 	}
 
-	/** Si el tope mensual de gasto ya se alcanzó: todo se degrada (012-30). */
+	/** Cuánto vale la última consulta del tope de gasto (para no consultar la base en cada paso de un turno). */
+	private static final long SPEND_CACHE_NANOS = 2_000_000_000L;
+
+	private volatile long spendCheckedAt;
+
+	private volatile boolean spendCached;
+
+	/** Si el tope mensual de gasto ya se alcanzó: todo se degrada (012-30). Se recuerda unos 2 segundos. */
 	public boolean spendReached() {
+		long now = System.nanoTime();
+		if (spendCheckedAt != 0 && now - spendCheckedAt < SPEND_CACHE_NANOS) {
+			return spendCached;
+		}
 		try {
-			return quota.monthlySpendReached();
+			spendCached = quota.monthlySpendReached();
+			spendCheckedAt = now;
+			return spendCached;
 		}
 		catch (RuntimeException e) {
 			log.warn("No se pudo consultar el tope de gasto de IA ({}); se degrada por precaución", e.getClass().getName());
 			return true;
 		}
+	}
+
+	/** Olvida la última consulta del tope de gasto (las pruebas lo cambian a propósito). */
+	public void refreshSpend() {
+		spendCheckedAt = 0;
 	}
 
 	/** El registro de llamadas de un turno o de un texto fijo de DORA, para la persona. */
@@ -82,7 +103,7 @@ public class UsageMeter {
 	 */
 	public void sessionUsed(UUID sessionId, UUID userId, SessionMode mode, AiUsageOutcome outcome) {
 		AiFunction function = mode == SessionMode.INTERVIEW ? AiFunction.INTERVIEW_SESSION : AiFunction.PRACTICE_SESSION;
-		record(new AiUsageEvent(sessionId, userId, function, level, adapter, null, outcome, 0, 0, null));
+		recordSafely(new AiUsageEvent(sessionId, userId, function, level, adapter, null, outcome, 0, 0, null));
 	}
 
 	private void call(UUID userId, AiFunction function, String model, int inputSize, int outputSize, boolean success,
@@ -90,12 +111,28 @@ public class UsageMeter {
 		AiUsageEvent event = new AiUsageEvent(UUID.randomUUID(), userId, function, level, adapter, model,
 				success ? AiUsageOutcome.SUCCESS : AiUsageOutcome.FAILED_PLATFORM, inputSize, outputSize,
 				success ? costMicros : 0L);
-		executor.execute(() -> record(event));
+		executor.execute(() -> recordSafely(event));
 	}
 
 	private void record(AiUsageEvent event) {
 		try {
+			writers.acquire();
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return;
+		}
+		try {
 			recorder.record(event);
+		}
+		finally {
+			writers.release();
+		}
+	}
+
+	private void recordSafely(AiUsageEvent event) {
+		try {
+			record(event);
 		}
 		catch (RuntimeException e) {
 			// La medición nunca corta la conversación; solo el tipo de error (sin contenido).

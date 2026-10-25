@@ -2,6 +2,7 @@ package com.talenti.practice.service;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.talenti.practice.config.DoraProperties;
+import com.talenti.practice.persistence.PracticeRepository.QuestionRow;
 import com.talenti.practice.port.SpokenAudio;
 
 /**
@@ -36,6 +38,12 @@ public class LiveSessions {
 	private final Map<UUID, Map<String, CompletableFuture<Optional<SpokenAudio>>>> audio = new ConcurrentHashMap<>();
 
 	private final Map<UUID, Deque<Long>> turnsByUser = new ConcurrentHashMap<>();
+
+	/** Primer nombre por sesión (D-42): solo en memoria, se olvida al cerrar. Optional vacío = sin nombre. */
+	private final Map<UUID, Optional<String>> firstNames = new ConcurrentHashMap<>();
+
+	/** Las preguntas de la sesión no cambian después de planificarla: se leen una sola vez. */
+	private final Map<UUID, List<QuestionRow>> questions = new ConcurrentHashMap<>();
 
 	private final ExecutorService executor;
 
@@ -93,9 +101,20 @@ public class LiveSessions {
 		return Optional.ofNullable(audio.getOrDefault(sessionId, Map.of()).get(key));
 	}
 
+	/** El primer nombre de la sesión, cargado una sola vez con {@code loader}; nulo si no hay. */
+	public String firstName(UUID sessionId, Supplier<String> loader) {
+		return firstNames.computeIfAbsent(sessionId, id -> Optional.ofNullable(loader.get())).orElse(null);
+	}
+
+	public List<QuestionRow> questions(UUID sessionId, Supplier<List<QuestionRow>> loader) {
+		return questions.computeIfAbsent(sessionId, id -> List.copyOf(loader.get()));
+	}
+
 	/** Olvida todo lo de la sesión (al cerrarla o borrarla). */
 	public void forget(UUID sessionId) {
 		audio.remove(sessionId);
+		questions.remove(sessionId);
+		firstNames.remove(sessionId);
 		busy.remove(sessionId);
 	}
 

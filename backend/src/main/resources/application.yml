@@ -47,6 +47,10 @@ management:
       show-components: never
 
 server:
+  tomcat:
+    # Un turno de DORA rechazado por tamaño (413 audio-too-large) se responde sin cortar la conexión: Tomcat descarta
+    # hasta 5 MB del cuerpo no leído (nginx ya limita /api/v1/dora/ a 4 MB). Por defecto son 2 MB.
+    max-swallow-size: 5MB
   error:
     include-message: never
     include-stacktrace: never

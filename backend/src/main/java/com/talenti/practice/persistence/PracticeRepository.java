@@ -384,7 +384,7 @@ public class PracticeRepository {
 				VALUES (:id, :turnId, 'PENDING', '[]'::jsonb, :promptVersion, :rubricVersion, :now)
 				ON CONFLICT (turn_id) DO UPDATE SET status = 'PENDING', criteria = '[]'::jsonb, total = NULL,
 				    created_at = EXCLUDED.created_at
-				WHERE practice_feedback.status <> 'PENDING'""")
+				WHERE practice_feedback.status = 'UNAVAILABLE'""")
 				.param("id", UUID.randomUUID()).param("turnId", turnId).param("promptVersion", promptVersion)
 				.param("rubricVersion", rubricVersion).param("now", utc(now)).update() == 1;
 	}

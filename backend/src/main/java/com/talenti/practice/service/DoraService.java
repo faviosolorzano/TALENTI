@@ -101,9 +101,13 @@ public class DoraService {
 
 	private final Clock clock;
 
+	private final java.util.concurrent.ExecutorService executor;
+
 	DoraService(PracticeRepository repository, ConversationPort conversation, LiveSessions live,
 			SessionLifecycle lifecycle, FeedbackService feedback, SessionViews views, UsageMeter usage,
-			ProfileFirstName names, DoraTexts texts, DoraProperties properties, Clock clock) {
+			ProfileFirstName names, DoraTexts texts, DoraProperties properties, Clock clock,
+			@org.springframework.beans.factory.annotation.Qualifier("doraExecutor") java.util.concurrent.ExecutorService executor) {
+		this.executor = executor;
 		this.repository = repository;
 		this.conversation = conversation;
 		this.live = live;
@@ -138,8 +142,7 @@ public class DoraService {
 				Integer position = SessionViews.nextPosition(session, repository.turns(sessionId));
 				boolean voice = session.voiceEnabled() && !usage.spendReached();
 				Degradation degradation = new Degradation(session, sink);
-				String firstName = names.firstName(userId).orElse(null);
-				String opening = texts.opening(firstName, session.mode());
+				String opening = texts.opening(firstName(session), session.mode());
 				sink.send("reply.text", map("seq", 1, "text", opening, "source", "TEMPLATE", "generatedBy", "TEMPLATE"));
 				if (voice) {
 					Optional<SpokenAudio> audio = audio(session, "opening", opening);
@@ -198,11 +201,10 @@ public class DoraService {
 		if (!live.allowTurn(userId)) {
 			throw new TooManyRequestsException(60);
 		}
-		Optional<TurnRow> saved = repository.findTurnByClientId(command.clientTurnId());
+		// Pocas consultas antes del flujo: todo esto cuenta para el tiempo hasta el primer audio (012-15).
+		List<TurnRow> turns = repository.turns(sessionId);
+		Optional<TurnRow> saved = turns.stream().filter(t -> t.clientTurnId().equals(command.clientTurnId())).findFirst();
 		if (saved.isPresent()) {
-			if (!saved.get().sessionId().equals(sessionId)) {
-				throw DoraErrors.conflict("turn-id-conflict");
-			}
 			if (live.isBusy(sessionId)) {
 				throw DoraErrors.conflict("turn-in-progress");
 			}
@@ -218,8 +220,7 @@ public class DoraService {
 			throw DoraErrors.conflict("turn-in-progress");
 		}
 		try {
-			List<QuestionRow> questions = repository.questions(sessionId);
-			List<TurnRow> turns = repository.turns(sessionId);
+			List<QuestionRow> questions = live.questions(sessionId, () -> repository.questions(sessionId));
 			int position = command.questionPosition();
 			int attempt = attemptFor(session, turns, position);
 			QuestionRow question = questions.stream().filter(q -> q.position() == position).findFirst()
@@ -317,7 +318,6 @@ public class DoraService {
 			this.sink = sink;
 			this.degradation = new Degradation(session, sink);
 			try {
-				repository.touch(session.id(), clock.instant());
 				boolean aiAllowed = !usage.spendReached();
 				boolean voice = session.voiceEnabled() && aiAllowed;
 				if (!aiAllowed) {
@@ -332,7 +332,7 @@ public class DoraService {
 				Integer next = question.position() < session.questionCount() ? question.position() + 1 : null;
 				QuestionRow nextQuestion = next == null ? null
 						: questions.stream().filter(q -> q.position() == next).findFirst().orElse(null);
-				String firstName = names.firstName(session.userId()).orElse(null);
+				String firstName = firstName(session);
 				LlmPort.Purpose purpose = session.mode() == SessionMode.INTERVIEW ? LlmPort.Purpose.INTERVIEW
 						: LlmPort.Purpose.PRACTICE;
 				LlmPort.BridgeRequest bridge = new LlmPort.BridgeRequest(purpose, firstName, question.text(),
@@ -391,21 +391,30 @@ public class DoraService {
 						sttMs == null ? null : sttMs.intValue(), clock.instant());
 			}
 			catch (DuplicateKeyException duplicate) {
-				sink.send("error", map("code", "turn-duplicate", "retryable", false));
-				errorCode = "turn-duplicate";
+				// Ese clientTurnId ya se usó en otra sesión (es único en todo el sistema).
+				sink.send("error", map("code", "turn-id-conflict", "retryable", false));
+				errorCode = "turn-id-conflict";
 				return false;
 			}
 			saved = true;
 			this.sttMs = sttMs;
 			sink.send("transcript", map("turnId", turnId, "text", value, "inputMode", mode.name()));
-			if (attempt == 1 && question.position() == 1) {
-				usage.sessionUsed(session.id(), session.userId(), session.mode(), AiUsageOutcome.SUCCESS);
-			}
-			lifecycle.event(session, "ANSWERED", map("position", question.position(), "inputMode", mode.name(),
-					"attempt", attempt));
-			if (session.mode() == SessionMode.PRACTICE) {
-				feedback.schedule(session.id(), turnId, session.userId(), SessionMode.PRACTICE);
-			}
+			// Lo demás va fuera del camino de la voz (012-15): no suma tiempo hasta el primer audio.
+			executor.execute(() -> {
+				try {
+					if (attempt == 1 && question.position() == 1) {
+						usage.sessionUsed(session.id(), session.userId(), session.mode(), AiUsageOutcome.SUCCESS);
+					}
+					lifecycle.event(session, "ANSWERED", map("position", question.position(), "inputMode",
+							mode.name(), "attempt", attempt));
+					if (session.mode() == SessionMode.PRACTICE) {
+						feedback.schedule(session.id(), turnId, session.userId(), SessionMode.PRACTICE);
+					}
+				}
+				catch (RuntimeException e) {
+					log.warn("No se pudo anotar lo posterior a una respuesta: {}", e.getClass().getName());
+				}
+			});
 			return true;
 		}
 
@@ -520,7 +529,7 @@ public class DoraService {
 		if (!session.voiceEnabled() || usage.spendReached()) {
 			return;
 		}
-		String opening = texts.opening(names.firstName(session.userId()).orElse(null), session.mode());
+		String opening = texts.opening(firstName(session), session.mode());
 		live.prefetch(session.id(), "opening", () -> conversation.speak(opening, usage.callLog(session.userId())));
 	}
 
@@ -622,6 +631,11 @@ public class DoraService {
 		List<Integer> values = repository.recentFirstAudioMs(last);
 		return new Views.Latency(com.talenti.practice.domain.Percentiles.of(values, 50),
 				com.talenti.practice.domain.Percentiles.of(values, 95), values.size());
+	}
+
+	/** El primer nombre de la persona, leído una vez por sesión (la sesión usa lo que había al empezar). */
+	private String firstName(SessionRow session) {
+		return live.firstName(session.id(), () -> names.firstName(session.userId()).orElse(null));
 	}
 
 	/** Olvida el audio en memoria de una sesión borrada. */
