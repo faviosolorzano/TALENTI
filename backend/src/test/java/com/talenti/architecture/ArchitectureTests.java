@@ -7,8 +7,10 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPac
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
+import com.talenti.application.ApplicationStages;
 import com.talenti.identity.CurrentUser;
 import com.talenti.identity.Role;
+import com.talenti.profile.ProfileFirstName;
 import com.talenti.profile.ProfileReader;
 import com.talenti.profile.ProfileSnapshot;
 import com.talenti.profile.WorkModality;
@@ -59,6 +61,12 @@ class ArchitectureTests {
 			.ignoreDependency(resideInAPackage("com.talenti.cv.."), equivalentTo(SkillInfo.class))
 			// Los tipos públicos de profile están en su paquete raíz (ProfileEditor, ProfileView, ConfirmedChanges...).
 			.ignoreDependency(resideInAPackage("com.talenti.cv.."), resideInAPackage("com.talenti.profile"))
+			// practice (spec 012) usa el usuario de la sesión, ProfileReader con su snapshot, el primer nombre (D-42),
+			// VacancyLookup, el catálogo y las etapas de la postulación; nada más (lo vigila PracticeArchitectureTests).
+			.ignoreDependency(resideInAPackage("com.talenti.practice.."),
+					belongToAnyOf(CurrentUser.class, Role.class, ProfileReader.class, ProfileSnapshot.class,
+							ProfileFirstName.class, VacancyLookup.class, VacancyInfo.class, SkillCatalog.class,
+							SkillInfo.class, ApplicationStages.class))
 			.as("los módulos no dependen unos de otros; solo usan shared, y shared no depende de ningún módulo");
 
 	@ArchTest
