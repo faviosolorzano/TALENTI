@@ -55,6 +55,14 @@ Por defecto todo es simulado y no se envía nada a nadie. Para probar con tu pro
 
 Qué pasa si algo sale mal: cada persona tiene 3 lecturas con IA al mes y hay topes por día y por mes para todos (`TALENTI_AI_LIMITS_*`); al acabarse, la pantalla lo dice y la lectura básica sigue disponible. Si OpenAI falla o tarda más de 30 segundos, se usa la lectura básica y no se descuenta ninguna lectura. Si falta la clave o el modelo, el backend no arranca y el mensaje (`docker compose logs backend`) dice qué falta; la clave nunca aparece en los registros.
 
+## Conectar GitHub (solo servidor por ahora)
+Apagado por defecto: sin configurarlo, `POST /api/v1/github/oauth/start` responde 503 `github-oauth-disabled` y el resto sigue igual. Para encenderlo en tu computadora:
+1. En GitHub: Settings > Developer settings > OAuth Apps > New OAuth App. *Homepage URL* `http://localhost:3000`; *Authorization callback URL* `http://localhost:3000/api/v1/github/oauth/callback`; sin marcar *Enable Device Flow*. Copia el *Client ID* y genera un *Client secret*.
+2. En tu `.env` (nunca en otro archivo ni en el chat): `TALENTI_GITHUB_OAUTH_ENABLED=true`, `GITHUB_CLIENT_ID=...` y `GITHUB_CLIENT_SECRET=...`. Si usas otro puerto, cambia también `TALENTI_GITHUB_OAUTH_REDIRECT_URI` y `TALENTI_GITHUB_OAUTH_RETURN_URL` (y la URL de la OAuth App).
+3. Reinicia sin borrar nada: `docker compose --env-file .env up -d --build`.
+
+Talenti no pide permisos extra (sin `scope`: solo lo público) y no guarda la llave que le entrega GitHub. Si falta una variable con la conexión encendida, el backend no arranca y `docker compose logs backend` dice cuál.
+
 ## Pruebas
 - Backend (necesita Docker, usa PostgreSQL real en un contenedor): `cd backend && ./mvnw test`
 - Frontend: `cd frontend && npm install && npm run test`
