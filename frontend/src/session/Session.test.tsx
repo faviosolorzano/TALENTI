@@ -257,7 +257,7 @@ describe('Header with and without a session (003-09)', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('with a session it shows "Mi panel" and "Cerrar sesión", also inside the folded menu', async () => {
+  it('with a session (not a student) it shows "Mi panel" and "Cerrar sesión" as text', async () => {
     mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     renderAppWithSession('/')
     const banner = screen.getByRole('banner')
@@ -274,7 +274,7 @@ describe('Header with and without a session (003-09)', () => {
       'href',
       '/panel',
     )
-    expect(within(menu).getByRole('button', { name: es.identity.nav.logout })).toBeInTheDocument()
+    expect(within(banner).getByRole('button', { name: es.identity.nav.logout })).toBeInTheDocument()
   })
 
   it('shows neither group while the session is being checked (no flash of "Ingresar")', async () => {
@@ -291,7 +291,7 @@ describe('Header with and without a session (003-09)', () => {
     )
   })
 
-  it('"Cerrar sesión" from the folded menu signs out and leads to /ingresar', async () => {
+  it('"Cerrar sesión" from the header signs out and leads to /ingresar', async () => {
     const backend = mockIdentityBackend({ signedInAs: EMAIL, accounts: COMPANY })
     const { router } = renderAppWithSession('/')
     const user = userEvent.setup()
@@ -302,14 +302,14 @@ describe('Header with and without a session (003-09)', () => {
       ).toBeGreaterThan(0),
     )
 
-    await user.click(within(banner).getByRole('button', { name: es.nav.menu }))
-    const menu = within(banner).getByRole('navigation', { name: es.app.mainNavLabel })
-    await user.click(within(menu).getByRole('button', { name: es.identity.nav.logout }))
+    await user.click(within(banner).getByRole('button', { name: es.identity.nav.logout }))
 
     await loginTitle()
     expect(backend.sessionEmail()).toBeNull()
     expect(router.state.location.pathname).toBe('/ingresar')
-    expect(within(banner).getByRole('link', { name: es.nav.register })).toBeInTheDocument()
+    // On /ingresar the header offers only the logo and Vacantes (011-07).
+    expect(within(banner).getByRole('link', { name: es.nav.opportunities })).toBeInTheDocument()
+    expect(within(banner).queryByRole('button', { name: es.identity.nav.logout })).toBeNull()
   })
 })
 

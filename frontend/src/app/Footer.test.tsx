@@ -5,8 +5,8 @@ import { es } from '../i18n/es'
 import { mockLegalApi } from '../test/fakeLegal'
 import { renderApp } from '../test/renderApp'
 
-describe('Footer on every screen (002-08)', () => {
-  // 002-08
+describe('Footer on every screen (002-08, 011-08)', () => {
+  // 002-08, 011-08
   it.each([
     '/',
     '/oportunidades',
@@ -15,7 +15,7 @@ describe('Footer on every screen (002-08)', () => {
     '/panel',
     '/no-existe',
     '/transparencia',
-  ])('002-08: shows the legal links in order and the cookie preferences button on %s', (path) => {
+  ])('011-08: shows Términos, Privacidad, Transparencia and Cookies on %s', (path) => {
     mockLegalApi()
     renderApp(path)
 
@@ -23,23 +23,30 @@ describe('Footer on every screen (002-08)', () => {
     const items = within(footer)
       .getAllByRole('listitem')
       .map((item) => item.textContent)
-    expect(items).toEqual([
-      'Términos y Condiciones',
-      'Política de Privacidad',
-      'Política de Cookies',
-      'Transparencia',
-      'Preferencias de cookies',
-    ])
+    expect(items).toEqual(['Términos', 'Privacidad', 'Transparencia', 'Cookies'])
     const links = within(footer).getAllByRole('link')
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       '/terminos',
       '/privacidad',
-      '/cookies',
       '/transparencia',
     ])
-    expect(
-      within(footer).getByRole('button', { name: es.footer.cookiePreferences }),
-    ).toBeInTheDocument()
+    const cookies = within(footer).getByRole('button', { name: es.footer.cookies })
+    expect(cookies).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(footer.querySelector('.btn--primary')).toBeNull()
+  })
+
+  it('011-03: the footer no longer draws the long names nor "Preferencias de cookies"', () => {
+    renderApp('/')
+    const footer = screen.getByRole('contentinfo')
+    for (const text of [
+      'Términos y Condiciones',
+      'Política de Privacidad',
+      'Política de Cookies',
+      'Preferencias de cookies',
+      'Las empresas y vacantes de Talenti son ficticias y de ejemplo.',
+    ]) {
+      expect(within(footer).queryByText(text)).toBeNull()
+    }
   })
 
   // 002-08
@@ -81,9 +88,7 @@ describe('Footer on every screen (002-08)', () => {
     renderApp('/panel')
     await userEvent.click(screen.getByRole('button', { name: es.cookies.banner.reject }))
 
-    within(screen.getByRole('contentinfo'))
-      .getByRole('button', { name: es.footer.cookiePreferences })
-      .focus()
+    within(screen.getByRole('contentinfo')).getByRole('button', { name: es.footer.cookies }).focus()
     await userEvent.keyboard('{Enter}')
 
     expect(screen.getByRole('dialog', { name: es.cookies.panel.title })).toBeInTheDocument()

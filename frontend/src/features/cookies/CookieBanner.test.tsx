@@ -43,7 +43,7 @@ afterEach(() => {
 
 describe('Cookie notice (002-11, 002-12, 002-13, 002-15)', () => {
   // 002-11
-  it('002-11: shows "Solo usamos cookies necesarias", a link to the policy and the three buttons', () => {
+  it('002-11, 011-08: shows "Solo usamos cookies necesarias", a link to the policy and only Aceptar and Rechazar', () => {
     renderCookies()
 
     const region = banner()
@@ -56,7 +56,8 @@ describe('Cookie notice (002-11, 002-12, 002-13, 002-15)', () => {
       within(region)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Aceptar', 'Rechazar', 'Configurar'])
+    ).toEqual(['Aceptar', 'Rechazar'])
+    expect(region.querySelector('.btn--primary')).toBeNull()
   })
 
   // 002-11
@@ -163,8 +164,6 @@ describe('Cookie notice (002-11, 002-12, 002-13, 002-15)', () => {
     await userEvent.tab()
     expect(within(region).getByRole('button', { name: es.cookies.banner.reject })).toHaveFocus()
     await userEvent.tab()
-    expect(within(region).getByRole('button', { name: es.cookies.banner.configure })).toHaveFocus()
-    await userEvent.tab()
     expect(
       within(screen.getByRole('contentinfo')).getByRole('link', { name: es.footer.terms }),
     ).toHaveFocus()
@@ -193,11 +192,11 @@ describe('Cookie notice (002-11, 002-12, 002-13, 002-15)', () => {
 
 describe('Cookie preferences panel (002-14)', () => {
   // 002-14
-  it('002-14: opens from "Configurar" with the categories of the catalog and "Guardar preferencias"', async () => {
+  it('002-14: opens from "Cookies" in the footer with the categories of the catalog and "Guardar preferencias"', async () => {
     renderCookies()
 
     await userEvent.click(
-      within(banner()).getByRole('button', { name: es.cookies.banner.configure }),
+      within(screen.getByRole('contentinfo')).getByRole('button', { name: es.footer.cookies }),
     )
 
     const dialog = screen.getByRole('dialog', { name: es.cookies.panel.title })
@@ -211,13 +210,13 @@ describe('Cookie preferences panel (002-14)', () => {
   })
 
   // 002-14
-  it('002-14: opens from the footer button "Preferencias de cookies", also after a choice was made', async () => {
+  it('002-14: opens from the footer button "Cookies", also after a choice was made', async () => {
     renderCookies()
     await userEvent.click(within(banner()).getByRole('button', { name: es.cookies.banner.reject }))
 
     await userEvent.click(
       within(screen.getByRole('contentinfo')).getByRole('button', {
-        name: es.footer.cookiePreferences,
+        name: es.footer.cookies,
       }),
     )
 
@@ -228,7 +227,7 @@ describe('Cookie preferences panel (002-14)', () => {
   it('002-14: moves focus into the dialog and keeps it inside with Tab and Shift+Tab', async () => {
     renderCookies()
     await userEvent.click(
-      within(banner()).getByRole('button', { name: es.cookies.banner.configure }),
+      within(screen.getByRole('contentinfo')).getByRole('button', { name: es.footer.cookies }),
     )
     const dialog = screen.getByRole('dialog')
 
@@ -253,7 +252,9 @@ describe('Cookie preferences panel (002-14)', () => {
   // 002-14
   it('002-14: Esc closes it without saving and gives focus back to who opened it', async () => {
     renderCookies()
-    const configure = within(banner()).getByRole('button', { name: es.cookies.banner.configure })
+    const configure = within(screen.getByRole('contentinfo')).getByRole('button', {
+      name: es.footer.cookies,
+    })
     await userEvent.click(configure)
 
     await userEvent.keyboard('{Escape}')
@@ -268,7 +269,7 @@ describe('Cookie preferences panel (002-14)', () => {
   it('002-14: gives focus back to the footer button when it was the one that opened it', async () => {
     renderCookies()
     const button = within(screen.getByRole('contentinfo')).getByRole('button', {
-      name: es.footer.cookiePreferences,
+      name: es.footer.cookies,
     })
     await userEvent.click(button)
 
@@ -278,11 +279,12 @@ describe('Cookie preferences panel (002-14)', () => {
   })
 
   // 002-14
-  it('002-14: "Guardar preferencias" writes the cookie, closes the panel and the notice, and announces it', async () => {
+  it('002-14: "Guardar preferencias" writes the cookie, closes the panel and the notice, announces it and gives focus back to "Cookies"', async () => {
     renderCookies()
-    await userEvent.click(
-      within(banner()).getByRole('button', { name: es.cookies.banner.configure }),
-    )
+    const opener = within(screen.getByRole('contentinfo')).getByRole('button', {
+      name: es.footer.cookies,
+    })
+    await userEvent.click(opener)
 
     await userEvent.click(screen.getByRole('button', { name: es.cookies.panel.save }))
 
@@ -290,14 +292,14 @@ describe('Cookie preferences panel (002-14)', () => {
     expect(screen.queryByRole('region', { name: es.cookies.banner.label })).not.toBeInTheDocument()
     expect(cookieIsWritten()).toBe(true)
     expect(screen.getByText(es.cookies.saved)).toBeInTheDocument()
-    expect(screen.getByRole('main')).toHaveFocus()
+    expect(opener).toHaveFocus()
   })
 
   // 002-14
   it('002-14: "Cerrar sin guardar" leaves the notice and writes nothing', async () => {
     renderCookies()
     await userEvent.click(
-      within(banner()).getByRole('button', { name: es.cookies.banner.configure }),
+      within(screen.getByRole('contentinfo')).getByRole('button', { name: es.footer.cookies }),
     )
 
     await userEvent.click(screen.getByRole('button', { name: es.cookies.panel.close }))
@@ -317,7 +319,7 @@ describe('A category added to the catalog (002-17)', () => {
 
     expect(within(banner()).getByText(/Analítica/)).toBeInTheDocument()
     await userEvent.click(
-      within(banner()).getByRole('button', { name: es.cookies.banner.configure }),
+      within(screen.getByRole('contentinfo')).getByRole('button', { name: es.footer.cookies }),
     )
     const dialog = screen.getByRole('dialog')
     const analytics = within(dialog).getByRole('checkbox', { name: 'Analítica' })
@@ -351,7 +353,7 @@ describe('A category added to the catalog (002-17)', () => {
   it('002-17: closing the panel without choosing leaves it off', async () => {
     renderCookies(TEST_CATALOG)
     await userEvent.click(
-      within(banner()).getByRole('button', { name: es.cookies.banner.configure }),
+      within(screen.getByRole('contentinfo')).getByRole('button', { name: es.footer.cookies }),
     )
     await userEvent.click(screen.getByRole('checkbox', { name: 'Analítica' }))
 
@@ -365,7 +367,7 @@ describe('A category added to the catalog (002-17)', () => {
   it('002-17/002-14: the panel saves what was ticked and shows the current choice when opened again', async () => {
     renderCookies(TEST_CATALOG)
     await userEvent.click(
-      within(banner()).getByRole('button', { name: es.cookies.banner.configure }),
+      within(screen.getByRole('contentinfo')).getByRole('button', { name: es.footer.cookies }),
     )
     await userEvent.click(screen.getByRole('checkbox', { name: 'Analítica' }))
     await userEvent.click(screen.getByRole('button', { name: es.cookies.panel.save }))
@@ -373,7 +375,7 @@ describe('A category added to the catalog (002-17)', () => {
 
     await userEvent.click(
       within(screen.getByRole('contentinfo')).getByRole('button', {
-        name: es.footer.cookiePreferences,
+        name: es.footer.cookies,
       }),
     )
 

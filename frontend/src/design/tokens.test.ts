@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  avatarTones,
   blueTones,
   brandColors,
   breakpoints,
@@ -65,14 +64,16 @@ describe('Design tokens', () => {
     }
   })
 
-  it('keep the company avatar tones in sync (004-16)', () => {
-    const [first, second] = avatarTones.tones
-    expect(cssValue('--color-avatar-1-bg')).toBe('VAR(--COLOR-BRAND-NAVY)')
-    expect(cssValue('--color-avatar-2-bg')).toBe('VAR(--COLOR-BRAND-BLUE)')
-    expect(cssValue('--color-avatar-3-bg')).toContain('VAR(--COLOR-BRAND-BLUE) 14%')
-    expect(first.background).toBe(brandColors.navy)
-    expect(second.background).toBe(brandColors.blue)
-    expect(avatarTones.tones).toHaveLength(3)
+  it('point the state marks to the state colors and the brand, with no new hues (011-05)', () => {
+    expect(cssValue('--color-mark-have')).toBe('VAR(--COLOR-SUCCESS)')
+    expect(cssValue('--color-mark-reinforce')).toBe('VAR(--COLOR-WARNING)')
+    expect(cssValue('--color-mark-missing')).toBe('VAR(--COLOR-DANGER)')
+    expect(cssValue('--color-mark-done')).toBe('VAR(--COLOR-ACTION)')
+    expect(cssValue('--color-mark-pending')).toBe('VAR(--COLOR-NEUTRAL-500)')
+  })
+
+  it('keep the cookie notice at most a fifth of the screen high (011-08)', () => {
+    expect(cssValue('--cookie-banner-max-height')).toBe('20VH')
   })
 
   it('keep the light grays used on navy in sync', () => {

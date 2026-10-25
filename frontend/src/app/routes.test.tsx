@@ -8,7 +8,7 @@ describe('Routes', () => {
     renderApp('/')
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/lo que ya sabes hacer/)
-    expect(screen.queryByText(es.placeholder.underConstruction)).not.toBeInTheDocument()
+    expect(screen.queryByText('En construcción')).not.toBeInTheDocument()
     expect(document.title).toBe(`${es.pages.home.title} · ${es.app.name}`)
   })
 
@@ -20,7 +20,7 @@ describe('Routes', () => {
     renderApp(path)
 
     expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
-    expect(screen.queryByText(es.placeholder.underConstruction)).not.toBeInTheDocument()
+    expect(screen.queryByText('En construcción')).not.toBeInTheDocument()
     expect(document.title).toBe(`${title} · ${es.app.name}`)
   })
 
@@ -41,19 +41,20 @@ describe('Routes', () => {
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/ingresar')
     expect(router.state.location.search).toBe('?returnTo=%2Foportunidades')
-    expect(screen.queryByText(es.placeholder.underConstruction)).not.toBeInTheDocument()
+    expect(screen.queryByText('En construcción')).not.toBeInTheDocument()
   })
 
-  it('an unknown route shows the "page not found" screen with a way back home', () => {
+  it('011-25: an unknown route shows the "page not found" screen with one way back home', () => {
     renderApp('/no-existe')
 
     expect(
       screen.getByRole('heading', { level: 1, name: es.pages.notFound.title }),
     ).toBeInTheDocument()
     expect(document.title).toBe(`${es.pages.notFound.title} · ${es.app.name}`)
-    expect(screen.getByRole('link', { name: es.pages.notFound.backHome })).toHaveAttribute(
-      'href',
-      '/',
-    )
+    const back = screen.getByRole('link', { name: es.pages.notFound.backHome })
+    expect(back).toHaveAttribute('href', '/')
+    expect(back).toHaveClass('btn--primary')
+    expect(screen.getByRole('main').querySelectorAll('.btn--primary')).toHaveLength(1)
+    expect(screen.queryByText('En construcción')).toBeNull()
   })
 })

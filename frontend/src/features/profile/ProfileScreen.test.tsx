@@ -95,12 +95,9 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
       'href',
       '/perfil/cv',
     )
-    // 006-29: "Enlaza tu GitHub" only announces; it has no active control.
-    const github = card(t.github.title)
-    expect(within(github).getByText(t.github.soon)).toBeInTheDocument()
-    expect(within(github).getByText(/repositorios públicos/)).toBeInTheDocument()
-    expect(within(github).queryByRole('button')).not.toBeInTheDocument()
-    expect(within(github).queryByRole('link')).not.toBeInTheDocument()
+    // 011-02: what does not exist yet (GitHub) is not drawn, and nothing says "Próximamente".
+    expect(screen.queryByText(/GitHub/)).toBeNull()
+    expect(screen.queryByText('Próximamente')).toBeNull()
     // 006-28: "Datos personales" is the first card.
     expect(editButton(t.about.title)).toBeInTheDocument()
   })

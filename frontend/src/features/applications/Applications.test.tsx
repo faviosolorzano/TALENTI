@@ -307,7 +307,7 @@ describe('Home block "Tus postulaciones" (005-12, 008-21)', () => {
     const block = await screen.findByRole('region', { name: home.title })
     expect(await within(block).findByText(home.none)).toBeInTheDocument()
     expect(within(block).getByRole('link', { name: home.seeOpportunities })).toBeInTheDocument()
-    expect(within(block).queryByText(es.home.soon)).not.toBeInTheDocument()
+    expect(within(block).queryByText('Próximamente')).not.toBeInTheDocument()
   })
 
   it('with applications it shows the active count, the latest and the link to all', async () => {

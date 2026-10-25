@@ -714,7 +714,9 @@ describe('Vacancy card in the list (004-20)', () => {
     expect(card).toHaveTextContent('Presencial')
     expect(card).toHaveTextContent('20 h por semana')
     expect(card).toHaveTextContent(/Publicada/)
-    expect(card).toHaveTextContent('RL')
+    // Spec 011: no avatar of initials.
+    expect(card).not.toHaveTextContent(/^RL/)
+    expect(card.querySelector('.company-avatar')).toBeNull()
   })
 
   it('shows at most 4 technologies and "+N" for the rest', async () => {

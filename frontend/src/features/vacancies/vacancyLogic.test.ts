@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { buildVacancyQueryString } from '../../api/vacancies'
-import { companyInitials, companyTone } from './avatarTone'
 import { publishedLabel } from './format'
 import { pageItems } from './pageItems'
 import {
@@ -17,42 +16,6 @@ import {
 } from './searchParams'
 
 const parse = (search: string) => parseSearchParams(new URLSearchParams(search))
-
-describe('Company avatar (004-16)', () => {
-  it('makes the initials from the first two words, or the first two letters of a single word', () => {
-    expect(companyInitials('Nexa Digital')).toBe('ND')
-    expect(companyInitials('Cóndor Datos')).toBe('CD')
-    expect(companyInitials('  quipu   systems ')).toBe('QS')
-    expect(companyInitials('Misti')).toBe('MI')
-    expect(companyInitials('')).toBe('?')
-  })
-
-  it('gives the same tone to the same company every time, one of three', () => {
-    const names = ['Nexa Digital', 'Andes Tech', 'Cóndor Datos', 'Tambo Cloud', 'Punto Código']
-    for (const name of names) {
-      expect(companyTone(name)).toBe(companyTone(name))
-      expect(companyTone(name)).toBeGreaterThanOrEqual(0)
-      expect(companyTone(name)).toBeLessThan(3)
-    }
-    expect(companyTone('  nexa digital ')).toBe(companyTone('Nexa Digital'))
-  })
-
-  it('uses more than one tone across the example companies', () => {
-    const tones = new Set(
-      [
-        'Nexa Digital',
-        'Andes Tech',
-        'Cóndor Datos',
-        'Tambo Cloud',
-        'Punto Código',
-        'Ruta Labs',
-        'Quipu Systems',
-        'Misti Software',
-      ].map(companyTone),
-    )
-    expect(tones.size).toBeGreaterThan(1)
-  })
-})
 
 describe('Publication date (004 edge cases)', () => {
   const now = new Date(2026, 9, 12, 15, 0)

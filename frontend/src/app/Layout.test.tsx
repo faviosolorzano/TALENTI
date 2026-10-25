@@ -21,19 +21,13 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: es.app.skipToContent })).toHaveFocus()
   })
 
-  it('shows the main navigation: Inicio, Oportunidades, Cómo funciona and DORA (and Ingresar in the folded menu)', () => {
+  it('shows the main navigation of a visitor: only Vacantes (spec 011)', () => {
     renderApp('/')
 
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
     const links = within(nav).getAllByRole('link')
 
-    expect(links.map((link) => link.textContent)).toEqual([
-      es.nav.home,
-      es.nav.opportunities,
-      es.nav.how,
-      es.nav.dora,
-      es.nav.login,
-    ])
+    expect(links.map((link) => link.textContent)).toEqual([es.nav.opportunities])
   })
 
   it('shows "Ingresar" and "Crear cuenta" at the right of the header', () => {
@@ -44,7 +38,7 @@ describe('Layout', () => {
       'href',
       '/registro',
     )
-    expect(within(banner).getAllByRole('link', { name: es.nav.login })[0]).toHaveAttribute(
+    expect(within(banner).getByRole('link', { name: es.nav.login })).toHaveAttribute(
       'href',
       '/ingresar',
     )
@@ -58,56 +52,57 @@ describe('Layout', () => {
   })
 
   it('marks the link of the current page for assistive technology', () => {
-    renderApp('/ingresar')
+    renderApp('/oportunidades')
 
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    expect(within(nav).getByRole('link', { name: es.nav.login })).toHaveAttribute(
+    expect(within(nav).getByRole('link', { name: es.nav.opportunities })).toHaveAttribute(
       'aria-current',
       'page',
     )
-    expect(within(nav).getByRole('link', { name: es.nav.home })).not.toHaveAttribute('aria-current')
   })
 
-  it('navigates to another page when a navigation link is used', async () => {
+  it('navigates to another page when a header link is used', async () => {
     renderApp('/')
 
-    const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
+    await userEvent.click(
+      within(screen.getByRole('banner')).getByRole('link', { name: es.nav.login }),
+    )
 
     expect(screen.getByRole('heading', { level: 1, name: es.identity.login.title })).toBeVisible()
   })
 
   it('updates the document title on every route change, not only on the placeholder pages', async () => {
     renderApp('/')
-    const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
     const banner = screen.getByRole('banner')
 
-    await userEvent.click(within(banner).getByRole('link', { name: es.nav.register }))
-    expect(document.title).toBe(`${es.pages.register.title} · ${es.app.name}`)
-
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
+    await userEvent.click(within(banner).getByRole('link', { name: es.nav.login }))
     expect(document.title).toBe(`${es.pages.login.title} · ${es.app.name}`)
 
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.home }))
+    await userEvent.click(within(banner).getByRole('link', { name: es.nav.opportunities }))
+    expect(document.title).toBe(`${es.pages.opportunities.title} · ${es.app.name}`)
+
+    await userEvent.click(within(banner).getByRole('link', { name: es.app.homeLink }))
     expect(document.title).toBe(`${es.pages.home.title} · ${es.app.name}`)
   })
 
   it('scrolls to the section of a hash link and moves focus to it', async () => {
     renderApp('/')
-    const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
 
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.dora }))
+    await userEvent.click(
+      within(screen.getByRole('main')).getByRole('link', { name: es.hero.secondaryAction }),
+    )
 
-    const section = document.getElementById('dora')
+    const section = document.getElementById('como-funciona')
     expect(section?.scrollIntoView).toHaveBeenCalled()
     expect(section).toHaveFocus()
   })
 
   it('moves focus to the main content when the route changes', async () => {
     renderApp('/')
-    const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
 
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
+    await userEvent.click(
+      within(screen.getByRole('banner')).getByRole('link', { name: es.nav.login }),
+    )
 
     expect(screen.getByRole('main')).toHaveFocus()
   })

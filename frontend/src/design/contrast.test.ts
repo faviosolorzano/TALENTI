@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { contrastRatio, overlay } from './color'
-import {
-  avatarTones,
-  brandColors,
-  neutralColors,
-  onDarkColors,
-  orbColors,
-  stateColors,
-} from './tokens'
+import { brandColors, neutralColors, onDarkColors, orbColors, stateColors } from './tokens'
 
 const { navy, blue, white } = brandColors
 const blueSoft = overlay(blue, 0.08, white)
@@ -36,22 +29,22 @@ const pairs: ReadonlyArray<readonly [name: string, text: string, background: str
   ['navy on white (selected DORA state)', navy, white],
 ]
 
-// 004-16: the text of every company avatar tone reaches 4.5:1.
-const avatarPairs = avatarTones.tones.map(
-  (tone, index) => [`avatar tone ${index + 1}`, tone.text, tone.background] as const,
-)
+// 011-05: the state marks (✓ ◐ ✗ ● ○) are graphics: they reach 3:1 on white (WCAG 1.4.11).
+const markPairs = [
+  ['have (✓)', stateColors.success],
+  ['reinforce (◐)', stateColors.warning],
+  ['missing (✗)', stateColors.danger],
+  ['done (●)', blue],
+  ['pending (○)', neutralColors[500]],
+] as const
 
 describe('Color contrast (003-02)', () => {
   it.each(pairs)('%s reaches 4.5:1', (_name, text, background) => {
     expect(contrastRatio(text, background)).toBeGreaterThanOrEqual(AA)
   })
 
-  it.each(avatarPairs)('%s (004-16) reaches 4.5:1', (_name, text, background) => {
-    expect(contrastRatio(text, background)).toBeGreaterThanOrEqual(AA)
-  })
-
-  it('computes the soft avatar tone as the brand blue over white', () => {
-    expect(avatarTones.tones[2].background).toBe(overlay(blue, avatarTones.softAlpha, white))
+  it.each(markPairs)('state mark %s reaches 3:1 on white (011-05)', (_name, color) => {
+    expect(contrastRatio(color, white)).toBeGreaterThanOrEqual(3)
   })
 
   it('computes known reference values', () => {

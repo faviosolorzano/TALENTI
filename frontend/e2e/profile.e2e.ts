@@ -95,7 +95,7 @@ test('sign up, Home at 0 %, then the real percentage rises as sections are saved
   expect(stored).toEqual([])
 
   await page
-    .getByRole('navigation', { name: 'Navegación principal' })
+    .getByRole('navigation', { name: 'Principal' })
     .getByRole('link', { name: 'Inicio' })
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeVisible()
@@ -129,7 +129,7 @@ for (const width of [360, 768, 1280]) {
 
     await page.goto('/perfil?seccion=sobre-ti')
     await expect(page.getByLabel('Nombres')).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Enlaza tu GitHub' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Enlaza tu GitHub' })).toHaveCount(0)
     expect(await seriousViolations(page), 'Datos personales abiertos').toEqual([])
     await noSidewaysScroll()
   })

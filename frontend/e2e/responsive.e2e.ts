@@ -36,38 +36,24 @@ test.describe('Responsive layout (003-26)', () => {
     expect(await columns()).toBe(2)
   })
 
-  test('below 860 px the menu folds into the "Menú" button; from 860 px it is a row', async ({
+  test('at every width the header shows Vacantes, Ingresar and Crear cuenta without a menu (011-07)', async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 859, height: 900 })
     await page.goto('/')
-    const nav = page.getByRole('navigation', { name: 'Navegación principal' })
-    const button = page.getByRole('button', { name: 'Menú' })
-    await expect(button).toBeVisible()
-    await expect(nav).toBeHidden()
-
-    await button.click()
-    await expect(button).toHaveAttribute('aria-expanded', 'true')
-    await expect(nav).toBeVisible()
-    await expect(nav.getByRole('link', { name: 'Ingresar' })).toBeVisible()
-
-    await page.setViewportSize({ width: 860, height: 900 })
-    await expect(button).toBeHidden()
-    await expect(nav).toBeVisible()
+    const banner = page.getByRole('banner')
+    for (const width of [360, 859, 860, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      for (const name of ['Vacantes', 'Ingresar', 'Crear cuenta']) {
+        await expect(banner.getByRole('link', { name, exact: true })).toBeVisible()
+      }
+      await expect(banner.getByRole('button')).toHaveCount(0)
+    }
   })
 
-  test('the menu closes when a link is chosen and the anchor leaves the section below the fixed header', async ({
-    page,
-  }) => {
+  test('an anchor link leaves the section below the fixed header', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 })
     await page.goto('/')
-    const button = page.getByRole('button', { name: 'Menú' })
-    await button.click()
-    await page
-      .getByRole('navigation', { name: 'Navegación principal' })
-      .getByRole('link', { name: 'Cómo funciona' })
-      .click()
-    await expect(button).toHaveAttribute('aria-expanded', 'false')
+    await page.getByRole('main').getByRole('link', { name: 'Cómo funciona' }).click()
 
     await page.waitForFunction(() => window.scrollY > 100)
     await page.waitForTimeout(900)
