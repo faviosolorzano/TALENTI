@@ -67,9 +67,9 @@ class ApplicationArchitectureTests {
 						.and(DescribedPredicate.not(JavaClass.Predicates.belongToAnyOf(ApplicationStages.class))))
 				.allowEmptyShould(true)
 				.as("ningún otro módulo usa application, salvo su interfaz pública ApplicationStages").check(classes);
-		noClasses().that().resideOutsideOfPackages("com.talenti.application..", "com.talenti.practice..").should()
+		noClasses().that().resideOutsideOfPackages("com.talenti.application..", "com.talenti.practice..", "com.talenti.exam..").should()
 				.dependOnClassesThat().belongToAnyOf(ApplicationStages.class).allowEmptyShould(true)
-				.as("solo practice usa ApplicationStages (spec 012)").check(classes);
+				.as("solo practice y exam usan ApplicationStages (specs 012 y 014)").check(classes);
 	}
 
 	@ArchTest

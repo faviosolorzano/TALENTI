@@ -43,6 +43,19 @@ class ApplicationStageService implements ApplicationStages {
 	/** 012-35: desde {@code SUBMITTED} o {@code EXAM_DONE}; en cualquier otro estado no cambia nada. */
 	@Override
 	@Transactional
+	public boolean startExam(UUID applicationId, UUID userId) {
+		return move(applicationId, userId, ApplicationStatus.EXAM_PENDING, "APPLICATION_EXAM_PENDING");
+	}
+
+	@Override
+	@Transactional
+	public boolean completeExam(UUID applicationId, UUID userId) {
+		return move(applicationId, userId, ApplicationStatus.EXAM_DONE, "APPLICATION_EXAM_DONE");
+	}
+
+	/** 012-35: desde SUBMITTED o EXAM_DONE. */
+	@Override
+	@Transactional
 	public boolean startInterview(UUID applicationId, UUID userId) {
 		return move(applicationId, userId, ApplicationStatus.INTERVIEW_PENDING, "APPLICATION_INTERVIEW_PENDING");
 	}

@@ -16,7 +16,9 @@ public enum AiFunction {
 	/** Una entrevista evaluada (spec 012): no usa cupo personal, solo el tope global de gasto (012-28). */
 	INTERVIEW_SESSION,
 	/** Evaluación por rúbrica de una respuesta de entrevista (012-25). */
-	INTERVIEW_EVALUATION;
+	INTERVIEW_EVALUATION,
+	EXAM_GENERATION,
+	EXAM_GRADING;
 
 	/** La clave de esta función en {@code talenti.ai.limits.per-user-monthly}, por ejemplo {@code cv-read}. */
 	public String configKey() {

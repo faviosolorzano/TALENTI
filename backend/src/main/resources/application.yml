@@ -139,6 +139,11 @@ talenti:
     failed-attempts-per-day: 20     # subidas fallidas (PDF ilegible) por persona en 24 horas
     expiry-interval: PT1H       # cada cuánto se borra lo vencido
   ai:
+    exam:
+      enabled: ${TALENTI_AI_EXAM_ENABLED:false}
+      model: ${TALENTI_AI_EXAM_MODEL:}
+      input-per-million-tokens: ${TALENTI_AI_EXAM_INPUT_PRICE:0}
+      output-per-million-tokens: ${TALENTI_AI_EXAM_OUTPUT_PRICE:0}
     # Control de consumo de IA (spec 009, sección 3.1). La IA real está APAGADA hasta S10: sin cv.enabled=true, un
     # modelo (D-12) y OPENAI_API_KEY no se envía nada a ningún servicio externo, y la lectura básica sigue igual.
     provider: ${AI_PROVIDER:simulated}      # simulated | openai
@@ -178,6 +183,16 @@ talenti:
       # Tope del costo ESTIMADO del mes entre todos, en dólares (012-30). Al llegar, DORA se degrada: banco base,
       # plantillas, solo texto y retroalimentación no disponible. Provisional: lo fija Favio al cargar la clave.
       monthly-spend: ${TALENTI_AI_LIMITS_MONTHLY_SPEND:5}
+  exam:
+    enabled: true
+    time-limit: 60m
+    runner:
+      mode: volume
+      jobs: /var/lib/talenti/exam-jobs
+    sql:
+      url: jdbc:postgresql://exam-sql:5432/exam?connectTimeout=3&socketTimeout=3
+      owner-password: ${TALENTI_EXAM_SQL_OWNER_PASSWORD:}
+      reader-password: ${TALENTI_EXAM_SQL_READER_PASSWORD:}
   dora:
     # DORA (spec 012, sección 5). La fluidez manda: cada paso tiene su tiempo máximo y, al agotarse, se degrada.
     question-timeout: 8s        # planificar las preguntas con la IA; después, banco base (012-04)

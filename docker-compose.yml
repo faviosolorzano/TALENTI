@@ -41,6 +41,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      code-runner:
+        condition: service_started
+      exam-sql:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?copia .env.example como .env}
@@ -78,6 +82,18 @@ services:
       TALENTI_GITHUB_OAUTH_REDIRECT_URI: ${TALENTI_GITHUB_OAUTH_REDIRECT_URI:-http://localhost:3000/api/v1/github/oauth/callback}
       TALENTI_GITHUB_OAUTH_RETURN_URL: ${TALENTI_GITHUB_OAUTH_RETURN_URL:-http://localhost:3000/perfil}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      # Examen (014): la IA real sigue apagada; el código siempre corre en la caja aparte.
+      TALENTI_AI_EXAM_ENABLED: ${TALENTI_AI_EXAM_ENABLED:-false}
+      TALENTI_AI_EXAM_MODEL: ${TALENTI_AI_EXAM_MODEL:-}
+      TALENTI_AI_EXAM_INPUT_PRICE: ${TALENTI_AI_EXAM_INPUT_PRICE:-0}
+      TALENTI_AI_EXAM_OUTPUT_PRICE: ${TALENTI_AI_EXAM_OUTPUT_PRICE:-0}
+      TALENTI_EXAM_SQL_OWNER_PASSWORD: ${EXAM_SQL_OWNER_PASSWORD:?define contraseña propia de exam-sql}
+      TALENTI_EXAM_SQL_READER_PASSWORD: ${EXAM_SQL_READER_PASSWORD:?define contraseña propia de exam-sql}
+    volumes:
+      - exam-jobs:/var/lib/talenti/exam-jobs
+    networks:
+      - default
+      - exam-net
     # Sin "ports": el navegador llega al backend solo a través del proxy de nginx (frontend).
     read_only: true
     tmpfs:
@@ -112,5 +128,56 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  code-runner:
+    build: ./code-runner
+    restart: unless-stopped
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp:rw,exec,nosuid,nodev,size=512m,mode=1777
+    volumes:
+      - exam-jobs:/jobs
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - KILL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    pids_limit: 160
+
+  exam-sql:
+    build: ./exam-sql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: exam
+      POSTGRES_USER: exam_bootstrap
+      POSTGRES_PASSWORD: ${EXAM_SQL_BOOTSTRAP_PASSWORD:?define contraseña propia de exam-sql}
+      EXAM_SQL_OWNER_PASSWORD: ${EXAM_SQL_OWNER_PASSWORD:?define contraseña propia de exam-sql}
+      EXAM_SQL_READER_PASSWORD: ${EXAM_SQL_READER_PASSWORD:?define contraseña propia de exam-sql}
+    networks:
+      - exam-net
+    volumes:
+      - exam-sql-data:/var/lib/postgresql
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U exam_bootstrap -d exam"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
 volumes:
   pgdata:
+  exam-jobs:
+  exam-sql-data:
+
+networks:
+  exam-net:
+    internal: true

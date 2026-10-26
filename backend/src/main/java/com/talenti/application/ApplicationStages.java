@@ -24,6 +24,12 @@ public interface ApplicationStages {
 	/** La postulación si es de esa persona; vacío si no existe o es ajena (no se distinguen). */
 	Optional<Owned> findOwned(UUID applicationId, UUID userId);
 
+	/** SUBMITTED a EXAM_PENDING, con evento e id de dueño (014-08). */
+	boolean startExam(UUID applicationId, UUID userId);
+
+	/** EXAM_PENDING a EXAM_DONE, con evento e id de dueño (014-13). */
+	boolean completeExam(UUID applicationId, UUID userId);
+
 	/** {@code SUBMITTED} a {@code INTERVIEW_PENDING}. Falso si la postulación ya no estaba enviada. */
 	boolean startInterview(UUID applicationId, UUID userId);
 
