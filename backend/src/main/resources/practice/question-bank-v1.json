@@ -1,0 +1,77 @@
+{
+  "version": "bank-v1",
+  "skills": {
+    "java": [
+      "¿Qué diferencia hay entre una interfaz y una clase abstracta en Java, y cuándo usarías cada una?",
+      "Cuéntame cómo manejas las excepciones en Java en un proyecto real: ¿cuáles capturas y cuáles dejas pasar?"
+    ],
+    "spring-boot": [
+      "¿Cómo organizarías una API REST con Spring Boot en capas, y qué hace cada una?",
+      "¿Qué es la inyección de dependencias en Spring Boot y qué ventaja te dio en un proyecto?"
+    ],
+    "sql": [
+      "¿Qué diferencia hay entre INNER JOIN y LEFT JOIN? Dame un ejemplo de cuándo usarías cada uno.",
+      "¿Cómo detectarías y mejorarías una consulta SQL que se volvió lenta?"
+    ],
+    "postgresql": [
+      "¿Para qué sirve un índice en PostgreSQL y cuándo podría no convenir crearlo?"
+    ],
+    "git": [
+      "¿Cómo trabajas con ramas en Git en un equipo, y cómo resuelves un conflicto al integrar cambios?",
+      "¿Qué haces si subiste un commit con un error a una rama compartida?"
+    ],
+    "docker": [
+      "¿Qué diferencia hay entre una imagen y un contenedor en Docker, y para qué usaste Docker en tus proyectos?"
+    ],
+    "javascript": [
+      "¿Cómo funcionan las promesas y async/await en JavaScript? Dame un ejemplo de uso.",
+      "¿Qué diferencia hay entre let, const y var en JavaScript?"
+    ],
+    "typescript": [
+      "¿Qué ventajas te dio TypeScript frente a JavaScript en un proyecto concreto?"
+    ],
+    "react": [
+      "¿Cómo manejas el estado de un componente en React y cuándo lo subirías a un componente padre?",
+      "¿Para qué sirve useEffect en React y qué errores comunes has visto al usarlo?"
+    ],
+    "python": [
+      "¿Qué estructuras de datos de Python usas más y por qué elegirías una lista, un diccionario o un conjunto?"
+    ],
+    "rest-apis": [
+      "¿Qué códigos de estado HTTP usarías en una API REST para crear, no encontrar y rechazar datos inválidos?",
+      "¿Cómo diseñarías los endpoints de una API REST para gestionar tareas?"
+    ],
+    "testing": [
+      "¿Qué diferencia hay entre una prueba unitaria y una de integración? Dame un ejemplo de cada una.",
+      "¿Cómo decides qué casos probar en una funcionalidad nueva?"
+    ],
+    "html": [
+      "¿Por qué es importante usar HTML semántico y qué etiquetas usarías para estructurar una página?"
+    ],
+    "css": [
+      "¿Cómo harías que una página se vea bien en celular y en computadora con CSS?"
+    ],
+    "linux": [
+      "¿Qué comandos de Linux usas con más frecuencia y para qué?"
+    ],
+    "scrum": [
+      "¿Cómo participaste en un equipo que usaba Scrum, y qué pasaba en una reunión diaria?"
+    ]
+  },
+  "anySkill": [
+    "¿Qué has construido con {name}? Cuéntame un caso concreto: qué problema resolviste y cómo lo hiciste.",
+    "Si tuvieras que explicarle {name} a un compañero que recién empieza, ¿cómo lo harías y qué ejemplo usarías?",
+    "¿Cuál fue el error más difícil que encontraste trabajando con {name} y cómo lo resolviste?"
+  ],
+  "anyProject": [
+    "Háblame de tu proyecto {name}: ¿qué hace, cuál fue tu aporte y qué decisiones técnicas tomaste?",
+    "En el proyecto {name}, ¿qué cambiarías si lo volvieras a hacer y por qué?"
+  ],
+  "general": [
+    "Cuéntame sobre un problema técnico que hayas resuelto recientemente: ¿cómo lo abordaste?",
+    "¿Cómo te organizas cuando tienes que aprender una tecnología nueva para un proyecto?",
+    "Describe una ocasión en la que trabajaste en equipo en un proyecto de software: ¿cuál fue tu rol?",
+    "¿Cómo compruebas que tu código funciona antes de entregarlo?",
+    "¿Qué buenas prácticas sigues para que tu código sea fácil de leer y mantener?"
+  ]
+}

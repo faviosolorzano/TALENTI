@@ -11,4 +11,10 @@ public interface AiUsageQuota {
 	/** Consulta sin anotar nada: primero el tope personal del mes y luego los globales (día y mes). */
 	QuotaStatus check(UUID userId, AiFunction function);
 
+	/**
+	 * Si el costo estimado de este mes calendario (todas las personas y funciones) ya llegó al tope mensual de gasto
+	 * ({@code talenti.ai.limits.monthly-spend}, 012-30). Al llegar, todo lo que usa IA o voz se degrada.
+	 */
+	boolean monthlySpendReached();
+
 }

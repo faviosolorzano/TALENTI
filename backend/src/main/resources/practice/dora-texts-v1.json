@@ -1,0 +1,16 @@
+{
+  "version": "texts-v1",
+  "greeting": "Hola. Soy DORA, una asistente de inteligencia artificial.",
+  "greetingWithName": "Hola, {name}. Soy DORA, una asistente de inteligencia artificial.",
+  "practiceNotice": "Esta es una sesión de práctica privada: no se comparte con ninguna empresa y no afecta tus postulaciones. Tu voz no se guarda, solo el texto de tus respuestas, y puedes borrarlo cuando quieras. Empecemos.",
+  "interviewNotice": "Esta es la entrevista evaluada de tu postulación. Evaluaré solo el contenido de tus respuestas, nunca tu acento ni tus emociones, y la decisión final siempre es de la empresa. Tu voz no se guarda, solo el texto de tus respuestas. Empecemos.",
+  "closingPractice": "Esa fue la última pregunta. Gracias por practicar conmigo. Cuando quieras, puedes revisar tu retroalimentación.",
+  "closingInterview": "Esa fue la última pregunta. Gracias por tu tiempo. La empresa revisará tus respuestas y tomará la decisión.",
+  "templateBridges": [
+    "Gracias por tu respuesta.",
+    "Gracias. Pasemos a la siguiente pregunta.",
+    "Entendido, gracias.",
+    "Gracias, continuemos."
+  ],
+  "templateBridgeLast": "Gracias por tu respuesta."
+}

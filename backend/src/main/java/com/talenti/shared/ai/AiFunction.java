@@ -10,7 +10,13 @@ public enum AiFunction {
 	PRACTICE_FEEDBACK,
 	EXPLANATION,
 	STT,
-	TTS;
+	TTS,
+	/** Cada llamada de DORA a la IA para conversar: plan de preguntas y frase puente (spec 012). */
+	DORA_DIALOG,
+	/** Una entrevista evaluada (spec 012): no usa cupo personal, solo el tope global de gasto (012-28). */
+	INTERVIEW_SESSION,
+	/** Evaluación por rúbrica de una respuesta de entrevista (012-25). */
+	INTERVIEW_EVALUATION;
 
 	/** La clave de esta función en {@code talenti.ai.limits.per-user-monthly}, por ejemplo {@code cv-read}. */
 	public String configKey() {

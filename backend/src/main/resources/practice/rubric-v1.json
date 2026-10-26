@@ -1,0 +1,9 @@
+{
+  "version": "rubric-v1",
+  "criteria": [
+    { "code": "TECHNICAL_ACCURACY", "name": "Precisión técnica", "description": "Los conceptos técnicos de la respuesta son correctos. Nivel 1: errores importantes; 2: correcta en parte; 3: correcta con detalles menores; 4: correcta y precisa." },
+    { "code": "CLARITY", "name": "Claridad", "description": "La respuesta se entiende y usa términos adecuados. Nivel 1: confusa; 2: se entiende con esfuerzo; 3: clara; 4: muy clara y directa." },
+    { "code": "STRUCTURE", "name": "Estructura", "description": "La respuesta sigue un orden lógico (contexto, acción, resultado). Nivel 1: sin orden; 2: orden parcial; 3: ordenada; 4: ordenada y completa." },
+    { "code": "EXAMPLES", "name": "Ejemplos", "description": "La respuesta se apoya en ejemplos o casos concretos. Nivel 1: sin ejemplos; 2: ejemplo vago; 3: un ejemplo concreto; 4: ejemplos concretos y pertinentes." }
+  ]
+}

@@ -32,10 +32,10 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 	public boolean record(AiUsageEvent event) {
 		return jdbc.sql("""
 				INSERT INTO ai_usage_event (id, occurred_at, user_id, function, level, adapter, model, outcome,
-				                            input_size, output_size, read_id)
+				                            input_size, output_size, read_id, estimated_cost_micros, reverses_read_id)
 				VALUES (:id, :occurredAt, :userId, :function, :level, :adapter, :model, :outcome,
-				        :inputSize, :outputSize, :readId)
-				ON CONFLICT (read_id) DO NOTHING""")
+				        :inputSize, :outputSize, :readId, :cost, :reversesReadId)
+				ON CONFLICT DO NOTHING""")
 				.param("id", UUID.randomUUID())
 				.param("occurredAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
 				.param("userId", event.userId())
@@ -47,6 +47,8 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 				.param("inputSize", Math.max(0, event.inputSize()))
 				.param("outputSize", Math.max(0, event.outputSize()))
 				.param("readId", event.readId())
+				.param("cost", event.estimatedCostMicros())
+				.param("reversesReadId", event.reversesReadId())
 				.update() == 1;
 	}
 
@@ -77,12 +79,31 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 		return new QuotaStatus(null, used, limit, nextMonth);
 	}
 
+	@Override
+	public boolean monthlySpendReached() {
+		ZonedDateTime now = clock.instant().atZone(limits.zone());
+		Instant monthStart = now.toLocalDate().withDayOfMonth(1).atStartOfDay(limits.zone()).toInstant();
+		Instant nextMonth = now.toLocalDate().withDayOfMonth(1).plusMonths(1).atStartOfDay(limits.zone()).toInstant();
+		Long spent = jdbc.sql("""
+				SELECT coalesce(sum(estimated_cost_micros), 0) FROM ai_usage_event
+				WHERE estimated_cost_micros IS NOT NULL AND occurred_at >= :from AND occurred_at < :until""")
+				.param("from", OffsetDateTime.ofInstant(monthStart, ZoneOffset.UTC))
+				.param("until", OffsetDateTime.ofInstant(nextMonth, ZoneOffset.UTC))
+				.query(Long.class).single();
+		return spent >= limits.monthlySpendMicros();
+	}
+
 	/** Usos completados en la ventana; con {@code userId} nulo, de todas las personas. */
 	private int successes(UUID userId, AiFunction function, Instant from, Instant until) {
 		return jdbc.sql("""
-				SELECT count(*) FROM ai_usage_event
-				WHERE function = :function AND outcome = 'SUCCESS' AND occurred_at >= :from AND occurred_at < :until
-				  AND (CAST(:userId AS uuid) IS NULL OR user_id = CAST(:userId AS uuid))""")
+				SELECT count(*) FROM ai_usage_event usage
+				WHERE usage.function = :function AND usage.outcome = 'SUCCESS'
+				  AND usage.occurred_at >= :from AND usage.occurred_at < :until
+				  AND (CAST(:userId AS uuid) IS NULL OR usage.user_id = CAST(:userId AS uuid))
+				  AND NOT EXISTS (SELECT 1 FROM ai_usage_event reversal
+				      WHERE reversal.reverses_read_id = usage.read_id
+				        AND reversal.function = usage.function AND reversal.outcome = 'FAILED_PLATFORM'
+				        AND reversal.user_id IS NOT DISTINCT FROM usage.user_id)""")
 				.param("function", function.name())
 				.param("from", OffsetDateTime.ofInstant(from, ZoneOffset.UTC))
 				.param("until", OffsetDateTime.ofInstant(until, ZoneOffset.UTC))

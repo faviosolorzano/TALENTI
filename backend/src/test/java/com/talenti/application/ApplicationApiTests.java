@@ -252,9 +252,9 @@ class ApplicationApiTests extends MatchingIntegrationTest {
 	void t008_13_futureStatesAreNotWithdrawable() {
 		RegisteredStudent student = registerStudent();
 		String id = applyOk(student.api(), BACKEND_JAVA);
-		jdbc.update("UPDATE application SET status = 'EXAM_PENDING' WHERE id = ?::uuid", id);
+		jdbc.update("UPDATE application SET status = 'UNDER_REVIEW' WHERE id = ?::uuid", id);
 
-		assertThat(student.api().get(APPLICATIONS + "/" + id).json().get("status").asString()).isEqualTo("EXAM_PENDING");
+		assertThat(student.api().get(APPLICATIONS + "/" + id).json().get("status").asString()).isEqualTo("UNDER_REVIEW");
 		Response withdraw = student.api().post(APPLICATIONS + "/" + id + "/withdraw", null);
 		assertThat(withdraw.status()).isEqualTo(409);
 		assertThat(code(withdraw)).isEqualTo("application-not-withdrawable");

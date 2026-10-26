@@ -11,6 +11,7 @@ public interface AiUsageRecorder {
 	/**
 	 * Anota el intento. Es idempotente por {@link AiUsageEvent#readId()}: si esa lectura ya estaba anotada no hace
 	 * nada y devuelve {@code false}.
+	 * Una compensación también es única por {@link AiUsageEvent#reversesReadId()} y conserva el evento original.
 	 */
 	boolean record(AiUsageEvent event);
 

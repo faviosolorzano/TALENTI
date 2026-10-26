@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.talenti.profile.ConfirmedChanges;
 import com.talenti.profile.ProfileCompleteness;
 import com.talenti.profile.ProfileEditor;
+import com.talenti.profile.ProfileFirstName;
 import com.talenti.profile.ProfileReader;
 import com.talenti.profile.ProfileSnapshot;
 import com.talenti.profile.ProfileView;
@@ -44,7 +45,10 @@ import com.talenti.vacancy.SkillInfo;
  * (006-12). Las habilidades se resuelven solo por {@link SkillCatalog}, nunca leyendo la tabla del catálogo.
  */
 @Service
-public class ProfileService implements ProfileReader, ProfileEditor {
+public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirstName {
+
+	/** Largo máximo del primer nombre que sale hacia la conversación con DORA. */
+	private static final int MAX_FIRST_NAME = 30;
 
 	private final ProfileRepository repository;
 
@@ -82,6 +86,16 @@ public class ProfileService implements ProfileReader, ProfileEditor {
 				view.availability().hoursPerWeek(), modalities, view.availability().location(),
 				view.projects().stream().map(project -> new ProfileSnapshot.Project(project.name(),
 						project.description(), project.technologies())).toList());
+	}
+
+	/** 012-24: solo la primera palabra de los nombres declarados; nunca apellidos ni contacto. */
+	@Override
+	@Transactional(readOnly = true)
+	public java.util.Optional<String> firstName(UUID userId) {
+		return repository.findProfile(userId).map(ProfileRepository.ProfileRow::firstNames)
+				.map(String::strip).filter(names -> !names.isEmpty())
+				.map(names -> names.split("\\s+")[0])
+				.map(first -> first.length() > MAX_FIRST_NAME ? first.substring(0, MAX_FIRST_NAME) : first);
 	}
 
 	@Override

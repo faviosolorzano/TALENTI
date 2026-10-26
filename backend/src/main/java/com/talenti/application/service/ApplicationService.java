@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import com.talenti.application.persistence.ApplicationRepository;
 import com.talenti.application.persistence.ApplicationRow;
 import com.talenti.shared.audit.AuditEvent;
 import com.talenti.shared.audit.AuditRecorder;
+import com.talenti.shared.events.ApplicationWithdrawn;
 import com.talenti.shared.web.ApiException;
 import com.talenti.vacancy.VacancyInfo;
 import com.talenti.vacancy.VacancyLookup;
@@ -42,11 +44,15 @@ public class ApplicationService {
 
 	private final Clock clock;
 
-	ApplicationService(ApplicationRepository repository, VacancyLookup vacancies, AuditRecorder audit, Clock clock) {
+	private final ApplicationEventPublisher events;
+
+	ApplicationService(ApplicationRepository repository, VacancyLookup vacancies, AuditRecorder audit, Clock clock,
+			ApplicationEventPublisher events) {
 		this.repository = repository;
 		this.vacancies = vacancies;
 		this.audit = audit;
 		this.clock = clock;
+		this.events = events;
 	}
 
 	/** 201: postula a una vacante abierta. */
@@ -70,13 +76,18 @@ public class ApplicationService {
 		return detail(userId, id);
 	}
 
-	/** Retira una postulación propia enviada; desde cualquier otro estado, 409. */
+	/**
+	 * Retira una postulación propia enviada o en la etapa de entrevista (enmienda a RN-06, spec 012); desde cualquier
+	 * otro estado, 409. Avisa del retiro con {@link ApplicationWithdrawn} en la misma transacción (una entrevista en
+	 * curso se cierra), sin depender de quién lo escuche.
+	 */
 	@Transactional
 	public Views.Application withdraw(UUID userId, UUID id) {
 		ApplicationRow row = repository.findOwned(id, userId).orElseThrow(ApplicationService::notFound);
-		if (!row.status().canWithdraw() || !repository.withdraw(id, userId, clock.instant())) {
+		if (!row.status().canWithdraw() || !repository.withdraw(id, userId, row.status(), clock.instant())) {
 			throw new ApiException(HttpStatus.CONFLICT, "application-not-withdrawable");
 		}
+		events.publishEvent(new ApplicationWithdrawn(id, userId));
 		audit.record(new AuditEvent("APPLICATION_WITHDRAWN", userId, "application", id,
 				Map.of("vacancyId", row.vacancyId().toString())));
 		return detail(userId, id);

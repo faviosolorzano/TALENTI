@@ -13,6 +13,13 @@ talenti:
   cv:
     # Las pruebas llaman a la expiración a mano; la tarea programada no debe tocar filas de otras pruebas.
     expiry-interval: PT999H
+    # Cada PDF se lee en un proceso Java hijo. En un equipo cargado (varias suites y Docker a la vez) solo arrancar ese
+    # proceso puede pasar de los 5 s de producción, y la lectura se corta como "cv-unreadable" (pasaba también en main).
+    # Aquí se da margen; producción sigue en 5 s. Las pruebas de PDF hostiles fijan su propio tiempo en el código.
+    parse-timeout: 15s
+  dora:
+    # Las pruebas barren la inactividad a mano con reloj simulado (012-14).
+    sweep-interval: PT999H
   demo-data:
     # Las pruebas no dependen de la variable TALENTI_DEMO_DATA del equipo: parten sin datos de ejemplo y las
     # que los necesitan los piden con properties = "talenti.demo-data.enabled=true".
