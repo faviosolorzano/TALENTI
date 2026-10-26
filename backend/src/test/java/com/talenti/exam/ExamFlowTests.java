@@ -27,10 +27,17 @@ class ExamFlowTests extends MatchingIntegrationTest {
 	@Autowired SimulatedCodeExecution execution;
 	@Autowired SimulatedExamAuthoring author;
 	private record Fixture(RegisteredStudent student,UUID application,UUID attempt) { }
-	@AfterEach void reset() { grader.reset();execution.reset();author.reset();clock.set(Instant.now()); }
+	/** Vacantes creadas por estas pruebas: se borran al terminar para no cambiar listados de otras pruebas. */
+	private final java.util.List<UUID> createdVacancies=new java.util.ArrayList<>();
+	@AfterEach void reset() {
+		grader.reset();execution.reset();author.reset();clock.set(Instant.now());
+		createdVacancies.forEach(v->{ jdbc.update("DELETE FROM application WHERE vacancy_id=?",v); deleteVacancy(v); });
+		createdVacancies.clear();
+	}
 	private UUID application(RegisteredStudent student,boolean supported) {
 		UUID vacancy=UUID.randomUUID(),application=UUID.randomUUID();
 		insertVacancyWithJava("Examen "+vacancy,OffsetDateTime.now(),"OPEN",vacancy,supported);
+		createdVacancies.add(vacancy);
 		jdbc.update("INSERT INTO application(id,user_id,vacancy_id,status,submitted_at) VALUES (?,?,?,'SUBMITTED',now())",application,student.id(),vacancy);
 		return application;
 	}
@@ -118,6 +125,8 @@ class ExamFlowTests extends MatchingIntegrationTest {
 		f.student().api().post(route(f)+"/submit",null);
 		await(()->store.answers(f.attempt()).stream().filter(a->open.stream().anyMatch(q->q.id().equals(a.questionId())))
 				.allMatch(a->a.points()==null&&a.nextRetryAt()!=null&&a.nextRetryAt().isBefore(clock.instant().plusSeconds(60))));
+		// Las preguntas de marcar y de código se califican en paralelo: se espera a que solo queden pendientes las libres.
+		await(()->results.forApplication(f.application()).orElseThrow().pendingPoints().compareTo(new java.math.BigDecimal("30"))==0);
 		assertThat(results.forApplication(f.application()).orElseThrow().pendingPoints()).isEqualByComparingTo("30");
 		clock.advance(Duration.ofHours(25));grading.retryPending();
 		await(()->store.answers(f.attempt()).stream().filter(a->open.stream().anyMatch(q->q.id().equals(a.questionId()))).allMatch(a->a.gradeStatus().equals("UNAVAILABLE")));

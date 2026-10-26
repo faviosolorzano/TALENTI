@@ -63,9 +63,9 @@ public class ExamStore {
 	public Optional<UUID> insertSet(UUID vacancy, Blueprint blueprint, Instant now) {
 		return jdbc.sql("""
 				INSERT INTO exam_set(id,vacancy_id,revision,status,blueprint,created_at)
-				SELECT :id,:vacancy,coalesce(max(revision),0)+1,'GENERATING',CAST(:blueprint AS jsonb),:now
-				FROM exam_set WHERE vacancy_id=:vacancy ON CONFLICT DO NOTHING RETURNING id""")
-				.param("id",UUID.randomUUID()).param("vacancy",vacancy).param("blueprint",json(blueprint)).param("now",utc(now)).query(UUID.class).optional();
+				SELECT :id,:vacancyId,coalesce(max(revision),0)+1,'GENERATING',CAST(:blueprint AS jsonb),:now
+				FROM exam_set WHERE vacancy_id=:vacancyId ON CONFLICT DO NOTHING RETURNING id""")
+				.param("id",UUID.randomUUID()).param("vacancyId",vacancy).param("blueprint",json(blueprint)).param("now",utc(now)).query(UUID.class).optional();
 	}
 	public void setStatus(UUID id,String status,String reason) {
 		jdbc.sql("UPDATE exam_set SET status=:status,failure_reason=:reason WHERE id=:id AND status IN ('GENERATING','VERIFYING')")
@@ -86,9 +86,9 @@ public class ExamStore {
 		for(var q:questions) {
 			jdbc.sql("""
 					INSERT INTO exam_question(id,version_id,slot,type,skill_slug,difficulty,points,prompt,content,source)
-					VALUES (:id,:version,:slot,:type,:skill,:difficulty,:points,:prompt,CAST(:content AS jsonb),:source)""")
+					VALUES (:id,:version,:slot,:type,:skillSlug,:difficulty,:points,:prompt,CAST(:content AS jsonb),:source)""")
 					.param("id",q.id()).param("version",id).param("slot",q.slot()).param("type",q.type().name())
-					.param("skill",q.skillSlug()).param("difficulty",q.difficulty()).param("points",q.points()).param("prompt",q.prompt())
+					.param("skillSlug",q.skillSlug()).param("difficulty",q.difficulty()).param("points",q.points()).param("prompt",q.prompt())
 					.param("content",json(q)).param("source",q.source().name()).update();
 		}
 	}

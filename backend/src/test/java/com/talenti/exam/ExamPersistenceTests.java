@@ -23,12 +23,19 @@ class ExamPersistenceTests extends MatchingIntegrationTest {
 	@Autowired ApplicationStages stages;
 	@Autowired PlatformTransactionManager manager;
 	private record Fixture(UUID user,UUID application,UUID set,UUID version,List<ExamQuestion> questions) { }
+	/** Vacantes creadas por estas pruebas: se borran al terminar para no cambiar listados de otras pruebas. */
+	private final java.util.List<UUID> createdVacancies=new java.util.ArrayList<>();
+	@org.junit.jupiter.api.AfterEach void removeVacancies() {
+		createdVacancies.forEach(v->{ jdbc.update("DELETE FROM application WHERE vacancy_id=?",v); deleteVacancy(v); });
+		createdVacancies.clear();
+	}
 	private Fixture fixture() {
 		UUID user=registerStudent().id(), application=UUID.randomUUID(), vacancy=UUID.fromString(BACKEND_JAVA);
 		jdbc.update("INSERT INTO application(id,user_id,vacancy_id,status,submitted_at) VALUES (?,?,?,'SUBMITTED',now())",application,user,vacancy);
 		// Usa una vacante propia para no compartir el conjunto entre pruebas.
 		UUID ownVacancy=UUID.randomUUID();
 		insertVacancyWithJava("Vacante examen "+ownVacancy,java.time.OffsetDateTime.now(),"OPEN",ownVacancy,true);
+		createdVacancies.add(ownVacancy);
 		jdbc.update("UPDATE application SET vacancy_id=? WHERE id=?",ownVacancy,application);
 		var plan=Blueprint.create(List.of(new Blueprint.Technology("java","Java",true,2)),Map.of("java",Language.JAVA),
 				new BigDecimal("6.25"),BigDecimal.TEN,new BigDecimal("15"));
