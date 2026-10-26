@@ -1,6 +1,7 @@
 package com.talenti.practice.service;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -141,7 +142,7 @@ public class DoraService {
 				List<QuestionRow> questions = repository.questions(sessionId);
 				Integer position = SessionViews.nextPosition(session, repository.turns(sessionId));
 				boolean voice = session.voiceEnabled() && !usage.spendReached();
-				Degradation degradation = new Degradation(session, sink);
+				Degradation degradation = new Degradation(session, sink, started);
 				String opening = texts.opening(firstName(session), session.mode());
 				sink.send("reply.text", map("seq", 1, "text", opening, "source", "TEMPLATE", "generatedBy", "TEMPLATE"));
 				if (voice) {
@@ -302,6 +303,24 @@ public class DoraService {
 
 		private volatile BridgeOutcome outcome;
 
+		private volatile CompletableFuture<Void> persisted;
+
+		/** Espera la escritura de la respuesta; si falló (por ejemplo, el clientTurnId ya existía), avisa y corta. */
+		private boolean awaitPersisted() {
+			try {
+				persisted.join();
+				return true;
+			}
+			catch (java.util.concurrent.CompletionException failure) {
+				boolean duplicate = failure.getCause() instanceof DuplicateKeyException;
+				log.warn("No se pudo guardar una respuesta: {}", failure.getCause() == null ? "?"
+						: failure.getCause().getClass().getName());
+				sink.send("error", map("code", duplicate ? "turn-id-conflict" : "internal-error", "retryable",
+						!duplicate, "atMs", millis(received)));
+				return false;
+			}
+		}
+
 		Turn(SessionRow session, List<QuestionRow> questions, QuestionRow question, int attempt, UUID clientTurnId,
 				ConversationPort.InputAudio audio, String text, long received) {
 			this.session = session;
@@ -316,7 +335,7 @@ public class DoraService {
 
 		void run(EventSink sink) {
 			this.sink = sink;
-			this.degradation = new Degradation(session, sink);
+			this.degradation = new Degradation(session, sink, received);
 			try {
 				boolean aiAllowed = !usage.spendReached();
 				boolean voice = session.voiceEnabled() && aiAllowed;
@@ -339,14 +358,20 @@ public class DoraService {
 						nextQuestion == null ? null : nextQuestion.text(), properties.bridgeMaxTokens());
 				ConversationPort.TurnInput input = new ConversationPort.TurnInput(audio, text, bridge,
 						texts.templateBridge(question.position(), next == null), voice, aiAllowed,
-						usage.callLog(session.userId()));
+						usage.callLog(session.userId()), received);
 				// El audio solo vive en memoria: tras entregarlo al puerto se suelta la referencia (012-07).
 				audio = null;
 				conversation.runTurn(input, this);
 				if (errorCode != null || !saved) {
+					if (persisted != null) {
+						awaitPersisted();
+					}
 					if ("stt-failed".equals(errorCode)) {
 						repository.addDegraded(session.id(), "STT_FAILED");
 					}
+					return;
+				}
+				if (!awaitPersisted()) {
 					return;
 				}
 				emitQuestion(session, questions, next, voice, sink, degradation);
@@ -386,21 +411,16 @@ public class DoraService {
 			String value = transcript.length() > properties.maxTranscript()
 					? transcript.substring(0, properties.maxTranscript()) : transcript;
 			InputMode mode = text == null ? InputMode.VOICE : InputMode.TEXT;
-			try {
-				repository.insertTurn(turnId, question.id(), clientTurnId, attempt, mode, value, audioMs,
-						sttMs == null ? null : sttMs.intValue(), clock.instant());
-			}
-			catch (DuplicateKeyException duplicate) {
-				// Ese clientTurnId ya se usó en otra sesión (es único en todo el sistema).
-				sink.send("error", map("code", "turn-id-conflict", "retryable", false));
-				errorCode = "turn-id-conflict";
-				return false;
-			}
 			saved = true;
 			this.sttMs = sttMs;
+			// Se guarda en paralelo con la frase puente (012-15): la escritura no suma tiempo hasta el primer audio. El
+			// turno espera a que termine antes de cerrar, así que si la red se corta, la respuesta queda guardada.
+			Instant now = clock.instant();
+			persisted = CompletableFuture.runAsync(() -> repository.insertTurn(turnId, question.id(), clientTurnId,
+					attempt, mode, value, audioMs, sttMs == null ? null : sttMs.intValue(), now), executor);
 			sink.send("transcript", map("turnId", turnId, "text", value, "inputMode", mode.name()));
-			// Lo demás va fuera del camino de la voz (012-15): no suma tiempo hasta el primer audio.
-			executor.execute(() -> {
+			// Lo demás va fuera del camino de la voz (012-15).
+			persisted.thenRunAsync(() -> {
 				try {
 					if (attempt == 1 && question.position() == 1) {
 						usage.sessionUsed(session.id(), session.userId(), session.mode(), AiUsageOutcome.SUCCESS);
@@ -414,13 +434,14 @@ public class DoraService {
 				catch (RuntimeException e) {
 					log.warn("No se pudo anotar lo posterior a una respuesta: {}", e.getClass().getName());
 				}
-			});
+			}, executor);
 			return true;
 		}
 
 		@Override
 		public void onReplyText(int seq, String reply, ReplySource source) {
-			sink.send("reply.text", map("seq", seq, "text", reply, "source", source.name(), "generatedBy", source.name()));
+			sink.send("reply.text", map("seq", seq, "text", reply, "source", source.name(), "generatedBy", source.name(),
+					"atMs", millis(received)));
 		}
 
 		@Override
@@ -439,7 +460,7 @@ public class DoraService {
 		@Override
 		public void onError(String code, boolean retryable) {
 			errorCode = code;
-			sink.send("error", map("code", code, "retryable", retryable));
+			sink.send("error", map("code", code, "retryable", retryable, "atMs", millis(received)));
 		}
 
 		@Override
@@ -658,14 +679,17 @@ public class DoraService {
 
 		private final java.util.Set<String> reported = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
-		Degradation(SessionRow session, EventSink sink) {
+		private final long origin;
+
+		Degradation(SessionRow session, EventSink sink, long origin) {
 			this.session = session;
 			this.sink = sink;
+			this.origin = origin;
 		}
 
 		void report(String reason) {
 			if (reported.add(reason)) {
-				sink.send("degraded", map("reason", reason));
+				sink.send("degraded", map("reason", reason, "atMs", millis(origin)));
 				try {
 					repository.addDegraded(session.id(), reason);
 				}

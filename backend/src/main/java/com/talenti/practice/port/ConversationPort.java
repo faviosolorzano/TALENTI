@@ -47,9 +47,11 @@ public interface ConversationPort {
 	 * @param templateBridge frase de plantilla si la IA no responde a tiempo ({@code source = TEMPLATE})
 	 * @param speak          si DORA habla en esta sesión
 	 * @param aiAllowed      falso si el tope de gasto se agotó: plantilla, sin voz (012-30)
+	 * @param receivedNanos  cuándo llegó el pedido ({@link System#nanoTime()}); el plazo de la transcripción cuenta
+	 *                       desde ahí. 0 = desde que empieza el turno
 	 */
 	record TurnInput(InputAudio audio, String text, LlmPort.BridgeRequest bridge, String templateBridge, boolean speak,
-			boolean aiAllowed, CallLog log) {
+			boolean aiAllowed, CallLog log, long receivedNanos) {
 
 		@Override
 		public String toString() {

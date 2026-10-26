@@ -130,7 +130,8 @@ public class TurnBasedConversation implements ConversationPort {
 	// ------------------------------------------------------------------------------------------ voz a texto
 
 	private SpeechToTextPort.Transcription transcribe(TurnInput input) {
-		long deadline = System.nanoTime() + timeouts.stt().toNanos();
+		long start = input.receivedNanos() == 0 ? System.nanoTime() : input.receivedNanos();
+		long deadline = start + timeouts.stt().toNanos();
 		int inputSize = input.audio().durationMs() == null ? 0 : input.audio().durationMs();
 		for (int attempt = 0; attempt < 2; attempt++) {
 			long remaining = deadline - System.nanoTime();
