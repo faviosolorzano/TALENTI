@@ -327,7 +327,9 @@ class GithubOAuthTests extends GithubIntegrationTest {
 		}
 		assertThat(select(linked.api(), six).status()).isEqualTo(200);
 
-		assertThat(fake.requests()).as("peticiones al GitHub simulado").hasSize(2 + 1 + 6);
+		// 3 + max-pages + max-selected: la selección comprueba una vez la identidad de la cuenta por su id antes de
+		// pedir lenguajes (corrección GH-01). Pendiente de reflejar en 013-22 con el sí de Favio.
+		assertThat(fake.requests()).as("peticiones al GitHub simulado").hasSize(3 + 1 + 6);
 	}
 
 }
