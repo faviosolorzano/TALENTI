@@ -19,7 +19,13 @@ public final class SqlReadOnly {
 	}
 	public static boolean hasOrderBy(String code) {
 		List<String> tokens = CodeTokens.raw(code, ExamQuestion.Language.SQL);
-		for (int i = 1; i < tokens.size(); i++) if (tokens.get(i - 1).equals("order") && tokens.get(i).equals("by")) return true;
+		int depth = 0;
+		for (int i = 0; i < tokens.size(); i++) {
+			String token = tokens.get(i);
+			if (token.equals("(")) depth++;
+			else if (token.equals(")")) depth--;
+			else if (depth == 0 && token.equals("order") && i + 1 < tokens.size() && tokens.get(i + 1).equals("by")) return true;
+		}
 		return false;
 	}
 }

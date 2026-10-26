@@ -57,7 +57,7 @@ public final class VolumeCodeExecution implements CodeExecutionPort {
 		finally {
 			if(job!=null) {
 				try { Files.writeString(job.resolve("cancel"),""); } catch(IOException ignored) { }
-				for(String file:List.of("request.tmp","request.json","response.tmp","response.json","cancel")) try { Files.deleteIfExists(job.resolve(file)); } catch(IOException ignored) { }
+				for(String file:List.of("request.tmp","request.json","claimed.json","response.tmp","response.json","cancel")) try { Files.deleteIfExists(job.resolve(file)); } catch(IOException ignored) { }
 				try { Files.deleteIfExists(job); } catch(IOException ignored) { }
 			}
 			if(acquired) slots.release();

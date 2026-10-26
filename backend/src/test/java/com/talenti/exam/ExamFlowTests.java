@@ -21,6 +21,7 @@ import tools.jackson.databind.JsonNode;
 class ExamFlowTests extends MatchingIntegrationTest {
 	@Autowired ExamStore store;
 	@Autowired ExamResults results;
+	@Autowired ExamAuthoringService authoring;
 	@Autowired ExamGradingService grading;
 	@Autowired SimulatedOpenAnswerGrader grader;
 	@Autowired SimulatedCodeExecution execution;
@@ -135,6 +136,34 @@ class ExamFlowTests extends MatchingIntegrationTest {
 		assertThat(f.student().api().post("/api/v1/applications/"+f.application()+"/withdraw",null).status()).isEqualTo(200);
 		assertThat(store.findAttempt(f.attempt()).orElseThrow().status()).isEqualTo(AttemptStatus.CLOSED_WITHDRAWN);
 		assertThat(store.findAttempt(f.attempt()).orElseThrow().score100()).isNull();
+	}
+	@Test void executionLimitAndSaveRateAreEnforcedPerPerson() {
+		Fixture f=create(); start(f); var api=f.student().api();
+		var q=questions(f).stream().filter(v->v.type()==ExamQuestion.Type.CODE).findFirst().orElseThrow();
+		String path=route(f)+"/answers/"+q.id();
+		assertThat(api.put(path,Map.of("code",q.references().getFirst(),"revision",0)).status()).isEqualTo(200);
+		for(int i=0;i<15;i++) assertThat(api.post(path+"/run",null).status()).isEqualTo(200);
+		assertThat(api.post(path+"/run",null).status()).isEqualTo(429);
+		assertThat(store.answer(f.attempt(),q.id()).orElseThrow().runCount()).isEqualTo(15);
+		for(int i=1;i<60;i++) assertThat(api.put(path,Map.of("code",q.references().getFirst(),"revision",i)).status()).isEqualTo(200);
+		assertThat(api.put(path,Map.of("code",q.references().getFirst(),"revision",60)).status()).isEqualTo(429);
+		clock.advance(Duration.ofSeconds(61));
+		assertThat(api.put(path,Map.of("code",q.references().getFirst(),"revision",60)).status()).isEqualTo(200);
+	}
+	@Test void authorFailureFallsBackAndConcurrentRequestsKeepOneSet() throws Exception {
+		author.fail(true); author.delay(Duration.ofMillis(50));
+		var student=registerStudent(); UUID application=application(student,true);
+		UUID vacancy=jdbc.queryForObject("SELECT vacancy_id FROM application WHERE id=?",UUID.class,application);
+		try(var pool=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+			var calls=new ArrayList<java.util.concurrent.Future<com.talenti.exam.persistence.ExamStore.SetRow>>();
+			for(int i=0;i<6;i++) calls.add(pool.submit(()->authoring.ensure(vacancy)));
+			var ids=new HashSet<UUID>(); for(var call:calls) ids.add(call.get().id());
+			assertThat(ids).hasSize(1);
+		}
+		await(()->store.activeSet(vacancy).orElseThrow().status().equals("READY"));
+		var set=store.activeSet(vacancy).orElseThrow();
+		assertThat(set.source()).isEqualTo("BANK"); assertThat(store.versions(set.id())).hasSize(3);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM exam_set WHERE vacancy_id=?",Integer.class,vacancy)).isEqualTo(1);
 	}
 	@Test void t014_02_34_unsupportedAndRoleSecurityDoNotModifyApplication() {
 		var student=registerStudent();UUID application=application(student,false);String path="/api/v1/applications/"+application+"/exam";

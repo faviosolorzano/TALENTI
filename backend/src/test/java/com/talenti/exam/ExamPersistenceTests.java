@@ -63,6 +63,9 @@ class ExamPersistenceTests extends MatchingIntegrationTest {
 		new TransactionTemplate(manager).executeWithoutResult(tx->store.insertAttempt(f.application(),f.user(),f.version(),42,"v1",clock.instant()));
 		assertThatThrownBy(()->jdbc.update("UPDATE exam_question SET prompt='Otro' WHERE id=?",f.questions().getFirst().id())).isInstanceOf(DataAccessException.class);
 		assertThatThrownBy(()->jdbc.update("UPDATE exam_version SET locked=false WHERE id=?",f.version())).isInstanceOf(DataAccessException.class);
+		assertThatThrownBy(()->jdbc.update("DELETE FROM exam_question WHERE id=?",f.questions().getFirst().id())).isInstanceOf(DataAccessException.class);
+		assertThatThrownBy(()->jdbc.update("INSERT INTO exam_question(id,version_id,slot,type,skill_slug,difficulty,points,prompt,content,source) SELECT ?,version_id,slot,type,skill_slug,difficulty,points,prompt,content,source FROM exam_question WHERE id=?",UUID.randomUUID(),f.questions().getFirst().id()))
+				.isInstanceOf(DataAccessException.class).rootCause().hasMessageContaining("exam-version-locked");
 	}
 	@Test void t014_11_concurrentAnswerRevisionOnlySavesOnce() throws Exception {
 		Fixture f=fixture();

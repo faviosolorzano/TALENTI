@@ -75,3 +75,13 @@ Talenti no pide permisos extra (sin `scope`: solo lo público) y no guarda la ll
 
 ## Reglas
 Mira [CONTRIBUTING.md](CONTRIBUTING.md). Nunca subas el archivo `.env` ni claves.
+
+## Examen técnico (servidor, spec 014)
+
+El módulo `exam` prepara tres versiones por vacante, guarda un intento por postulación y califica sin devolver al estudiante notas, soluciones ni casos ocultos. Las rutas están bajo `/api/v1/exam-attempts`, `/api/v1/applications/{id}/exam` y `/api/v1/admin/vacancies/{id}/exam-set`. El cliente visual sigue pendiente.
+
+Compose incorpora dos servicios necesarios: `code-runner` ejecuta Java 21, JavaScript y Python sin red; `exam-sql` ejecuta SQL en otra base, sin tablas de Talenti y con un lector sin permisos de escritura. El backend solo intercambia archivos con el ejecutor; no tiene acceso al motor Docker. Los programas usan usuarios separados y límites de tiempo, memoria, procesos y salida. La base del examen y la base principal no comparten usuarios ni datos.
+
+Antes de iniciar esta versión, el responsable debe definir tres contraseñas nuevas y diferentes en su configuración local: `EXAM_SQL_BOOTSTRAP_PASSWORD`, `EXAM_SQL_OWNER_PASSWORD` y `EXAM_SQL_READER_PASSWORD`. El ejemplo público deja esos valores vacíos. Nunca se deben reutilizar las contraseñas de la base principal. La IA del examen permanece apagada (`TALENTI_AI_EXAM_ENABLED=false`); encenderla requiere elegir modelo y precios, y configurar la clave de OpenAI. Las pruebas automáticas usan un proveedor simulado.
+
+Las pruebas `RunnerIsolationTests` y `SqlIsolationTests` construyen sus propias imágenes y prueban ataques en contenedores temporales. Para reutilizar una imagen del ejecutor recién construida: `docker build -t talenti-s14b-code-runner:dev code-runner`, después, desde `backend`, `mvn -Dtalenti.test.runner-image=talenti-s14b-code-runner:dev test`. No reutilizar una imagen antigua después de cambiar `code-runner`.

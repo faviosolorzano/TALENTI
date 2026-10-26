@@ -52,7 +52,7 @@ public class ExamAttemptService {
 		var owned=stages.findOwned(application,user).orElseThrow(ExamErrors::missing);
 		if(store.forApplication(application,user).isPresent()) throw ExamErrors.conflict("exam-exists");
 		if(owned.stage()!=ApplicationStages.Stage.SUBMITTED) throw ExamErrors.conflict("exam-not-allowed");
-		if(!accepted) throw ExamErrors.invalid("noticeAccepted","must-be-accepted");
+		if(!accepted) throw ExamErrors.invalid("noticeAccepted","exam-notice-required");
 		if(!notice.version().equals(version)) throw ExamErrors.conflict("exam-notice-outdated");
 		var set=authoring.ensure(owned.vacancyId());
 		if(!set.status().equals("READY")) return new Creation(null,new ExamViews.Preparation("PREPARING",2));
@@ -89,7 +89,7 @@ public class ExamAttemptService {
 					||command.text()!=null&&q.type()!=ExamQuestion.Type.OPEN||command.code()!=null&&q.type()!=ExamQuestion.Type.CODE)
 				throw ExamErrors.invalid("answer","invalid-answer-type");
 			if(command.choiceId()!=null&&q.options().stream().noneMatch(o->o.id().equals(command.choiceId()))) throw ExamErrors.invalid("choiceId","unknown-option");
-			if(command.text()!=null&&command.text().length()>4000) throw ExamErrors.invalid("text","max-length");
+			if(command.text()!=null&&command.text().length()>4000) throw ExamErrors.invalid("text","max-length",4000);
 			if(command.code()!=null&&command.code().getBytes(StandardCharsets.UTF_8).length>properties.runner().codeBytes())
 				throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE,"exam-code-too-large");
 			Instant now=clock.instant();
@@ -191,9 +191,10 @@ public class ExamAttemptService {
 	}
 	private ExamViews.Attempt view(AttemptRow a) {
 		List<ExamViews.Question> questions=a.startedAt()==null?List.of():ExamShuffle.order(store.questions(a.versionId()),a.shuffleSeed()).stream().map(item->{
-			var q=item.question(); return new ExamViews.Question(q.id(),q.type().name(),q.prompt(),item.options(),q.rubric(),
-					q.language()==null?null:q.language().name(),q.kind()==null?null:q.kind().name(),q.initialCode(),
-					q.cases().stream().filter(ExamQuestion.Case::visible).map(c->new ExamViews.VisibleCase(c.id(),c.input(),c.expectedOutput(),c.setupSql(),c.tables(),c.expectedTable())).toList());
+			var q=item.question(); boolean code=q.type()==ExamQuestion.Type.CODE;
+			return new ExamViews.Question(q.id(),q.type().name(),q.prompt(),q.type()==ExamQuestion.Type.CHOICE?item.options():List.of(),q.type()==ExamQuestion.Type.OPEN?q.rubric():List.of(),
+					!code||q.language()==null?null:q.language().name(),!code||q.kind()==null?null:q.kind().name(),code?q.initialCode():null,
+					!code?List.of():q.cases().stream().filter(ExamQuestion.Case::visible).map(c->new ExamViews.VisibleCase(c.id(),c.input(),c.expectedOutput(),c.setupSql(),c.tables(),c.expectedTable())).toList());
 		}).toList();
 		long seconds=a.status()==AttemptStatus.IN_PROGRESS?Math.max(0,Duration.between(clock.instant(),a.deadlineAt()).toSeconds()):0;
 		return new ExamViews.Attempt(a.id(),a.applicationId(),a.status().name(),a.gradingStatus(),a.noticeVersion(),notice.text(),a.startedAt(),a.deadlineAt(),seconds,questions,

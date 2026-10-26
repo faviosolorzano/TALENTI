@@ -35,6 +35,15 @@ public final class CodeTokens {
 				continue;
 			}
 			int start = i++;
+			if (language == Language.SQL && c == '$') {
+				int delimiterEnd = value.indexOf('$', i);
+				if (delimiterEnd >= i && value.substring(i, delimiterEnd).matches("[A-Za-z_][A-Za-z_0-9]*|")) {
+					String delimiter = value.substring(start, delimiterEnd + 1);
+					int end = value.indexOf(delimiter, delimiterEnd + 1);
+					i = end < 0 ? value.length() : end + delimiter.length();
+					result.add(value.substring(start, i)); continue;
+				}
+			}
 			if (c == '\'' || c == '"' || c == '`') {
 				boolean triple = language == Language.PYTHON && value.startsWith(String.valueOf(c).repeat(3), start);
 				if (triple) i = start + 3;
@@ -64,7 +73,7 @@ public final class CodeTokens {
 		return raw(code, language).stream().map(token -> identifier(token)
 				&& !KEYWORDS.contains(token.toLowerCase(Locale.ROOT)) && !known.contains(token) ? "ID" : token).toList();
 	}
-	private static boolean identifier(String token) { return !token.isEmpty() && Character.isJavaIdentifierStart(token.charAt(0)); }
+	private static boolean identifier(String token) { return !token.isEmpty() && token.charAt(0) != '$' && Character.isJavaIdentifierStart(token.charAt(0)); }
 	public static int distance(List<String> a, List<String> b) {
 		int[] previous = new int[b.size() + 1];
 		for (int j = 0; j <= b.size(); j++) previous[j] = j;

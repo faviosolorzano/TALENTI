@@ -120,6 +120,16 @@ class ExamDomainTests {
 	@Test void t014_26_score20UsesTwoDecimals() {
 		assertThat(ExamScoring.score20(new BigDecimal("89.33"))).isEqualByComparingTo("17.87");
 	}
+	@Test void sqlDollarQuotedLiteralsPreserveContentsAndDoNotBecomeCommands() {
+		assertThat(CodeTokens.raw("SELECT $txt$ORDER BY; DELETE$txt$",Language.SQL))
+				.containsExactly("select","$txt$ORDER BY; DELETE$txt$");
+		assertThat(SqlReadOnly.accepts("SELECT $$DROP; TABLE$$")).isTrue();
+		assertThat(SqlReadOnly.hasOrderBy("SELECT $$ORDER BY$$")).isFalse();
+	}
+	@Test void sqlOrderingOnlyUsesTheOuterQuery() {
+		assertThat(SqlReadOnly.hasOrderBy("SELECT * FROM (SELECT n FROM numbers ORDER BY n) x")).isFalse();
+		assertThat(SqlReadOnly.hasOrderBy("WITH x AS (SELECT n FROM numbers ORDER BY n) SELECT * FROM x ORDER BY n")).isTrue();
+	}
 	@Test void t014_18_openRubricFiltersHostileFieldsAndCalculatesPoints() {
 		var q=question(blueprint().slots().get(4));
 		var proposed=List.of(new Proposed("ACCURACY",4,"Tu acento es malo",List.of("Respuesta","inventada")),

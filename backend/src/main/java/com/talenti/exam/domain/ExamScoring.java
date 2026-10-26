@@ -10,7 +10,8 @@ public final class ExamScoring {
 	public static final String VERSION = "exam-scoring-v1";
 	public record Rules(double fullThreshold, double zeroThreshold, double nonRunningCap, double sqlColumnsWeight) {
 		public Rules {
-			if (zeroThreshold < 0 || fullThreshold > 1 || zeroThreshold >= fullThreshold || nonRunningCap < 0
+			if (!Double.isFinite(fullThreshold) || !Double.isFinite(zeroThreshold) || !Double.isFinite(nonRunningCap)
+					|| !Double.isFinite(sqlColumnsWeight) || zeroThreshold < 0 || fullThreshold > 1 || zeroThreshold >= fullThreshold || nonRunningCap < 0
 					|| nonRunningCap >= fullThreshold || sqlColumnsWeight < 0 || sqlColumnsWeight > 1) throw new IllegalArgumentException("Umbrales de examen inválidos");
 		}
 	}

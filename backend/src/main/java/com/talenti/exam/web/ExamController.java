@@ -58,7 +58,7 @@ class ExamController {
 	@GetMapping("/admin/vacancies/{vacancy}/exam-set")
 	ResponseEntity<?> examSet(@PathVariable String vacancy) {
 		var set=authoring.forVacancy(id(vacancy));
-		if(set.isEmpty()) return ResponseEntity.noContent().build();
+		if(set.isEmpty()) throw ExamErrors.missing();
 		var versions=store.versions(set.get().id()).stream().map(v->Map.of("id",v.id(),"label",v.label(),"locked",v.locked(),
 				"verificationReport",v.verificationJson(),"questions",store.questions(v.id()))).toList();
 		return ResponseEntity.ok(Map.of("set",set.get(),"versions",versions));

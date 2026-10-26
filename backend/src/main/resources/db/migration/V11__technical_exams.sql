@@ -71,14 +71,17 @@ CREATE INDEX exam_event_attempt ON exam_event(attempt_id,occurred_at,id);
 -- Un intento fija para siempre la revisión y las preguntas usadas.
 CREATE FUNCTION exam_protect_locked_question() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM exam_version WHERE id = OLD.version_id AND locked) THEN
+    IF TG_OP <> 'INSERT' AND EXISTS (SELECT 1 FROM exam_version WHERE id = OLD.version_id AND locked) THEN
+        RAISE EXCEPTION 'exam-version-locked';
+    END IF;
+    IF TG_OP <> 'DELETE' AND EXISTS (SELECT 1 FROM exam_version WHERE id = NEW.version_id AND locked) THEN
         RAISE EXCEPTION 'exam-version-locked';
     END IF;
     IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
 END;
 $$;
-CREATE TRIGGER exam_locked_question BEFORE UPDATE OR DELETE ON exam_question
+CREATE TRIGGER exam_locked_question BEFORE INSERT OR UPDATE OR DELETE ON exam_question
     FOR EACH ROW EXECUTE FUNCTION exam_protect_locked_question();
 CREATE FUNCTION exam_protect_locked_version() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

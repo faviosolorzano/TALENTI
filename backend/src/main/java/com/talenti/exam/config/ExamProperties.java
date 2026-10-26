@@ -37,19 +37,31 @@ public record ExamProperties(@DefaultValue("true") boolean enabled, @DefaultValu
 		}
 	}
 	public record Scoring(@DefaultValue("0.90") double fullThreshold, @DefaultValue("0.30") double zeroThreshold,
-			@DefaultValue("0.80") double nonRunningCap, @DefaultValue("0.20") double sqlColumnsWeight) {
-		public ExamScoring.Rules rules() { return new ExamScoring.Rules(fullThreshold,zeroThreshold,nonRunningCap,sqlColumnsWeight); }
+			@DefaultValue("0.80") double nonRunningCap, @DefaultValue SqlScore sql) {
+		public record SqlScore(@DefaultValue("0.20") double columnsWeight) { }
+		public double sqlColumnsWeight() { return sql.columnsWeight(); }
+		public ExamScoring.Rules rules() { return new ExamScoring.Rules(fullThreshold,zeroThreshold,nonRunningCap,sqlColumnsWeight()); }
 	}
 	public record Runner(@DefaultValue("volume") String mode, @DefaultValue("/var/lib/talenti/exam-jobs") String jobs,
 			@DefaultValue("3s") Duration caseTimeout, @DefaultValue("10s") Duration compileTimeout,
 			@DefaultValue("256") int memoryMb, @DefaultValue("65536") int outputBytes, @DefaultValue("10000") int codeBytes,
 			@DefaultValue("64") int processes, @DefaultValue("2") int maxParallel, @DefaultValue("15s") Duration queueTimeout) {
+		public Runner {
+			if(caseTimeout.isNegative()||caseTimeout.isZero()||compileTimeout.isNegative()||compileTimeout.isZero()
+					||memoryMb<32||memoryMb>256||outputBytes<1||outputBytes>65536||codeBytes<1||codeBytes>10000
+					||processes<1||processes>64||maxParallel<1||maxParallel>2||queueTimeout.isNegative()||queueTimeout.isZero())
+				throw new IllegalArgumentException("Límites de ejecución del examen inválidos");
+		}
 		public CodeExecutionPort.Limits limits() { return new CodeExecutionPort.Limits(caseTimeout,compileTimeout,memoryMb,outputBytes,codeBytes,processes); }
 	}
 	public record Sql(@DefaultValue("jdbc:postgresql://exam-sql:5432/exam") String url,
 			@DefaultValue("exam_owner") String owner, @DefaultValue("") String ownerPassword,
 			@DefaultValue("exam_reader") String reader, @DefaultValue("") String readerPassword,
 			@DefaultValue("2s") Duration statementTimeout, @DefaultValue("1000") int maxRows) {
+		public Sql {
+			if(statementTimeout.isNegative()||statementTimeout.isZero()||maxRows<1||maxRows>1000)
+				throw new IllegalArgumentException("Límites SQL del examen inválidos");
+		}
 		@Override public String toString() { return "ExamSql[credentials hidden]"; }
 	}
 }
