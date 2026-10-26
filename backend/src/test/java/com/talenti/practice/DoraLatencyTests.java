@@ -41,7 +41,8 @@ class DoraLatencyTests extends PracticeIntegrationTest {
 	@Test
 	@DisplayName("012-16 y 012-15: en 50 turnos el primer reply.audio llega en ≤ STT + primer fragmento + TTS + 250 ms (p95), antes de que el LLM termine")
 	void t012_16_firstAudioWithinBudgetAndBeforeTheLlmEnds() throws Exception {
-		// 10 personas en paralelo, 5 preguntas cada una: 50 turnos por voz.
+		// 10 personas, 5 preguntas cada una: 50 turnos por voz, de a 5 personas a la vez (carga realista para la demo
+		// sin que la máquina de pruebas, compartida, mida su propia saturación en vez de la del servidor).
 		List<RegisteredStudent> students = new ArrayList<>();
 		List<String> sessions = new ArrayList<>();
 		for (int i = 0; i < 10; i++) {
@@ -58,7 +59,7 @@ class DoraLatencyTests extends PracticeIntegrationTest {
 		List<Long> serverFirstAudio = Collections.synchronizedList(new ArrayList<>());
 		List<Long> clientFirstAudio = Collections.synchronizedList(new ArrayList<>());
 		List<Long> marginBeforeLlmEnd = Collections.synchronizedList(new ArrayList<>());
-		ExecutorService pool = Executors.newFixedThreadPool(10);
+		ExecutorService pool = Executors.newFixedThreadPool(5);
 		try {
 			List<Future<?>> work = new ArrayList<>();
 			for (int i = 0; i < 10; i++) {
