@@ -17,6 +17,7 @@ import tempfile
 import time
 import uuid
 import shutil
+import stat
 
 JOBS = Path("/jobs")
 OWNER = 10001
@@ -119,6 +120,29 @@ def kill_user(uid):
                 pass
         time.sleep(0.005)
     raise RuntimeError("process-cleanup-failed")
+
+
+def clean_files(uid):
+    # /tmp es un tmpfs exclusivo del ejecutor. Un programa puede renombrar su
+    # carpeta o quitar sus permisos: se limpian todos sus objetos, sin seguir enlaces.
+    try:
+        user(uid)
+        for path in Path("/tmp").iterdir():
+            info = path.lstat()
+            if info.st_uid != uid:
+                continue
+            if not stat.S_ISDIR(info.st_mode):
+                path.unlink(missing_ok=True)
+                continue
+            path.chmod(0o700)
+            for directory, dirs, _ in os.walk(path, topdown=True, followlinks=False):
+                for name in dirs:
+                    child = Path(directory) / name
+                    if not child.is_symlink():
+                        child.chmod(0o700)
+            shutil.rmtree(path)
+    finally:
+        owner()
 
 
 def seconds(value, default, maximum):
@@ -248,12 +272,7 @@ def process_job(directory, uid):
     finally:
         try:
             kill_user(uid)
-            if workspace:
-                try:
-                    user(uid)
-                    shutil.rmtree(workspace)
-                finally:
-                    owner()
+            clean_files(uid)
             (job / "claimed.json").unlink(missing_ok=True)
             publish(job, result)
         except Exception:

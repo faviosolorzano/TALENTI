@@ -104,4 +104,11 @@ class RunnerIsolationTests {
 		assertThat(run(Language.PYTHON,"import os,time\nfor i in range(100):\n try:\n  if os.fork()==0: os.setsid();time.sleep(60);os._exit(0)\n except OSError: pass\nwhile True: pass","").completed()).isFalse();
 		assertThat(run(Language.PYTHON,"print('READY')","").output().strip()).isEqualTo("READY");
 	}
+	@Test void t014_29_cleanupHandlesRenamedLockedDirectoriesAndFilesOutsideWorkspace() throws Exception {
+		String code="import os,pathlib\nu=os.getuid()\np=pathlib.Path('/tmp')/('stray-'+str(u))\np.write_text('PRIVATE')\nd=pathlib.Path('locked');d.mkdir();(d/'data').write_text('PRIVATE');d.chmod(0)\nold=os.getcwd();os.rename(old,old+'-moved');os.chmod(old+'-moved',0)\nprint('DONE')";
+		assertThat(run(Language.PYTHON,code,"").output().strip()).isEqualTo("DONE");
+		var leftovers=runner.execInContainer("python","-c","import pathlib;print([p.name for p in pathlib.Path('/tmp').iterdir() if p.lstat().st_uid in (20000,20001)])");
+		assertThat(leftovers.getStdout().strip()).isEqualTo("[]");
+		assertThat(run(Language.PYTHON,"print('READY')","").output().strip()).isEqualTo("READY");
+	}
 }
