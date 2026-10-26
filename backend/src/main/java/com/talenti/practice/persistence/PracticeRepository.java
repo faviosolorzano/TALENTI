@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.talenti.practice.domain.Basis;
 import com.talenti.practice.domain.InputMode;
@@ -360,6 +361,20 @@ public class PracticeRepository {
 	}
 
 	// ------------------------------------------------------------------------------------------ retroalimentación
+
+	/** Impide que una evaluación anterior a una corrección sobrescriba su resultado nuevo. */
+	@Transactional
+	public void saveFeedbackIfCurrent(TurnRow evaluated, String status, String criteriaJson, Integer total,
+			String model, String promptVersion, String rubricVersion, Instant now) {
+		boolean current = !jdbc.sql("""
+				SELECT id FROM practice_turn WHERE id = :id AND transcript_final = :text
+				  AND corrected_at IS NOT DISTINCT FROM CAST(:correctedAt AS timestamptz) FOR UPDATE""")
+				.param("id", evaluated.id()).param("text", evaluated.transcriptFinal())
+				.param("correctedAt", utc(evaluated.correctedAt())).query(UUID.class).list().isEmpty();
+		if (current) {
+			saveFeedback(evaluated.id(), status, criteriaJson, total, model, promptVersion, rubricVersion, now);
+		}
+	}
 
 	public void saveFeedback(UUID turnId, String status, String criteriaJson, Integer total, String model,
 			String promptVersion, String rubricVersion, Instant now) {

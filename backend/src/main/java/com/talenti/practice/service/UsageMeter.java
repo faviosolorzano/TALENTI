@@ -103,7 +103,11 @@ public class UsageMeter {
 	 */
 	public void sessionUsed(UUID sessionId, UUID userId, SessionMode mode, AiUsageOutcome outcome) {
 		AiFunction function = mode == SessionMode.INTERVIEW ? AiFunction.INTERVIEW_SESSION : AiFunction.PRACTICE_SESSION;
-		recordSafely(new AiUsageEvent(sessionId, userId, function, level, adapter, null, outcome, 0, 0, null));
+		boolean failed = outcome == AiUsageOutcome.FAILED_PLATFORM;
+		UUID eventId = failed ? UUID.nameUUIDFromBytes(("session-failure:" + sessionId)
+				.getBytes(java.nio.charset.StandardCharsets.UTF_8)) : sessionId;
+		recordSafely(new AiUsageEvent(eventId, userId, function, level, adapter, null, outcome, 0, 0, null,
+				failed ? sessionId : null));
 	}
 
 	private void call(UUID userId, AiFunction function, String model, int inputSize, int outputSize, boolean success,

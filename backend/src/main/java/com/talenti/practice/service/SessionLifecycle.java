@@ -97,7 +97,7 @@ public class SessionLifecycle {
 			case ABANDONED -> event(session, "ABANDONED", Map.of());
 			case FAILED -> {
 				event(session, "PLATFORM_FAILURE", Map.of());
-				// No cuenta (012-29): si la sesión ya se había anotado como usada, esta fila no la reemplaza.
+				// Compensa el uso anterior sin borrarlo; reintentar la compensación no devuelve el cupo dos veces.
 				usage.sessionUsed(session.id(), session.userId(), session.mode(), AiUsageOutcome.FAILED_PLATFORM);
 			}
 			default -> {

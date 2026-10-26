@@ -15,9 +15,10 @@ import java.util.UUID;
  * @param outputSize          tamaño de la salida (caracteres; en texto a voz, milisegundos de audio)
  * @param estimatedCostMicros costo estimado en millonésimas de dólar con los precios de la configuración; nulo si no
  *                            se estima
+ * @param reversesReadId      uso de sesión compensado por una falla de plataforma; nulo en los demás eventos
  */
 public record AiUsageEvent(UUID readId, UUID userId, AiFunction function, AiLevel level, String adapter, String model,
-		AiUsageOutcome outcome, int inputSize, int outputSize, Long estimatedCostMicros) {
+		AiUsageOutcome outcome, int inputSize, int outputSize, Long estimatedCostMicros, UUID reversesReadId) {
 
 	public AiUsageEvent {
 		Objects.requireNonNull(readId, "readId");
@@ -28,6 +29,17 @@ public record AiUsageEvent(UUID readId, UUID userId, AiFunction function, AiLeve
 		if (estimatedCostMicros != null && estimatedCostMicros < 0) {
 			throw new IllegalArgumentException("estimatedCostMicros no puede ser negativo");
 		}
+		if (reversesReadId != null && (outcome != AiUsageOutcome.FAILED_PLATFORM
+				|| (function != AiFunction.PRACTICE_SESSION && function != AiFunction.INTERVIEW_SESSION)
+				|| reversesReadId.equals(readId))) {
+			throw new IllegalArgumentException("Solo una falla de sesión puede compensar otro uso");
+		}
+	}
+
+	/** Uso sin compensación; conserva el contrato de los módulos existentes. */
+	public AiUsageEvent(UUID readId, UUID userId, AiFunction function, AiLevel level, String adapter, String model,
+			AiUsageOutcome outcome, int inputSize, int outputSize, Long estimatedCostMicros) {
+		this(readId, userId, function, level, adapter, model, outcome, inputSize, outputSize, estimatedCostMicros, null);
 	}
 
 	/** Sin costo estimado (la lectura de CV, spec 009). */

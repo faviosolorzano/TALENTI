@@ -605,15 +605,18 @@ public class DoraService {
 		if (value.length() > properties.maxTranscript()) {
 			throw DoraErrors.invalid("transcript", "max-length", properties.maxTranscript());
 		}
-		if (session.mode() == SessionMode.INTERVIEW && !session.status().isOpen()) {
+		if (session.mode() == SessionMode.INTERVIEW && !session.status().isOpen()
+				&& session.status() != SessionStatus.COMPLETED) {
 			throw DoraErrors.conflict("session-closed");
 		}
 		repository.correctTranscript(turnId, value, clock.instant());
 		lifecycle.event(session, "TRANSCRIPT_CORRECTED", map("position", turn.position(), "attempt", turn.attempt()));
 		String feedbackStatus = null;
-		if (session.mode() == SessionMode.PRACTICE) {
-			feedback.schedule(sessionId, turnId, userId, SessionMode.PRACTICE);
-			feedbackStatus = "PENDING";
+		if (session.mode() == SessionMode.PRACTICE || session.status() == SessionStatus.COMPLETED) {
+			feedback.schedule(sessionId, turnId, userId, session.mode());
+			if (session.mode() == SessionMode.PRACTICE) {
+				feedbackStatus = "PENDING";
+			}
 		}
 		if (session.status().isOpen()) {
 			repository.touch(sessionId, clock.instant());

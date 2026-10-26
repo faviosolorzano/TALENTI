@@ -100,11 +100,11 @@ public class FeedbackService {
 				return; // la persona corrigió la transcripción: la evaluación nueva ya va en camino
 			}
 			if (result == null || !result.usable()) {
-				repository.saveFeedback(turnId, "UNAVAILABLE", "[]", null, llm.model(), llm.promptVersion(),
+				repository.saveFeedbackIfCurrent(turn, "UNAVAILABLE", "[]", null, llm.model(), llm.promptVersion(),
 						rubric.version(), clock.instant());
 			}
 			else {
-				repository.saveFeedback(turnId, "READY", views.json(result.criteria()), result.total(), llm.model(),
+				repository.saveFeedbackIfCurrent(turn, "READY", views.json(result.criteria()), result.total(), llm.model(),
 						llm.promptVersion(), rubric.version(), clock.instant());
 			}
 		}
