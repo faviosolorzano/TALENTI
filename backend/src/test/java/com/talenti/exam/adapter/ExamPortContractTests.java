@@ -45,7 +45,13 @@ class ExamPortContractTests {
 		assertThat(result.criteria()).allSatisfy(c->assertThat(c.level()).isEqualTo(3));
 		simulated.hostile(true);
 		assertThat(OpenAnswerScoring.validate(q,request.answer(),grader.grade(request),Map.of()).complete()).isFalse();
-		if(openai) assertThat(sent.get()).doesNotContain("userId","studentName","email");
+		if(openai) {
+			assertThat(sent.get()).doesNotContain("userId","studentName","email");
+			var item=json.readTree(sent.get()).path("text").path("format").path("schema").path("properties").path("criteria").path("items");
+			assertThat(item.path("properties").path("criterion").path("enum").valueStream().map(n->n.asString()).toList())
+					.containsExactlyElementsOf(q.rubric().stream().map(ExamQuestion.Criterion::id).toList());
+			assertThat(item.path("properties").path("level").path("enum").valueStream().map(n->n.asInt()).toList()).containsExactly(1,2,3,4);
+		}
 	}
 	@Test void t014_33_refusalIncompleteAndMalformedProviderResponsesAreSanitized() {
 		for(String response:List.of("{\"status\":\"incomplete\"}","MARCA_PRIVADA","{\"status\":\"completed\",\"output\":[{\"content\":[{\"type\":\"refusal\"}]}]}")) {

@@ -11,6 +11,13 @@ final class ExamSchemas {
 		return Map.of("type","object","properties",fields,"required",List.copyOf(fields.keySet()),"additionalProperties",false);
 	}
 	static Object array(Object item) { return Map.of("type","array","items",item); }
+	static Object grading(List<com.talenti.exam.domain.ExamQuestion.Criterion> rubric) {
+		return object(Map.of("criteria",Map.of("type","array","items",object(Map.of(
+				"criterion",Map.of("type","string","enum",rubric.stream().map(com.talenti.exam.domain.ExamQuestion.Criterion::id).toList()),
+				"level",Map.of("type","integer","enum",List.of(1,2,3,4)),
+				"comment",Map.of("type",List.of("string","null")),
+				"quotes",array(Map.of("type","string")))))));
+	}
 	static Object schema(Type type) {
 		if(type instanceof ParameterizedType p) {
 			if(p.getRawType()==List.class) return array(schema(p.getActualTypeArguments()[0]));
