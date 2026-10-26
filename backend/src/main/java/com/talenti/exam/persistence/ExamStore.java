@@ -167,6 +167,7 @@ public class ExamStore {
 		return jdbc.sql("UPDATE exam_answer SET run_count=run_count+1 WHERE id=:id AND run_count<:max")
 				.param("id",answer).param("max",maximum).update()==1;
 	}
+	public void refundRun(UUID answer) { jdbc.sql("UPDATE exam_answer SET run_count=greatest(0,run_count-1) WHERE id=:id").param("id",answer).update(); }
 	public boolean event(UUID attempt,String kind,UUID clientEvent,Instant clientAt,Instant now,Map<String,Object> data) {
 		return jdbc.sql("""
 				INSERT INTO exam_event(id,attempt_id,kind,client_event_id,client_occurred_at,occurred_at,data)

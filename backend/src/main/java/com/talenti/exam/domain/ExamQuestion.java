@@ -19,8 +19,19 @@ public record ExamQuestion(UUID id, int slot, Type type, String skillSlug, int d
 	public record Criterion(String id, String description, Map<Integer, String> levels) {
 		public Criterion { levels = Map.copyOf(levels); }
 	}
+	public record SqlColumn(String name, String type) { }
+	public record SqlFixture(String name, List<SqlColumn> columns, List<List<String>> rows) {
+		public SqlFixture {
+			columns = List.copyOf(columns);
+			rows = rows.stream().map(row -> java.util.Collections.unmodifiableList(new java.util.ArrayList<>(row))).toList();
+		}
+	}
 	public record Case(String id, boolean visible, String input, String expectedOutput, String setupSql,
-			SqlTable expectedTable) {
+			SqlTable expectedTable, List<SqlFixture> tables) {
+		public Case { tables = tables == null ? List.of() : List.copyOf(tables); }
+		public Case(String id, boolean visible, String input, String expectedOutput, String setupSql, SqlTable expectedTable) {
+			this(id,visible,input,expectedOutput,setupSql,expectedTable,List.of());
+		}
 		@Override public String toString() { return "Case[id=" + id + ", visible=" + visible + "]"; }
 	}
 	public record SqlTable(List<String> columns, List<List<String>> rows, List<String> types) {
@@ -43,4 +54,15 @@ public record ExamQuestion(UUID id, int slot, Type type, String skillSlug, int d
 		cases = cases == null ? List.of() : List.copyOf(cases);
 	}
 	@Override public String toString() { return "ExamQuestion[id=" + id + ", slot=" + slot + ", type=" + type + "]"; }
+	public ExamQuestion withId(UUID value) { return new ExamQuestion(value,slot,type,skillSlug,difficulty,points,prompt,
+			options,correctId,rubric,keyPoints,language,kind,initialCode,references,cases,orderMatters,source); }
+	/** Ningún id visible debe revelar la clave por nombres como 'correct' o 'answer'. */
+	public ExamQuestion opaqueChoices() {
+		if(type!=Type.CHOICE||options.stream().anyMatch(o->o==null||o.id()==null)) return this;
+		Map<String,String> ids=new java.util.HashMap<>();
+		options.forEach(o->ids.computeIfAbsent(o.id(),key->UUID.randomUUID().toString()));
+		return new ExamQuestion(id,slot,type,skillSlug,difficulty,points,prompt,
+				options.stream().map(o->new Option(ids.get(o.id()),o.text())).toList(),ids.getOrDefault(correctId,correctId),
+				rubric,keyPoints,language,kind,initialCode,references,cases,orderMatters,source);
+	}
 }

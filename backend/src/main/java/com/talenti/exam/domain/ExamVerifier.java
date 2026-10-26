@@ -68,6 +68,7 @@ public final class ExamVerifier {
 				|| c.expectedOutput() != null && c.expectedOutput().length() > limits.outputBytes()
 				|| c.setupSql() != null && c.setupSql().length() > 20000)
 				|| q.cases().stream().map(Case::id).distinct().count() != q.cases().size()) return "CASES";
+		if (q.language() == Language.SQL && q.cases().stream().anyMatch(c -> !SqlFixtures.valid(c.tables()))) return "SQL_FIXTURES";
 		for (String reference : q.references()) {
 			if (q.language() == Language.SQL && (!SqlReadOnly.accepts(reference) || q.orderMatters() && !SqlReadOnly.hasOrderBy(reference))) return "SQL_REFERENCE";
 			List<Result> first = execution.run(q.language(), reference, q.cases(), limits);

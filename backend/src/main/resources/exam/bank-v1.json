@@ -1,0 +1,33 @@
+{
+  "version": "exam-bank-v1",
+  "choicePrompts": [
+    "En {technology}, ¿qué prueba ayuda a comprobar un resultado esperado con una entrada conocida?",
+    "En una solución con {technology}, ¿qué conviene hacer con una entrada que no cumple el contrato?",
+    "Al mantener una solución con {technology}, ¿qué permite reproducir un error de forma fiable?",
+    "Al cambiar una solución con {technology}, ¿qué permite detectar que se rompió un comportamiento anterior?"
+  ],
+  "choiceCorrect": [
+    "Una prueba con entrada y salida esperada definidas",
+    "Validarla y responder con un error claro según el contrato",
+    "Un caso mínimo con los pasos y los datos necesarios",
+    "Ejecutar las pruebas del comportamiento que ya funcionaba"
+  ],
+  "distractors": [
+    ["Cambiar el resultado esperado después de cada ejecución", "Probar solo que el programa arranca", "Omitir la comprobación del resultado"],
+    ["Ignorar la entrada y fingir que se guardó", "Guardar cualquier entrada sin comprobarla", "Mostrar detalles internos del servidor"],
+    ["Una descripción sin pasos ni entrada", "Solo el nombre de la herramienta", "Cambiar varios componentes al mismo tiempo"],
+    ["Borrar las pruebas que fallen", "Cambiar únicamente el nombre del archivo", "Comprobar solo que el editor no muestra avisos"]
+  ],
+  "openPrompts": [
+    "Explica cómo validarías entradas y tratarías errores en una solución con {technology}. Incluye un ejemplo técnico y cómo lo probarías.",
+    "Explica cómo organizarías una solución con {technology} para poder cambiarla sin romper su comportamiento. Incluye un ejemplo y sus pruebas.",
+    "Explica cómo investigarías un resultado incorrecto en una solución con {technology}. Incluye un caso concreto, pasos y comprobación de la corrección."
+  ],
+  "keyPoints": ["Explicación técnica relacionada con la tecnología", "Ejemplo verificable y tratamiento de casos límite", "Prueba que compruebe el resultado esperado"],
+  "criteria": [
+    {"id":"TECHNICAL_ACCURACY","description":"Precisión técnica del contenido","levels":{"1":"No fundamenta la propuesta","2":"Fundamenta parcialmente la propuesta","3":"Fundamenta correctamente la propuesta","4":"Fundamenta y contempla sus límites"}},
+    {"id":"CLARITY","description":"Claridad de la explicación","levels":{"1":"No permite entender el procedimiento","2":"Permite entender solo una parte","3":"Explica los pasos con claridad","4":"Explica pasos y relaciones con precisión"}},
+    {"id":"STRUCTURE","description":"Orden del razonamiento técnico","levels":{"1":"No presenta una secuencia","2":"Presenta una secuencia incompleta","3":"Ordena la solución de principio a fin","4":"Ordena y justifica las decisiones"}},
+    {"id":"EXAMPLES","description":"Ejemplos y verificación de la solución","levels":{"1":"No presenta ejemplos verificables","2":"Presenta un ejemplo parcial","3":"Presenta un ejemplo y una prueba","4":"Incluye prueba y caso límite"}}
+  ]
+}
