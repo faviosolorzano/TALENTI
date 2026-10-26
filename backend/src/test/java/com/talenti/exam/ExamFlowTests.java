@@ -6,6 +6,9 @@ import java.util.*;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import com.talenti.exam.adapter.*;
@@ -17,6 +20,7 @@ import com.talenti.support.ApiClient;
 import com.talenti.identity.Role;
 import tools.jackson.databind.JsonNode;
 
+@ExtendWith(OutputCaptureExtension.class)
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={"talenti.demo-data.enabled=true","talenti.exam.runner.mode=simulated"})
 class ExamFlowTests extends MatchingIntegrationTest {
 	@Autowired ExamStore store;
@@ -158,6 +162,66 @@ class ExamFlowTests extends MatchingIntegrationTest {
 		assertThat(api.put(path,Map.of("code",q.references().getFirst(),"revision",60)).status()).isEqualTo(429);
 		clock.advance(Duration.ofSeconds(61));
 		assertThat(api.put(path,Map.of("code",q.references().getFirst(),"revision",60)).status()).isEqualTo(200);
+	}
+	@Test void t014_11_chunkedBodiesAndUtf8CodeRespectActualByteLimits() {
+		Fixture f=create();start(f);var api=f.student().api();
+		var q=questions(f).stream().filter(v->v.type()==ExamQuestion.Type.CODE).findFirst().orElseThrow();
+		String path=route(f)+"/answers/"+q.id();
+		byte[] huge=("{\"revision\":0,\"code\":\""+"x".repeat(66000)+"\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		var rejected=api.writeChunked("PUT",path,huge);
+		assertThat(rejected.status()).isEqualTo(413);assertThat(rejected.json().get("code").asString()).isEqualTo("payload-too-large");
+		assertThat(rejected.header("Cache-Control")).isEqualTo("no-store");
+		byte[] multibyte=("{\"revision\":0,\"code\":\""+"ñ".repeat(5001)+"\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(api.writeChunked("PUT",path,multibyte).status()).isEqualTo(413);
+		assertThat(store.answer(f.attempt(),q.id()).orElseThrow().revision()).isZero();
+		byte[] valid="{\"revision\":0,\"code\":\"print(1)\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(api.writeChunked("PUT",path,valid).status()).isEqualTo(200);
+	}
+	@Test void t014_12_oneConcurrentExecutionPerPersonAndLockReleasedOnFailure() throws Exception {
+		Fixture f=create();start(f);var api=f.student().api();
+		var code=questions(f).stream().filter(v->v.type()==ExamQuestion.Type.CODE).toList();
+		for(var q:code) assertThat(api.put(route(f)+"/answers/"+q.id(),Map.of("code",q.references().getFirst(),"revision",0)).status()).isEqualTo(200);
+		var entered=new java.util.concurrent.CountDownLatch(1);var release=new java.util.concurrent.CountDownLatch(1);
+		execution.behavior((source,cases)->{ entered.countDown();try { if(!release.await(10,java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("Ejecución bloqueada"); }
+			catch(InterruptedException e){Thread.currentThread().interrupt();} throw new com.talenti.exam.port.CodeExecutionPort.Unavailable(); });
+		try(var pool=java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+			var first=pool.submit(()->api.post(route(f)+"/answers/"+code.getFirst().id()+"/run",null));
+			try {
+				assertThat(entered.await(10,java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+				var second=api.post(route(f)+"/answers/"+code.getLast().id()+"/run",null);
+				assertThat(second.status()).isEqualTo(409);assertThat(second.json().get("code").asString()).isEqualTo("exam-run-in-progress");
+			} finally { release.countDown(); }
+			assertThat(first.get(10,java.util.concurrent.TimeUnit.SECONDS).status()).isEqualTo(503);
+		}
+		execution.reset();
+		assertThat(api.post(route(f)+"/answers/"+code.getFirst().id()+"/run",null).status()).isEqualTo(200);
+		assertThat(store.answer(f.attempt(),code.getFirst().id()).orElseThrow().runCount()).isEqualTo(1);
+		assertThat(store.answer(f.attempt(),code.getLast().id()).orElseThrow().runCount()).isZero();
+	}
+	@Test void t014_34_sensitiveContentNeverReachesLogsErrorsOrAudit(CapturedOutput output) {
+		String mark="contenido"+UUID.randomUUID().toString().replace("-","");
+		String[] loggerNames={"com.talenti.exam","org.springframework.web","org.springframework.jdbc.core"};
+		var prior=new HashMap<ch.qos.logback.classic.Logger,ch.qos.logback.classic.Level>();
+		for(String name:loggerNames) {
+			var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(name);
+			prior.put(logger,logger.getLevel());logger.setLevel(name.contains("jdbc")?ch.qos.logback.classic.Level.DEBUG:ch.qos.logback.classic.Level.TRACE);
+		}
+		try {
+			Fixture f=create();start(f);var api=f.student().api();
+			var code=questions(f).stream().filter(q->q.type()==ExamQuestion.Type.CODE).findFirst().orElseThrow();
+			var open=questions(f).stream().filter(q->q.type()==ExamQuestion.Type.OPEN).findFirst().orElseThrow();
+			String path=route(f)+"/answers/"+code.id();
+			assertThat(api.put(path,Map.of("code",mark,"revision",0)).status()).isEqualTo(200);
+			assertThat(api.put(route(f)+"/answers/"+open.id(),Map.of("text",mark,"revision",0)).status()).isEqualTo(200);
+			execution.behavior((source,cases)->cases.stream().map(c->new com.talenti.exam.port.CodeExecutionPort.Result(true,mark,com.talenti.exam.port.CodeExecutionPort.Error.NONE,1,null)).toList());
+			assertThat(api.post(path+"/run",null).status()).isEqualTo(200);
+			assertThat(api.get(route(f)).status()).isEqualTo(200);
+			var error=api.put(path,Map.of("code",mark.repeat(500),"revision",1));
+			assertThat(error.status()).isEqualTo(413);assertThat(error.body()).doesNotContain(mark);
+			assertThat(api.post(route(f)+"/submit",null).status()).isEqualTo(200);done(f);
+			assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_event WHERE details::text LIKE ?",Integer.class,"%"+mark+"%")).isZero();
+			assertThat(output.getAll()).doesNotContain(mark,code.prompt(),open.prompt(),code.references().getFirst());
+		} finally { prior.forEach(ch.qos.logback.classic.Logger::setLevel); }
 	}
 	@Test void authorFailureFallsBackAndConcurrentRequestsKeepOneSet() throws Exception {
 		author.fail(true); author.delay(Duration.ofMillis(50));
