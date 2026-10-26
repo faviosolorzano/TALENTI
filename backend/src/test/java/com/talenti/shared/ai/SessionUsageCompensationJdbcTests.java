@@ -40,7 +40,7 @@ class SessionUsageCompensationJdbcTests {
 		var dataSource = new DriverManagerDataSource(url + (url.contains("?") ? "&" : "?") + "currentSchema="
 				+ schema + ",public", username, "");
 		jdbc = new JdbcTemplate(dataSource);
-		// Las migraciones reales V2–V9; V1 (vector) no interviene en estas tablas.
+		// Las migraciones reales V2–V9 (la V9 ya incluye la compensación); V1 (vector) no interviene en estas tablas.
 		for (String name : new String[] { "V2__identity_and_audit.sql", "V3__vacancy_and_skills.sql",
 				"V4__require_pg_trgm.sql", "V5__student_profile.sql", "V6__profile_personal_data.sql",
 				"V7__cv_reader_and_ai_usage.sql", "V8__applications.sql", "V9__practice_sessions_and_dora.sql" }) {
@@ -57,10 +57,6 @@ class SessionUsageCompensationJdbcTests {
 		if (admin != null && schema != null) {
 			admin.execute("DROP SCHEMA " + schema + " CASCADE");
 		}
-	}
-
-	private void migrateFix() throws Exception {
-		jdbc.execute(Files.readString(Path.of("src/main/resources/db/migration/V9_1__compensate_failed_session_usage.sql")));
 	}
 
 	@org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
@@ -114,7 +110,6 @@ class SessionUsageCompensationJdbcTests {
 
 	@Test
 	void t012_29_failureRestoresPersonalAndGlobalQuotaWithoutErasingHistoryOrCost() throws Exception {
-		migrateFix();
 		UUID session = UUID.randomUUID();
 		assertThat(usage.record(success(session))).isTrue();
 		assertThat(usage.check(user, AiFunction.PRACTICE_SESSION).allowed()).isFalse();
@@ -130,7 +125,6 @@ class SessionUsageCompensationJdbcTests {
 
 	@Test
 	void t012_29_failureBeforeUsageAndAcrossMonthBoundaryRemainsCompensated() throws Exception {
-		migrateFix();
 		UUID session = UUID.randomUUID();
 		usage.record(failure(session));
 		usage.record(success(session));
@@ -140,28 +134,10 @@ class SessionUsageCompensationJdbcTests {
 
 	@Test
 	void t012_29_otherUsersOrFunctionsCannotReverseThisUsage() throws Exception {
-		migrateFix();
 		UUID session = UUID.randomUUID();
 		usage.record(success(session));
 		usage.record(new AiUsageEvent(UUID.randomUUID(), null, AiFunction.INTERVIEW_SESSION, AiLevel.BASIC,
 				"simulated", null, AiUsageOutcome.FAILED_PLATFORM, 0, 0, null, session));
 		assertThat(usage.check(user, AiFunction.PRACTICE_SESSION).used()).isEqualTo(1);
-	}
-
-	@Test
-	void t012_29_migrationRepairsPreviouslyFailedSessions() throws Exception {
-		UUID session = UUID.randomUUID();
-		jdbc.update("""
-				INSERT INTO practice_session(id,user_id,mode,basis,question_count,voice_enabled,status,attempt,
-				llm_adapter,prompt_version,rubric_version,bank_version,created_at,last_activity_at)
-				VALUES (?,?,'PRACTICE','PROFILE',1,false,'FAILED',1,'simulated','v1','v1','v1',now(),now())""", session, user);
-		jdbc.update("""
-				INSERT INTO ai_usage_event(id,occurred_at,user_id,function,level,adapter,outcome,read_id)
-				VALUES (?,? ,?,'PRACTICE_SESSION','BASIC','simulated','SUCCESS',?)""", UUID.randomUUID(),
-				java.time.OffsetDateTime.ofInstant(CLOCK.instant(), ZoneOffset.UTC), user, session);
-		migrateFix();
-		assertThat(usage.check(user, AiFunction.PRACTICE_SESSION).used()).isZero();
-		assertThat(jdbc.queryForObject("SELECT count(*) FROM ai_usage_event WHERE reverses_read_id = ?", Integer.class,
-				session)).isEqualTo(1);
 	}
 }

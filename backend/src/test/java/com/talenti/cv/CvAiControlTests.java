@@ -427,7 +427,9 @@ class CvAiControlTests extends CvIntegrationTest {
 				.containsExactlyInAnyOrder("id", "occurred_at", "user_id", "function", "level", "adapter", "model",
 						"outcome", "input_size", "output_size", "read_id",
 						// Spec 012 (012-30): costo estimado de cada llamada, en millonésimas de dólar; sigue sin contenido.
-						"estimated_cost_micros");
+						"estimated_cost_micros",
+						// 012-29: compensación del uso de una sesión que falló por la plataforma; sigue sin contenido.
+						"reverses_read_id");
 		assertThat(student.api().get(CV + "/usage").json().get("enhanced").get("used").asInt())
 				.isEqualTo(usageRows(student.id(), "SUCCESS")).isEqualTo(2);
 	}

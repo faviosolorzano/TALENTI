@@ -147,3 +147,17 @@ ALTER TABLE ai_usage_event ADD COLUMN estimated_cost_micros bigint;
 ALTER TABLE ai_usage_event ADD CONSTRAINT ck_ai_usage_event_cost CHECK (estimated_cost_micros IS NULL OR estimated_cost_micros >= 0);
 -- Tope mensual de gasto (012-30).
 CREATE INDEX ix_ai_usage_event_time_cost ON ai_usage_event (occurred_at) WHERE estimated_cost_micros IS NOT NULL;
+
+-- Corrección tras revisión (26-10-2026): compensación de usos de sesión por falla de plataforma (012-29),
+-- solo por inserciones; no borra consumo ni costo ya producido. Antes vivía en una V9.1 aparte; se integra en la V9
+-- porque la V9 no se había aplicado en ninguna base persistente.
+ALTER TABLE ai_usage_event ADD COLUMN reverses_read_id uuid;
+CREATE UNIQUE INDEX ai_usage_event_one_reversal ON ai_usage_event (reverses_read_id)
+    WHERE reverses_read_id IS NOT NULL;
+ALTER TABLE ai_usage_event ADD CONSTRAINT ai_usage_event_session_reversal CHECK (
+    reverses_read_id IS NULL OR (
+        outcome = 'FAILED_PLATFORM' AND function IN ('PRACTICE_SESSION', 'INTERVIEW_SESSION')
+        AND reverses_read_id <> read_id
+    )
+);
+

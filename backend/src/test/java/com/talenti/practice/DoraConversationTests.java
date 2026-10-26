@@ -217,7 +217,8 @@ class DoraConversationTests extends PracticeIntegrationTest {
 		String open = id(createPractice(third.api(), 2));
 		lifecycle.recoverAfterRestart();
 		assertThat(sessionStatus(open)).isEqualTo("FAILED");
-		assertThat(count("SELECT count(*) FROM ai_usage_event WHERE read_id = ?::uuid AND outcome = 'FAILED_PLATFORM'",
+		// La falla de plataforma se anota como compensación de esa sesión (012-29, corrección DORA-01).
+		assertThat(count("SELECT count(*) FROM ai_usage_event WHERE reverses_read_id = ?::uuid AND outcome = 'FAILED_PLATFORM'",
 				open)).isEqualTo(1);
 	}
 
