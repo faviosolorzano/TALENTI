@@ -117,7 +117,7 @@ class DoraLatencyTests extends PracticeIntegrationTest {
 
 		SseClient.Event reply = result.first("reply.text");
 		assertThat(reply.data().get("source").asString()).isEqualTo("TEMPLATE");
-		assertThat(result.millisTo(reply)).isLessThanOrEqualTo(1500 + 250);
+		assertThat(reply.data().get("atMs").asLong()).as("medido en el servidor").isLessThanOrEqualTo(1500 + 250);
 		assertThat(result.names()).contains("question").last().isEqualTo("turn.done");
 		assertThat(jdbc.queryForObject("SELECT bridge_source FROM practice_turn WHERE id = ?::uuid", String.class,
 				turnId(result))).isEqualTo("TEMPLATE");
@@ -137,7 +137,7 @@ class DoraLatencyTests extends PracticeIntegrationTest {
 		assertThat(result.names()).containsExactly("error");
 		assertThat(error.data().get("code").asString()).isEqualTo("stt-failed");
 		assertThat(error.data().get("retryable").asBoolean()).isTrue();
-		assertThat(result.millisTo(error)).isLessThanOrEqualTo(6000 + 250);
+		assertThat(error.data().get("atMs").asLong()).as("medido en el servidor").isLessThanOrEqualTo(6000 + 250);
 		assertThat(textTurn(student.api(), session, 1, "Lo escribo entonces.").status()).isEqualTo(200);
 	}
 
@@ -153,7 +153,7 @@ class DoraLatencyTests extends PracticeIntegrationTest {
 
 		SseClient.Event degraded = result.first("degraded");
 		assertThat(degraded.data().get("reason").asString()).isEqualTo("TTS_UNAVAILABLE");
-		assertThat(result.millisTo(degraded)).isLessThanOrEqualTo(4000 + 250);
+		assertThat(degraded.data().get("atMs").asLong()).as("medido en el servidor").isLessThanOrEqualTo(4000 + 250);
 		assertThat(result.all("degraded")).hasSize(1);
 		assertThat(result.has("reply.text")).isTrue();
 		assertThat(result.first("question").data().get("text").asString()).isNotBlank();

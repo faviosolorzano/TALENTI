@@ -101,7 +101,7 @@ abstract class ConversationContractTests {
 	private Recorder run(ConversationPort conversation, ConversationPort.InputAudio audio, String text) {
 		Recorder recorder = new Recorder();
 		conversation.runTurn(new ConversationPort.TurnInput(audio, text, BRIDGE, "Gracias por tu respuesta.", true, true,
-				ConversationPort.CallLog.NONE), recorder);
+				ConversationPort.CallLog.NONE, 0), recorder);
 		return recorder;
 	}
 
