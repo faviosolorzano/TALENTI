@@ -150,7 +150,7 @@ public class GithubOAuthService {
 			AccessToken token = client.exchangeCode(code);
 			githubUser = client.user(token);
 			try {
-				repos = client.repositories(githubUser.login(), token, null).value();
+				repos = client.repositories(githubUser.login(), githubUser.id(), token, null).value();
 			}
 			catch (GithubUnavailableException | GithubRateLimitedException | GithubNotFoundException e) {
 				// La cuenta ya quedó comprobada: los repositorios se leerán después por la API pública (013-07).

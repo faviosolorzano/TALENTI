@@ -138,7 +138,7 @@ class GithubRepositoriesTests extends GithubIntegrationTest {
 		assertThat(chosen.get("languages").get(1).get("percent").decimalValue()).isEqualByComparingTo("33.3");
 		assertThat(item(response.json(), "otro").get("languages")).isEmpty();
 		assertThat(fake.apiRequests()).extracting(FakeGithub.Request::path)
-				.containsExactly("/repos/" + account.login + "/elegido/languages");
+				.containsExactly("/user/" + account.id, "/repos/" + account.login + "/elegido/languages");
 		// Volver a elegir el mismo no vuelve a llamar (los lenguajes siguen vigentes).
 		fake.reset();
 		assertThat(select(linked.api(), List.of(repoId(list, "elegido"))).status()).isEqualTo(200);

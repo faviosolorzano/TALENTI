@@ -127,7 +127,7 @@ public class GithubService implements GithubShowcase {
 		Instant now = clock.instant();
 		if (link.reposFetchedAt() == null || !now.isBefore(link.reposFetchedAt().plus(properties.cacheTtl()))) {
 			try {
-				syncList(link, link.login(), now);
+				syncList(link, verifiedLogin(link), now);
 			}
 			catch (GithubRateLimitedException | GithubUnavailableException | GithubNotFoundException e) {
 				if (link.reposFetchedAt() == null) {
@@ -170,13 +170,22 @@ public class GithubService implements GithubShowcase {
 		}
 		Instant now = clock.instant();
 		Map<UUID, Fetched<Map<String, Long>>> fetched = new HashMap<>();
+		String resolvedLogin = null;
 		for (UUID id : chosen) {
 			RepoRow row = own.get(id);
 			if (!languagesCurrent(row, now)) {
-				fetched.put(id, fetchLanguages(link.login(), row));
+				if (resolvedLogin == null) {
+					resolvedLogin = verifiedLogin(link);
+				}
+				fetched.put(id, client.languages(resolvedLogin, row.name(),
+						resolvedLogin.equals(link.login()) && row.languages() != null ? row.languagesEtag() : null));
 			}
 		}
+		String login = resolvedLogin;
 		transaction.executeWithoutResult(status -> {
+			if (login != null && !login.equals(link.login())) {
+				store.updateLogin(userId, login);
+			}
 			store.setSelection(userId, chosen);
 			fetched.forEach((id, result) -> saveLanguages(userId, id, result, now));
 		});
@@ -194,19 +203,13 @@ public class GithubService implements GithubShowcase {
 		if (last != null && now.isBefore(last.plus(properties.refreshInterval()))) {
 			throw new TooManyRequestsException(Duration.between(now, last.plus(properties.refreshInterval())).toSeconds() + 1);
 		}
-		String login = link.login();
-		try {
-			GithubUser current = client.userById(link.githubUserId());
-			login = current.login();
-		}
-		catch (GithubNotFoundException e) {
-			// Sin cuenta visible: se sigue con el nombre guardado (la lista dirá si queda algo).
-		}
+		String login = verifiedLogin(link);
 		List<RepoRow> before = store.findRepos(userId);
-		Fetched<List<RepoData>> list = fetchList(login, link.reposEtag());
-		Set<Long> present = new HashSet<>();
+		String etag = login.equals(link.login()) ? link.reposEtag() : null;
+		Fetched<List<RepoData>> list = fetchList(link, login, etag);
+		Map<Long, RepoData> present = new HashMap<>();
 		if (!list.notModified()) {
-			visible(list.value()).forEach(repo -> present.add(repo.id()));
+			visible(list.value()).forEach(repo -> present.put(repo.id(), repo));
 		}
 		List<Views.Removed> removed = new ArrayList<>();
 		Map<UUID, Fetched<Map<String, Long>>> languages = new HashMap<>();
@@ -215,12 +218,15 @@ public class GithubService implements GithubShowcase {
 			if (!row.selected()) {
 				continue;
 			}
-			if (!list.notModified() && !present.contains(row.githubRepoId())) {
+			if (!list.notModified() && !present.containsKey(row.githubRepoId())) {
 				removed.add(new Views.Removed(row.id(), row.name()));
 				continue;
 			}
 			try {
-				languages.put(row.id(), fetchLanguages(login, row));
+				RepoData current = present.get(row.githubRepoId());
+				String name = current == null ? row.name() : current.name();
+				languages.put(row.id(), client.languages(login, name,
+						login.equals(link.login()) && name.equals(row.name()) ? row.languagesEtag() : null));
 			}
 			catch (GithubNotFoundException e) {
 				removed.add(new Views.Removed(row.id(), row.name()));
@@ -232,7 +238,7 @@ public class GithubService implements GithubShowcase {
 			if (!newLogin.equals(link.login())) {
 				store.updateLogin(userId, newLogin);
 			}
-			saveList(userId, list, link.reposEtag(), now);
+			saveList(userId, list, etag, now);
 			languages.forEach((id, result) -> saveLanguages(userId, id, result, now));
 			gone.forEach(id -> store.deleteRepo(userId, id));
 		});
@@ -349,9 +355,22 @@ public class GithubService implements GithubShowcase {
 		return store.findRepos(userId).stream().map(Views.Repository::of).toList();
 	}
 
-	private Fetched<List<RepoData>> fetchList(String login, String etag) {
+	private String verifiedLogin(LinkRow link) {
 		try {
-			return client.repositories(login, null, etag);
+			GithubUser current = client.userById(link.githubUserId());
+			if (current.id() != link.githubUserId()) {
+				throw new GithubUnavailableException("identidad inesperada");
+			}
+			return current.login();
+		}
+		catch (GithubNotFoundException e) {
+			throw new GithubUnavailableException("cuenta comprobada no disponible");
+		}
+	}
+
+	private Fetched<List<RepoData>> fetchList(LinkRow link, String login, String etag) {
+		try {
+			return client.repositories(login, link.githubUserId(), null, etag);
 		}
 		catch (GithubNotFoundException e) {
 			// Una cuenta que no se encuentra no borra lo guardado: se trata como GitHub sin respuesta.
@@ -360,8 +379,14 @@ public class GithubService implements GithubShowcase {
 	}
 
 	private void syncList(LinkRow link, String login, Instant now) {
-		Fetched<List<RepoData>> list = fetchList(login, link.reposEtag());
-		transaction.executeWithoutResult(status -> saveList(link.userId(), list, link.reposEtag(), now));
+		String etag = login.equals(link.login()) ? link.reposEtag() : null;
+		Fetched<List<RepoData>> list = fetchList(link, login, etag);
+		transaction.executeWithoutResult(status -> {
+			if (!login.equals(link.login())) {
+				store.updateLogin(link.userId(), login);
+			}
+			saveList(link.userId(), list, etag, now);
+		});
 	}
 
 	private void saveList(UUID userId, Fetched<List<RepoData>> list, String previousEtag, Instant now) {
@@ -377,10 +402,6 @@ public class GithubService implements GithubShowcase {
 	private boolean languagesCurrent(RepoRow row, Instant now) {
 		return row.languages() != null && row.languagesFetchedAt() != null
 				&& now.isBefore(row.languagesFetchedAt().plus(properties.cacheTtl()));
-	}
-
-	private Fetched<Map<String, Long>> fetchLanguages(String login, RepoRow row) {
-		return client.languages(login, row.name(), row.languages() == null ? null : row.languagesEtag());
 	}
 
 	private void saveLanguages(UUID userId, UUID repoId, Fetched<Map<String, Long>> result, Instant now) {

@@ -71,6 +71,7 @@ public final class FakeGithub {
 		public Account repo(String name, String description, boolean fork, List<String> topics, Object... languageBytes) {
 			Map<String, Object> repo = new LinkedHashMap<>();
 			repo.put("id", IDS.incrementAndGet());
+			repo.put("owner", Map.of("id", id, "login", login));
 			repo.put("name", name);
 			repo.put("description", description);
 			repo.put("html_url", "https://github.com/" + login + "/" + name);

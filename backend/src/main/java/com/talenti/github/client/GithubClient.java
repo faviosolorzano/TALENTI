@@ -1,12 +1,13 @@
 package com.talenti.github.client;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -16,6 +17,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +143,7 @@ public class GithubClient {
 	 * {@code token} (durante la vinculación) o por la API pública. El {@code ETag} se usa en la primera página: un 304
 	 * conserva lo guardado.
 	 */
-	public Fetched<List<RepoData>> repositories(String login, AccessToken token, String etag) {
+	public Fetched<List<RepoData>> repositories(String login, long ownerId, AccessToken token, String etag) {
 		List<RepoData> result = new ArrayList<>();
 		String firstEtag = null;
 		for (int page = 1; page <= Math.max(1, properties.maxPages()); page++) {
@@ -155,6 +162,11 @@ public class GithubClient {
 				throw new GithubUnavailableException("repositorios: forma inesperada");
 			}
 			for (JsonNode node : body) {
+				JsonNode owner = node.get("owner");
+				JsonNode id = owner == null ? null : owner.get("id");
+				if (id == null || !id.isIntegralNumber() || !id.canConvertToLong() || id.longValue() != ownerId) {
+					throw new GithubUnavailableException("repositorio: dueño distinto de la cuenta comprobada");
+				}
 				RepoData repo = parseRepo(node);
 				if (repo != null) {
 					result.add(repo);
@@ -225,19 +237,16 @@ public class GithubClient {
 		if (publicBudget) {
 			budget.check();
 		}
-		HttpResponse<InputStream> response;
+		HttpResponse<byte[]> response;
 		String body;
+		BoundedBody subscriber = new BoundedBody();
+		CompletableFuture<HttpResponse<byte[]>> pending = http.sendAsync(request, info -> subscriber);
 		try {
-			response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
-			try (InputStream input = response.body()) {
-				byte[] bytes = input.readNBytes(MAX_BODY_BYTES + 1);
-				if (bytes.length > MAX_BODY_BYTES) {
-					throw new GithubUnavailableException("respuesta demasiado grande");
-				}
-				body = new String(bytes, StandardCharsets.UTF_8);
-			}
+			// El plazo abarca cabeceras Y cuerpo; el suscriptor cancela al superar el tope de bytes.
+			response = pending.get(properties.readTimeout().toNanos(), TimeUnit.NANOSECONDS);
+			body = new String(response.body(), StandardCharsets.UTF_8);
 		}
-		catch (IOException e) {
+		catch (ExecutionException | TimeoutException e) {
 			// Tiempo de espera, red o conexión rechazada: solo la clase, nunca la URL.
 			log.info("GitHub no respondió ({})", e.getClass().getSimpleName());
 			throw new GithubUnavailableException("sin respuesta");
@@ -245,6 +254,10 @@ public class GithubClient {
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new GithubUnavailableException("interrumpido");
+		}
+		finally {
+			subscriber.cancel();
+			pending.cancel(true);
 		}
 		int status = response.statusCode();
 		String remaining = response.headers().firstValue("x-ratelimit-remaining").orElse(null);
@@ -268,6 +281,64 @@ public class GithubClient {
 			throw new GithubUnavailableException("estado " + status);
 		}
 		return new Response(status, body, response.headers().firstValue("etag").orElse(null));
+	}
+
+	/** Solo conserva cuerpos acotados, sin un hilo bloqueado leyendo una conexión detenida. */
+	private static final class BoundedBody implements HttpResponse.BodySubscriber<byte[]> {
+
+		private final CompletableFuture<byte[]> body = new CompletableFuture<>();
+		private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		private volatile Flow.Subscription subscription;
+		private volatile boolean cancelled;
+
+		@Override
+		public CompletionStage<byte[]> getBody() {
+			return body;
+		}
+
+		@Override
+		public void onSubscribe(Flow.Subscription incoming) {
+			subscription = incoming;
+			if (cancelled) {
+				incoming.cancel();
+			}
+			else {
+				incoming.request(1);
+			}
+		}
+
+		@Override
+		public void onNext(List<ByteBuffer> buffers) {
+			for (ByteBuffer buffer : buffers) {
+				if (buffer.remaining() > MAX_BODY_BYTES - bytes.size()) {
+					onError(new IOException("respuesta demasiado grande"));
+					cancel();
+					return;
+				}
+				byte[] chunk = new byte[buffer.remaining()];
+				buffer.get(chunk);
+				bytes.writeBytes(chunk);
+			}
+			subscription.request(1);
+		}
+
+		@Override
+		public void onError(Throwable error) {
+			body.completeExceptionally(error);
+		}
+
+		@Override
+		public void onComplete() {
+			body.complete(bytes.toByteArray());
+		}
+
+		void cancel() {
+			cancelled = true;
+			Flow.Subscription current = subscription;
+			if (current != null) {
+				current.cancel();
+			}
+		}
 	}
 
 	private static void requireOk(Response response) {

@@ -53,7 +53,9 @@ class GithubClientLimitsTests extends GithubIntegrationTest {
 		Response selection = select(linked.api(), List.of(repoId(repositories(linked.api()), "r1")));
 
 		assertThat(linking).allSatisfy(r -> assertThat(r.header("Authorization")).doesNotContain(SERVER_TOKEN));
-		assertThat(fake.apiRequests()).singleElement()
+		assertThat(fake.apiRequests()).hasSize(2).allSatisfy(r ->
+				assertThat(r.header("Authorization")).isEqualTo("Bearer " + SERVER_TOKEN));
+		assertThat(fake.apiRequests()).filteredOn(r -> r.path().endsWith("/languages")).singleElement()
 				.satisfies(r -> assertThat(r.header("Authorization")).isEqualTo("Bearer " + SERVER_TOKEN));
 		assertThat(selection.body()).doesNotContain(SERVER_TOKEN);
 		assertThat(rowsContaining(SERVER_TOKEN)).isZero();
@@ -66,8 +68,8 @@ class GithubClientLimitsTests extends GithubIntegrationTest {
 		JsonNode list = repositories(linked.api());
 		Instant reset = clock.instant().plusSeconds(1800).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
 		fake.setRate(5, reset);
-		// Esta respuesta trae "quedan 5": se anota, y desde ahí no se llama más.
-		assertThat(select(linked.api(), List.of(repoId(list, "r1"))).status()).isEqualTo(200);
+		// La comprobación del dueño trae "quedan 5": se detiene antes de pedir los lenguajes.
+		assertThat(select(linked.api(), List.of(repoId(list, "r1"))).status()).isEqualTo(503);
 		fake.reset();
 
 		Response limited = select(linked.api(), List.of(repoId(list, "r2")));
@@ -124,7 +126,7 @@ class GithubClientLimitsTests extends GithubIntegrationTest {
 		JsonNode down = repositories(linked.api());
 
 		assertThat(down.get("stale").asBoolean()).isTrue();
-		assertThat(fake.requests()).hasSize(1);
+		assertThat(fake.requests()).hasSize(2); // identidad + lista (una sola llamada a cada ruta)
 
 		fake.reset();
 		fake.slow("/repos/", 2500);
@@ -135,7 +137,7 @@ class GithubClientLimitsTests extends GithubIntegrationTest {
 		assertThat(slow.status()).isEqualTo(503);
 		assertThat(slow.json().get("code").asString()).isEqualTo("github-unavailable");
 		assertThat(millis).as("cortó a 1 s, sin esperar los 2,5 s").isLessThan(2400);
-		assertThat(fake.requests()).hasSize(1);
+		assertThat(fake.requests()).hasSize(2); // identidad + lenguajes, sin repetir la llamada lenta
 	}
 
 }
