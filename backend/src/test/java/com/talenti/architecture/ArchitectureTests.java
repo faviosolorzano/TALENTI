@@ -13,6 +13,9 @@ import com.talenti.identity.Role;
 import com.talenti.profile.ProfileFirstName;
 import com.talenti.profile.ProfileReader;
 import com.talenti.profile.ProfileSnapshot;
+import com.talenti.profile.ProfileView;
+import com.talenti.profile.SkillEvidence;
+import com.talenti.profile.SkillEvidenceWriter;
 import com.talenti.profile.WorkModality;
 import com.talenti.vacancy.SkillCatalog;
 import com.talenti.vacancy.SkillInfo;
@@ -52,7 +55,12 @@ class ArchitectureTests {
 			// matching (spec 007) usa el usuario de la sesión, ProfileReader con su snapshot y VacancyLookup con su información;
 			// nada más (lo vigila MatchingArchitectureTests).
 			.ignoreDependency(resideInAPackage("com.talenti.matching.."), belongToAnyOf(CurrentUser.class, Role.class,
-					ProfileReader.class, ProfileSnapshot.class, WorkModality.class, VacancyLookup.class, VacancyInfo.class))
+					ProfileReader.class, ProfileSnapshot.class, WorkModality.class, SkillEvidence.class, VacancyLookup.class,
+					VacancyInfo.class))
+			// github (spec 013) usa el usuario de la sesión, el catálogo de habilidades y SkillEvidenceWriter con el perfil
+			// que devuelve (lo vigila GithubArchitectureTests); nada más.
+			.ignoreDependency(resideInAPackage("com.talenti.github.."), belongToAnyOf(CurrentUser.class, Role.class,
+					SkillCatalog.class, SkillInfo.class, SkillEvidenceWriter.class, SkillEvidence.class, ProfileView.class))
 			// cv (spec 009) usa el usuario de la sesión, el catálogo de habilidades y la interfaz pública de profile
 			// (lo vigila CvArchitectureTests); nada más.
 			.ignoreDependency(resideInAPackage("com.talenti.cv.."), equivalentTo(CurrentUser.class))

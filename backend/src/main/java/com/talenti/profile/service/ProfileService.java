@@ -24,6 +24,8 @@ import com.talenti.profile.ProfileFirstName;
 import com.talenti.profile.ProfileReader;
 import com.talenti.profile.ProfileSnapshot;
 import com.talenti.profile.ProfileView;
+import com.talenti.profile.SkillEvidence;
+import com.talenti.profile.SkillEvidenceWriter;
 import com.talenti.profile.WorkModality;
 import com.talenti.profile.domain.CompletenessRule;
 import com.talenti.profile.domain.IntInput;
@@ -45,7 +47,7 @@ import com.talenti.vacancy.SkillInfo;
  * (006-12). Las habilidades se resuelven solo por {@link SkillCatalog}, nunca leyendo la tabla del catálogo.
  */
 @Service
-public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirstName {
+public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirstName, SkillEvidenceWriter {
 
 	/** Largo máximo del primer nombre que sale hacia la conversación con DORA. */
 	private static final int MAX_FIRST_NAME = 30;
@@ -82,7 +84,8 @@ public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirs
 		Set<WorkModality> modalities = EnumSet.noneOf(WorkModality.class);
 		modalities.addAll(view.availability().acceptedModalities());
 		return new ProfileSnapshot(
-				view.skills().stream().map(skill -> new ProfileSnapshot.Skill(skill.slug(), skill.level())).toList(),
+				view.skills().stream()
+						.map(skill -> new ProfileSnapshot.Skill(skill.slug(), skill.level(), skill.evidence())).toList(),
 				view.availability().hoursPerWeek(), modalities, view.availability().location(),
 				view.projects().stream().map(project -> new ProfileSnapshot.Project(project.name(),
 						project.description(), project.technologies())).toList());
@@ -125,7 +128,10 @@ public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirs
 		return load(userId);
 	}
 
-	/** 006-06: reemplaza la lista completa, o no cambia nada. */
+	/**
+	 * 006-06: reemplaza la lista completa, o no cambia nada. Una habilidad que ya estaba conserva su evidencia
+	 * (013-13: {@code OBSERVED} no se pierde al editar el nivel); las nuevas nacen {@code DECLARED}.
+	 */
 	@Transactional
 	public ProfileView replaceSkills(UUID userId, List<ProfileRules.SkillInput> skills) {
 		List<ProfileRules.SkillData> data = rules.skills("", skills, slugResolver());
@@ -215,6 +221,72 @@ public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirs
 		rules.checkProjectLimit("projects", repository.countProjects(userId), projects.size());
 		projects.forEach(project -> repository.insertProject(userId, project));
 		return load(userId);
+	}
+
+	// ------------------------------------------------------------------------------------------ GitHub (spec 013)
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<SkillEvidenceWriter.CurrentSkill> currentSkills(UUID userId) {
+		return load(userId).skills().stream()
+				.map(skill -> new SkillEvidenceWriter.CurrentSkill(skill.slug(), skill.level(), skill.evidence()))
+				.toList();
+	}
+
+	/** 013-12: lo confirmado desde GitHub entra como {@code OBSERVED}; todo junto o nada. */
+	@Override
+	@Transactional
+	public ProfileView confirmObserved(UUID userId, List<SkillEvidenceWriter.ObservedSkill> skills) {
+		if (skills == null || skills.isEmpty()) {
+			return load(userId);
+		}
+		Function<String, UUID> resolver = slugResolver();
+		// Primero se bloquea la fila del perfil: la lectura de lo que ya tiene y la escritura van de una en una.
+		touch(userId);
+		Map<UUID, ProfileRepository.SkillRow> existing = new HashMap<>();
+		for (ProfileRepository.SkillRow row : repository.findSkills(userId)) {
+			existing.put(row.skillId(), row);
+		}
+		List<FieldViolation> violations = new ArrayList<>();
+		List<ProfileRepository.ObservedRow> rows = new ArrayList<>();
+		java.util.Set<UUID> seen = new java.util.HashSet<>();
+		for (int i = 0; i < skills.size(); i++) {
+			String base = "skills[" + i + "]";
+			SkillEvidenceWriter.ObservedSkill skill = skills.get(i);
+			UUID skillId = skill == null || skill.slug() == null ? null : resolver.apply(skill.slug().strip());
+			if (skillId == null) {
+				violations.add(FieldViolation.of(base + ".slug", "unknown-skill"));
+				continue;
+			}
+			if (!seen.add(skillId)) {
+				violations.add(FieldViolation.of(base + ".slug", "duplicate"));
+				continue;
+			}
+			ProfileRepository.SkillRow current = existing.get(skillId);
+			Integer level = skill.level();
+			if (level == null && current != null) {
+				level = current.level();
+			}
+			if (level == null || level < 1 || level > 3) {
+				violations.add(FieldViolation.of(base + ".level", "invalid-level"));
+				continue;
+			}
+			SkillEvidence evidence = current != null && current.evidence() == SkillEvidence.EVALUATED
+					? SkillEvidence.EVALUATED : SkillEvidence.OBSERVED;
+			rows.add(new ProfileRepository.ObservedRow(skillId, level, evidence));
+		}
+		if (!violations.isEmpty()) {
+			throw new ValidationFailedException(violations);
+		}
+		repository.saveObserved(userId, rows);
+		return load(userId);
+	}
+
+	/** 013-15: al desvincular, lo visto en GitHub queda como declarado (la persona lo confirmó como suyo). */
+	@Override
+	@Transactional
+	public void downgradeObserved(UUID userId) {
+		repository.downgradeObserved(userId);
 	}
 
 	// ------------------------------------------------------------------------------------------ piezas

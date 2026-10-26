@@ -20,6 +20,15 @@ talenti:
   dora:
     # Las pruebas barren la inactividad a mano con reloj simulado (012-14).
     sweep-interval: PT999H
+  github:
+    # NINGUNA prueba llama a GitHub real (spec 013, sección 9): por defecto ambas direcciones apuntan a un puerto local
+    # cerrado, y las pruebas de GitHub las cambian por su servidor simulado. GithubNoRealNetworkTests lo vigila.
+    base-url: http://127.0.0.1:9
+    token: ""
+    oauth:
+      base-url: http://127.0.0.1:9
+      client-id: ""
+      client-secret: ""
   demo-data:
     # Las pruebas no dependen de la variable TALENTI_DEMO_DATA del equipo: parten sin datos de ejemplo y las
     # que los necesitan los piden con properties = "talenti.demo-data.enabled=true".

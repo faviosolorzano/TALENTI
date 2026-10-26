@@ -53,7 +53,16 @@ public class CompatibilityService {
 	public record Evaluated(VacancyInfo vacancy, CompatibilityResult result) {
 	}
 
-	public record Detail(Evaluated evaluated, Explanation explanation) {
+	/**
+	 * @param evidence de dónde sale el nivel de cada habilidad del perfil, por {@code slug} ({@code DECLARED},
+	 *                 {@code OBSERVED}...). Solo se muestra: no entra en el cálculo (013-13, 013-14)
+	 */
+	public record Detail(Evaluated evaluated, Explanation explanation, Map<String, String> evidence) {
+
+		public Detail {
+			evidence = Map.copyOf(evidence);
+		}
+
 	}
 
 	public record Recommended(boolean sufficient, List<Evaluated> items, int page, int size, long totalItems,
@@ -71,9 +80,13 @@ public class CompatibilityService {
 	public Detail forVacancy(UUID userId, String rawVacancyId) {
 		UUID id = parse(rawVacancyId);
 		VacancyInfo vacancy = vacancies.findOpenForMatching(id).orElseThrow(VacancyNotFoundException::new);
-		ProfileFacts profile = facts(profiles.snapshot(userId));
-		CompatibilityResult result = evaluate(profile, vacancy);
-		return new Detail(new Evaluated(vacancy, result), explanations.write(result));
+		ProfileSnapshot snapshot = profiles.snapshot(userId);
+		CompatibilityResult result = evaluate(facts(snapshot), vacancy);
+		Map<String, String> evidence = new HashMap<>();
+		for (ProfileSnapshot.Skill skill : snapshot.skills()) {
+			evidence.put(skill.slug(), skill.evidence().name());
+		}
+		return new Detail(new Evaluated(vacancy, result), explanations.write(result), evidence);
 	}
 
 	/** Todas las vacantes abiertas, de mayor a menor compatibilidad (RN-04), las insuficientes al final. */

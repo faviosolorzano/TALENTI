@@ -84,22 +84,23 @@ final class Responses {
 		}
 
 		static Compatibility of(UUID vacancyId, CompatibilityResult result, Explanation explanation,
-				MatchingParameters parameters) {
+				MatchingParameters parameters, Map<String, String> evidence) {
 			return new Compatibility(vacancyId, result.status().name(), result.percent(),
 					result.level() == null ? null : result.level().name(), result.capped(),
 					result.reasons().stream().map(Enum::name).toList(), result.informationBasis(),
-					result.components().stream().map(ComponentBody::of).toList(), items(result.matches()),
-					items(result.gaps()), items(result.missingInfo()), ExplanationBody.of(explanation),
+					result.components().stream().map(ComponentBody::of).toList(), items(result.matches(), evidence),
+					items(result.gaps(), evidence), items(result.missingInfo(), evidence), ExplanationBody.of(explanation),
 					Formula.of(parameters));
 		}
 
 	}
 
-	private static List<Map<String, Object>> items(List<Item> items) {
-		return items.stream().map(Responses::item).toList();
+	private static List<Map<String, Object>> items(List<Item> items, Map<String, String> evidence) {
+		return items.stream().map(item -> item(item, evidence)).toList();
 	}
 
-	private static Map<String, Object> item(Item item) {
+	/** {@code evidence}: la fuente real del nivel de la habilidad en el perfil (013-13); sin ella, {@code DECLARED}. */
+	private static Map<String, Object> item(Item item, Map<String, String> evidence) {
 		Map<String, Object> body = new LinkedHashMap<>();
 		switch (item) {
 			case RequirementItem r -> {
@@ -109,7 +110,7 @@ final class Responses {
 				body.put("requiredLevel", r.requiredLevel());
 				body.put("profileLevel", r.profileLevel());
 				body.put("outcome", r.outcome().name());
-				body.put("evidence", "DECLARED");
+				body.put("evidence", evidence.getOrDefault(r.slug(), "DECLARED"));
 			}
 			case ConditionItem c -> {
 				body.put("type", "CONDITION");

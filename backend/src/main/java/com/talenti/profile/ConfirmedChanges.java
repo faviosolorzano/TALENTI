@@ -8,7 +8,7 @@ import java.util.List;
  *
  * @param academic nulo si no cambia ningún dato académico; dentro, un campo nulo significa "no cambia"
  * @param skills   habilidades por {@code slug} del catálogo: agrega las nuevas y actualiza el nivel de las que ya
- *                 existen (siempre con evidencia {@code DECLARED})
+ *                 existen (las nuevas nacen {@code DECLARED}; las que ya estaban conservan su evidencia, 013-13)
  * @param projects proyectos que se agregan (cuentan para el límite de proyectos)
  */
 public record ConfirmedChanges(Academic academic, List<Skill> skills, List<Project> projects) {
