@@ -192,7 +192,7 @@ public class ExamAttemptService {
 	private ExamViews.Attempt view(AttemptRow a) {
 		List<ExamViews.Question> questions=a.startedAt()==null?List.of():ExamShuffle.order(store.questions(a.versionId()),a.shuffleSeed()).stream().map(item->{
 			var q=item.question(); boolean code=q.type()==ExamQuestion.Type.CODE;
-			return new ExamViews.Question(q.id(),q.type().name(),q.prompt(),q.type()==ExamQuestion.Type.CHOICE?item.options():List.of(),q.type()==ExamQuestion.Type.OPEN?q.rubric():List.of(),
+			return new ExamViews.Question(q.id(),q.type().name(),q.prompt(),q.source().name(),q.type()==ExamQuestion.Type.CHOICE?item.options():List.of(),q.type()==ExamQuestion.Type.OPEN?q.rubric():List.of(),
 					!code||q.language()==null?null:q.language().name(),!code||q.kind()==null?null:q.kind().name(),code?q.initialCode():null,
 					!code?List.of():q.cases().stream().filter(ExamQuestion.Case::visible).map(c->new ExamViews.VisibleCase(c.id(),c.input(),c.expectedOutput(),c.setupSql(),c.tables(),c.expectedTable())).toList());
 		}).toList();

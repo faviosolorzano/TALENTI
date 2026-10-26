@@ -74,6 +74,7 @@ class ExamFlowTests extends MatchingIntegrationTest {
 		assertThat(visible.header("Cache-Control")).isEqualTo("no-store");
 		assertThat(visible.body()).doesNotContain("correctId","references","keyPoints","score100","gradeDetail","case-2");
 		assertThat(visible.json().get("questions")).hasSize(10);
+		for(var question:visible.json().get("questions")) assertThat(question.get("generatedBy").asString()).isEqualTo("BANK");
 		for(var q:questions(f)) {
 			Map<String,Object> body=new HashMap<>(); body.put("revision",0);
 			if(q.type()==ExamQuestion.Type.CHOICE) { body.put("choiceId",q.correctId()); assertThat(q.correctId()).isNotEqualTo("correct"); }
@@ -240,6 +241,19 @@ class ExamFlowTests extends MatchingIntegrationTest {
 			assertThat(store.answer(f.attempt(),open.id()).orElseThrow().gradeStatus()).isEqualTo("PENDING");
 			assertThat(jdbc.queryForObject("SELECT count(*) FROM ai_usage_event WHERE function IN ('EXAM_GENERATION','EXAM_GRADING')",Long.class)).isEqualTo(before);
 		} finally { jdbc.update("DELETE FROM ai_usage_event WHERE read_id=?",usage); }
+	}
+	@Test void t014_10_aiQuestionsAreLabelledWithoutExposingAnswers() {
+		var student=registerStudent();UUID application=application(student,true);
+		UUID vacancy=jdbc.queryForObject("SELECT vacancy_id FROM application WHERE id=?",UUID.class,application);
+		var set=authoring.ensure(vacancy);await(()->store.findSet(set.id()).orElseThrow().status().equals("READY"));
+		// Simula preguntas del proveedor antes de usarlas: ninguna versión está bloqueada aún.
+		jdbc.update("UPDATE exam_question SET source='AI',content=jsonb_set(content,'{source}','\"AI\"') WHERE version_id IN (SELECT id FROM exam_version WHERE set_id=?)",set.id());
+		var created=student.api().post("/api/v1/applications/"+application+"/exam",Map.of("noticeAccepted",true,"noticeVersion","v1"));
+		assertThat(created.status()).isEqualTo(201);String id=created.json().get("id").asString();
+		var started=student.api().post("/api/v1/exam-attempts/"+id+"/start",null);
+		assertThat(started.status()).isEqualTo(200);assertThat(started.json().get("questions")).hasSize(10);
+		for(var question:started.json().get("questions")) assertThat(question.get("generatedBy").asString()).isEqualTo("AI");
+		assertThat(started.body()).doesNotContain("correctId","references","keyPoints","gradeDetail");
 	}
 	@Test void authorFailureFallsBackAndConcurrentRequestsKeepOneSet() throws Exception {
 		author.fail(true); author.delay(Duration.ofMillis(50));

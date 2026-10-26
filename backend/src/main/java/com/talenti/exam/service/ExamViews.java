@@ -11,7 +11,7 @@ public final class ExamViews {
 	public record VisibleCase(String id,String input,String expectedOutput,String schema,List<SqlFixture> tables,SqlTable expectedTable) {
 		@Override public String toString() { return "ExamVisibleCase[id="+id+"]"; }
 	}
-	public record Question(UUID id,String type,String prompt,List<Option> options,List<Criterion> rubric,String language,
+	public record Question(UUID id,String type,String prompt,String generatedBy,List<Option> options,List<Criterion> rubric,String language,
 			String kind,String initialCode,List<VisibleCase> cases) {
 		@Override public String toString() { return "ExamStudentQuestion[id="+id+"]"; }
 	}
