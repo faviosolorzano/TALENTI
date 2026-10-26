@@ -9,6 +9,19 @@ import java.util.Set;
 
 @AnalyzeClasses(packages="com.talenti",importOptions=ImportOption.DoNotIncludeTests.class)
 class ExamArchitectureTests {
+	@ArchTest static void nobodyUsesExamInternals(JavaClasses classes) {
+		noClasses().that().resideOutsideOfPackage("com.talenti.exam..")
+				.should().dependOnClassesThat().resideInAnyPackage("com.talenti.exam.adapter..","com.talenti.exam.config..",
+						"com.talenti.exam.domain..","com.talenti.exam.persistence..","com.talenti.exam.service..","com.talenti.exam.port..","com.talenti.exam.web..")
+				.allowEmptyShould(true).check(classes);
+	}
+	@ArchTest static void otherModulesNeverReadOrWriteExamTables(JavaClasses classes) throws java.io.IOException {
+		var sql=java.util.regex.Pattern.compile("(?i)\\b(?:from|join|update|into)\\s+(exam_[a-z_]+)\\b");
+		try(var files=java.nio.file.Files.walk(java.nio.file.Path.of("src/main/java/com/talenti"))) {
+			for(var path:files.filter(p->p.toString().endsWith(".java")).filter(p->!p.startsWith(java.nio.file.Path.of("src/main/java/com/talenti/exam"))).toList())
+				assertThat(sql.matcher(java.nio.file.Files.readString(path)).find()).as("acceso a tablas de exam desde %s",path).isFalse();
+		}
+	}
 	@ArchTest static void examOnlyUsesPublicApis(JavaClasses classes) {
 		var allowed=Set.of("com.talenti.identity.CurrentUser","com.talenti.identity.Role",
 				"com.talenti.application.ApplicationStages","com.talenti.vacancy.VacancyLookup","com.talenti.vacancy.VacancyInfo");

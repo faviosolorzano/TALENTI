@@ -30,6 +30,7 @@ class ExamFlowTests extends MatchingIntegrationTest {
 	@Autowired SimulatedOpenAnswerGrader grader;
 	@Autowired SimulatedCodeExecution execution;
 	@Autowired SimulatedExamAuthoring author;
+	@Autowired com.talenti.shared.ai.AiUsageRecorder usageRecorder;
 	private record Fixture(RegisteredStudent student,UUID application,UUID attempt) { }
 	/** Vacantes creadas por estas pruebas: se borran al terminar para no cambiar listados de otras pruebas. */
 	private final java.util.List<UUID> createdVacancies=new java.util.ArrayList<>();
@@ -222,6 +223,23 @@ class ExamFlowTests extends MatchingIntegrationTest {
 			assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_event WHERE details::text LIKE ?",Integer.class,"%"+mark+"%")).isZero();
 			assertThat(output.getAll()).doesNotContain(mark,code.prompt(),open.prompt(),code.references().getFirst());
 		} finally { prior.forEach(ch.qos.logback.classic.Logger::setLevel); }
+	}
+	@Test void t014_32_globalBudgetUsesBankAndLeavesOpenGradingPending() {
+		UUID usage=UUID.randomUUID();
+		usageRecorder.record(new com.talenti.shared.ai.AiUsageEvent(usage,null,com.talenti.shared.ai.AiFunction.EXAM_GENERATION,
+				com.talenti.shared.ai.AiLevel.ENHANCED,"openai","test-model",com.talenti.shared.ai.AiUsageOutcome.SUCCESS,1,1,1000000000000000L));
+		try {
+			long before=jdbc.queryForObject("SELECT count(*) FROM ai_usage_event WHERE function IN ('EXAM_GENERATION','EXAM_GRADING')",Long.class);
+			Fixture f=create();start(f);
+			assertThat(questions(f)).allSatisfy(q->assertThat(q.source()).isEqualTo(ExamQuestion.Source.BANK));
+			var open=questions(f).stream().filter(q->q.type()==ExamQuestion.Type.OPEN).findFirst().orElseThrow();
+			assertThat(f.student().api().put(route(f)+"/answers/"+open.id(),Map.of("text","Respuesta técnica","revision",0)).status()).isEqualTo(200);
+			assertThat(f.student().api().post(route(f)+"/submit",null).status()).isEqualTo(200);
+			await(()->store.answer(f.attempt(),open.id()).orElseThrow().nextRetryAt()!=null&&results.forApplication(f.application()).orElseThrow().pendingPoints().compareTo(java.math.BigDecimal.TEN)==0);
+			assertThat(store.answer(f.attempt(),open.id()).orElseThrow().points()).isNull();
+			assertThat(store.answer(f.attempt(),open.id()).orElseThrow().gradeStatus()).isEqualTo("PENDING");
+			assertThat(jdbc.queryForObject("SELECT count(*) FROM ai_usage_event WHERE function IN ('EXAM_GENERATION','EXAM_GRADING')",Long.class)).isEqualTo(before);
+		} finally { jdbc.update("DELETE FROM ai_usage_event WHERE read_id=?",usage); }
 	}
 	@Test void authorFailureFallsBackAndConcurrentRequestsKeepOneSet() throws Exception {
 		author.fail(true); author.delay(Duration.ofMillis(50));
