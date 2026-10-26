@@ -59,8 +59,9 @@ class PdfHostileTests {
 		assertThat(failure.reason()).isEqualTo(CvUnreadableException.Reason.CORRUPT);
 		assertThat(seconds).as("termina cerca del tiempo máximo, no se queda colgado").isLessThan(15);
 		awaitNoChildren();
-		// El servidor sigue sano: un PDF verdadero se lee enseguida después.
-		assertThat(extractor.extract(SampleCv.pdf("MARCAHOSTIL")).text()).contains("MARCAHOSTIL");
+		// El servidor sigue sano: un PDF verdadero se lee después. Con más margen que la bomba (3 s): en un equipo cargado
+		// solo arrancar el proceso hijo puede pasar de 3 s, y eso no es lo que esta prueba mide.
+		assertThat(extractor(2, Duration.ofSeconds(15)).extract(SampleCv.pdf("MARCAHOSTIL")).text()).contains("MARCAHOSTIL");
 	}
 
 	@Test
