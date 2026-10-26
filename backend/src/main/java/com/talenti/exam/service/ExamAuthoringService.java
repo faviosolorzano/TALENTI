@@ -31,7 +31,7 @@ public class ExamAuthoringService implements ExamSets {
 	private final TransactionTemplate tx;
 	private final Clock clock;
 	private final java.util.Set<UUID> queued=ConcurrentHashMap.newKeySet();
-	public ExamAuthoringService(ExamStore store,VacancyLookup vacancies,ExamAuthoringPort author,ExamBank bank,
+	public ExamAuthoringService(ExamStore store,VacancyLookup vacancies,@Qualifier("examAuthor") ExamAuthoringPort author,ExamBank bank,
 			CodeExecutionPort execution,ExamProperties properties,ExamUsage usage,
 			@Qualifier("examExecutor") ExecutorService executor,PlatformTransactionManager manager,Clock clock) {
 		this.store=store; this.vacancies=vacancies; this.author=author; this.bank=bank; this.properties=properties;

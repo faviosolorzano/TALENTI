@@ -32,7 +32,7 @@ public class ExamGradingService implements ExamResults {
 	private final Clock clock;
 	private final ExamScoring scoring;
 	private final Set<UUID> queued=ConcurrentHashMap.newKeySet();
-	public ExamGradingService(ExamStore store,OpenAnswerGraderPort grader,CodeExecutionPort execution,ExamProperties properties,
+	public ExamGradingService(ExamStore store,@Qualifier("examOpenGrader") OpenAnswerGraderPort grader,CodeExecutionPort execution,ExamProperties properties,
 			ExamUsage usage,@Qualifier("examExecutor") ExecutorService executor,PlatformTransactionManager manager,Clock clock) {
 		this.store=store; this.grader=grader; this.execution=execution; this.properties=properties; this.usage=usage;
 		this.executor=executor; this.tx=new TransactionTemplate(manager); this.clock=clock; this.scoring=new ExamScoring(properties.scoring().rules());
