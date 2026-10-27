@@ -5,7 +5,7 @@ import { es } from '../../i18n/es'
 import { ProfileBlock } from './ProfileBlock'
 import { useProfileResource } from './useProfileResource'
 import { ApplicationsBlock } from './ApplicationsBlock'
-import { PracticeBlock } from './SoonBlocks'
+import { Button } from '../../components/Button'
 import { VacanciesBlock } from './VacanciesBlock'
 import './StudentHome.css'
 
@@ -55,7 +55,13 @@ export function StudentHome() {
         <VacanciesBlock />
         <div className="home__side">
           <ApplicationsBlock />
-          <PracticeBlock />
+          <section className="home-practice-link">
+            <h2>{es.home.practice.title}</h2>
+            <p>{es.home.practice.privacy}</p>
+            <Button variant="quiet" to="/practicar">
+              {es.redesign.practice}
+            </Button>
+          </section>
         </div>
       </div>
     </div>

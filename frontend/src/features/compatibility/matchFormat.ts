@@ -68,7 +68,7 @@ export function itemAction(
   if (item.type === 'REQUIREMENT') {
     return {
       to: sectionPath('skills'),
-      label: item.outcome === 'MISSING' ? t.action.MISSING : t.action.PARTIAL,
+      label: item.outcome === 'MISSING' ? t.action.MISSING : es.redesign.reviewLevel,
     }
   }
   return {

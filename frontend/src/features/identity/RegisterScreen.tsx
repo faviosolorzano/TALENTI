@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
+import { safeReturnTo } from '../../session/returnTo'
 import { registerStudent } from '../../api/identity'
 import { fetchLegalCatalog } from '../../api/legal'
 import { Button } from '../../components/Button'
@@ -30,6 +31,8 @@ function NewTabLink({ href, children }: { href: string; children: string }) {
 export function RegisterScreen() {
   const session = useSession()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const returnTo = safeReturnTo(params.get('returnTo'))
   const legal = useApiResource('legal-current', (signal) => fetchLegalCatalog(signal))
 
   const [email, setEmail] = useState('')
@@ -78,7 +81,7 @@ export function RegisterScreen() {
       })
       setLeaving(true)
       await session.refresh()
-      navigate(sessionPaths.home, { replace: true, state: { welcome: true } })
+      navigate(returnTo ?? sessionPaths.home, { replace: true, state: { welcome: true } })
     } catch (error) {
       const failure = registerErrors(error)
       if (failure.legalOutdated) {
@@ -120,7 +123,15 @@ export function RegisterScreen() {
                 {errors.emailTaken && (
                   <>
                     {' '}
-                    <Link to={sessionPaths.login}>{es.identity.register.emailTakenAction}</Link>
+                    <Link
+                      to={
+                        returnTo
+                          ? `${sessionPaths.login}?returnTo=${encodeURIComponent(returnTo)}`
+                          : sessionPaths.login
+                      }
+                    >
+                      {es.identity.register.emailTakenAction}
+                    </Link>
                   </>
                 )}
               </>
@@ -166,7 +177,15 @@ export function RegisterScreen() {
 
         <p className="auth__alt">
           {es.identity.register.haveAccount}{' '}
-          <Link to={sessionPaths.login}>{es.identity.register.goToLogin}</Link>
+          <Link
+            to={
+              returnTo
+                ? `${sessionPaths.login}?returnTo=${encodeURIComponent(returnTo)}`
+                : sessionPaths.login
+            }
+          >
+            {es.identity.register.goToLogin}
+          </Link>
         </p>
       </form>
     </AuthLayout>

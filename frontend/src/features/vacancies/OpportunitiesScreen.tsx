@@ -106,6 +106,16 @@ function AllVacancies() {
     data && !outOfRange ? data.items.map((item) => item.id) : [],
   )
 
+  useEffect(() => {
+    const restore = location.state as { restoreVacancy?: string; scrollY?: number } | null
+    if (!restore?.restoreVacancy || !data || results.refreshing) return
+    const row = document.getElementById(`vacante-${restore.restoreVacancy}`)
+    if (row) {
+      window.scrollTo({ top: restore.scrollY ?? 0, behavior: 'instant' })
+      row.querySelector<HTMLAnchorElement>('a')?.focus({ preventScroll: true })
+    }
+  }, [data, results.refreshing, location.state])
+
   const loading = results.state.status === 'loading' || outOfRange
   const filtersActive = hasActiveFilters(state)
   const empty = data !== null && !outOfRange && data.items.length === 0

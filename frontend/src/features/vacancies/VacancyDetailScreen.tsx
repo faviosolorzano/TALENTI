@@ -1,11 +1,10 @@
-import { useEffect, useId } from 'react'
+import { useEffect } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { DemoNotice } from '../../components/DemoNotice'
 import { fetchVacancy, type Requirement, type VacancyDetail } from '../../api/vacancies'
 import { ApiError } from '../../api/client'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
-import { Card } from '../../components/Card'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
@@ -86,7 +85,6 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
   const open = vacancy.status === 'OPEN'
   const { required, desirable } = vacancy.requirements
   const returnTo = encodeURIComponent(`/oportunidades/${vacancy.id}`)
-  const soonId = useId()
   // While the session is still being checked "Postular" is shown disabled, so a signed-in
   // person never sees the "Inicia sesión" link for a moment.
   const signedIn = session.status === 'authenticated'
@@ -94,7 +92,11 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
 
   return (
     <div className="container vacancy-detail">
-      <Link className="vacancy-detail__back" to={back}>
+      <Link
+        className="vacancy-detail__back"
+        to={back}
+        state={{ restoreVacancy: vacancy.id, ...useLocation().state }}
+      >
         <span aria-hidden="true">←</span>
         {es.vacancyDetail.back}
       </Link>
@@ -107,28 +109,12 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
             <span>{vacancy.company.city}</span>
           </p>
         </div>
-        {/* 004-34: the entry point of the company profile. It leads nowhere yet, so it is not a
-            link: a button marked aria-disabled (it stays reachable so its note is read). */}
-        <div className="vacancy-detail__profile">
-          <Button
-            variant="quiet"
-            size="sm"
-            aria-disabled="true"
-            aria-describedby={soonId}
-            onClick={(event) => event.preventDefault()}
-          >
-            {es.vacancyDetail.companyProfile}
-          </Button>
-          <span id={soonId} className="vacancy-detail__profile-note">
-            {es.vacancyDetail.companyProfileSoon}
-          </span>
-        </div>
         <h1 className="vacancy-detail__title">{vacancy.title}</h1>
         <p className="vacancy-detail__summary">{vacancy.summary}</p>
       </header>
 
       <div className="vacancy-detail__grid">
-        <Card as="section" className="vacancy-detail__apply" aria-label={es.vacancyDetail.apply}>
+        <section className="vacancy-detail__apply" aria-label={es.vacancyDetail.apply}>
           {open ? (
             session.isStudent ? (
               <ApplyCard
@@ -155,7 +141,7 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
               </Button>
             </>
           )}
-        </Card>
+        </section>
 
         <div className="vacancy-detail__main">
           {open && session.isStudent && <VacancyCompatibilityPanel vacancyId={vacancy.id} />}
@@ -164,21 +150,23 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
             <p className="vacancy-detail__description">{vacancy.description}</p>
           </section>
 
-          <section aria-labelledby="detail-requirements">
-            <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
-            {required.length > 0 && (
-              <>
-                <h3>{es.vacancyDetail.required}</h3>
-                <RequirementList items={required} kind="required" />
-              </>
-            )}
-            {desirable.length > 0 && (
-              <>
-                <h3>{es.vacancyDetail.desirable}</h3>
-                <RequirementList items={desirable} kind="desirable" />
-              </>
-            )}
-          </section>
+          {!session.isStudent && (
+            <section aria-labelledby="detail-requirements">
+              <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
+              {required.length > 0 && (
+                <>
+                  <h3>{es.vacancyDetail.required}</h3>
+                  <RequirementList items={required} kind="required" />
+                </>
+              )}
+              {desirable.length > 0 && (
+                <>
+                  <h3>{es.vacancyDetail.desirable}</h3>
+                  <RequirementList items={desirable} kind="desirable" />
+                </>
+              )}
+            </section>
+          )}
 
           <section aria-labelledby="detail-company">
             <h2 id="detail-company">{es.vacancyDetail.company}</h2>
@@ -210,24 +198,6 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
               </div>
             </dl>
           </section>
-
-          {open && (
-            <section aria-labelledby="detail-process" className="vacancy-detail__panel">
-              <h2 id="detail-process">{es.vacancyDetail.process}</h2>
-              <ol className="vacancy-detail__stages">
-                <li data-state="now">
-                  <span>{es.applications.stages.SUBMITTED}</span>
-                </li>
-                {es.applications.stages.next.map((stage) => (
-                  <li key={stage} data-state="soon">
-                    <span>{stage}</span>
-                    <small>{es.applications.stages.soon}</small>
-                  </li>
-                ))}
-              </ol>
-              <p className="vacancy-detail__notice">{es.vacancyDetail.processNote}</p>
-            </section>
-          )}
         </div>
       </div>
     </div>

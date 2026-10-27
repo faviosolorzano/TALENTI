@@ -124,6 +124,18 @@ function ApplicationView({
           {es.applications.statusLabel}: <strong>{statusLabel(application.status)}</strong>
         </p>
         <ProcessLine application={application} />
+        {['SUBMITTED', 'EXAM_PENDING', 'EXAM_DONE', 'INTERVIEW_PENDING', 'INTERVIEW_DONE'].includes(
+          application.status,
+        ) && (
+          <div className="workflow__actions">
+            <Button to={'/postulaciones/' + application.id + '/examen'}>{es.workflows.exam}</Button>
+            {['EXAM_DONE', 'INTERVIEW_PENDING', 'INTERVIEW_DONE'].includes(application.status) && (
+              <Button variant="quiet" to={'/postulaciones/' + application.id + '/entrevista'}>
+                {es.workflows.interview}
+              </Button>
+            )}
+          </div>
+        )}
         {vacancy.status === 'CLOSED' && <p className="applications__note">{t.vacancyClosed}</p>}
         <p className="applications__note">{es.applications.finalDecision}</p>
         <p className="applications__note">{es.applications.practicePrivate}</p>

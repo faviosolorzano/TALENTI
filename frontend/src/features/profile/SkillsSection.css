@@ -109,3 +109,29 @@
   font-size: var(--font-size-ui);
   font-weight: var(--font-weight-semibold);
 }
+
+.skills-form__list {
+  padding: 0;
+}
+.skill-row {
+  border: 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+  border-radius: 0;
+  padding: var(--space-5) 0;
+  background: var(--color-surface);
+}
+.skill-row__toggle {
+  appearance: none;
+  border: 0;
+  background: none;
+  min-height: var(--touch-target-min);
+  font-family: var(--font-family-base);
+  color: var(--color-link);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+.skill-row__editor {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}

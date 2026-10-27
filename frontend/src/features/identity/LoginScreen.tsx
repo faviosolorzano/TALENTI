@@ -130,7 +130,15 @@ export function LoginScreen() {
 
         <p className="auth__alt">
           {es.identity.login.noAccount}{' '}
-          <Link to={sessionPaths.register}>{es.identity.login.goToRegister}</Link>
+          <Link
+            to={
+              returnTo
+                ? `${sessionPaths.register}?returnTo=${encodeURIComponent(returnTo)}`
+                : sessionPaths.register
+            }
+          >
+            {es.identity.login.goToRegister}
+          </Link>
         </p>
       </form>
     </AuthLayout>

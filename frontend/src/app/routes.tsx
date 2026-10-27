@@ -1,3 +1,7 @@
+import { PracticePage, PracticeSessionPage } from '../features/workflows/PracticePage'
+import { GithubPage } from '../features/workflows/GithubPage'
+import { ExamPage } from '../features/workflows/ExamPage'
+import { InterviewPage } from '../features/workflows/InterviewPage'
 import type { RouteObject } from 'react-router'
 import { ApplicationDetailPage } from '../pages/ApplicationDetailPage'
 import { ApplicationsPage } from '../pages/ApplicationsPage'
@@ -24,6 +28,23 @@ export const routes: RouteObject[] = [
   {
     element: <Layout />,
     children: [
+      { path: '/practicar', element: <PracticePage />, handle: { title: es.workflows.practice } },
+      {
+        path: '/practicar/:id',
+        element: <PracticeSessionPage />,
+        handle: { title: es.workflows.session },
+      },
+      { path: '/perfil/github', element: <GithubPage />, handle: { title: es.workflows.github } },
+      {
+        path: '/postulaciones/:id/examen',
+        element: <ExamPage />,
+        handle: { title: es.workflows.exam },
+      },
+      {
+        path: '/postulaciones/:id/entrevista',
+        element: <InterviewPage />,
+        handle: { title: es.workflows.interview },
+      },
       {
         path: '/',
         element: <HomePage />,

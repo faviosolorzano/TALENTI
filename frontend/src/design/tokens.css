@@ -201,6 +201,8 @@
 
   /* ---- Layout ---- */
   --content-max-width: 72.5rem; /* 1160 px */
+  --auth-form-width: 28rem;
+  --profile-editor-width: 61.25rem;
   --shell-max-width: 87.5rem; /* 1320 px of content plus desktop gutters */
   --page-gutter: 1.25rem; /* 20 px on phones */
   --control-height: 3rem;

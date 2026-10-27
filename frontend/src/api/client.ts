@@ -65,6 +65,8 @@ export interface ApiRequestOptions extends Omit<RequestInit, 'body' | 'credentia
   json?: unknown
   /** A multipart body (file upload). The browser sets the Content-Type with its boundary. */
   form?: FormData
+  /** Return a successful Response for SSE/audio, retaining the same CSRF and error handling. */
+  rawResponse?: boolean
 }
 
 /**
@@ -102,10 +104,10 @@ async function requestCsrfToken(signal?: AbortSignal): Promise<void> {
 
 async function send<T>(
   path: string,
-  { json, form, headers, method = 'GET', ...init }: ApiRequestOptions,
+  { json, form, rawResponse = false, headers, method = 'GET', ...init }: ApiRequestOptions,
 ): Promise<T> {
   const finalHeaders = new Headers(headers)
-  finalHeaders.set('Accept', 'application/json')
+  finalHeaders.set('Accept', rawResponse ? '*/*' : 'application/json')
 
   if (json !== undefined) {
     finalHeaders.set('Content-Type', 'application/json')
@@ -138,6 +140,7 @@ async function send<T>(
     throw new ApiError(response.status, await parseJsonSafely<ProblemDetails>(response))
   }
 
+  if (rawResponse) return response as T
   if (response.status === 204) return undefined as T
   return (await parseJsonSafely<T>(response)) as T
 }

@@ -23,6 +23,8 @@ const t = es.cv.review
 const NO_SLUGS: ReadonlySet<string> = new Set()
 
 interface SuggestionRowProps {
+  active?: boolean
+  onActivate?: () => void
   suggestion: Suggestion
   decision: RowDecision | undefined
   /** A message of the server about this suggestion (422). */
@@ -35,7 +37,14 @@ interface SuggestionRowProps {
  * Everything starts "sin decidir". A skill needs a level chosen by the person; one that is not
  * in the catalog needs to be linked to one that is (RN-03).
  */
-export function SuggestionRow({ suggestion, decision, serverError, onChange }: SuggestionRowProps) {
+export function SuggestionRow({
+  suggestion,
+  decision,
+  serverError,
+  onChange,
+  active = true,
+  onActivate,
+}: SuggestionRowProps) {
   const [editing, setEditing] = useState(false)
   const [picking, setPicking] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -55,6 +64,7 @@ export function SuggestionRow({ suggestion, decision, serverError, onChange }: S
 
   /** Accepting a skill needs the level and a catalog skill; otherwise it says what is missing. */
   function accept(extra: Partial<RowDecision> = {}) {
+    if (!active) onActivate?.()
     const merged = { ...decision, ...extra }
     if (isSkill) {
       if (!(merged.level ?? skill?.level)) {
@@ -121,9 +131,10 @@ export function SuggestionRow({ suggestion, decision, serverError, onChange }: S
           </span>
         </div>
 
-        <p className="suggestion__evidence">
-          {t.fromCv} «{suggestion.evidence}»
-        </p>
+        <details className="suggestion__evidence">
+          <summary>{t.fromCv}</summary>
+          <p>«{suggestion.evidence}»</p>
+        </details>
         {suggestion.currentValue && (
           <p className="suggestion__current">{t.current(suggestion.currentValue)}</p>
         )}
@@ -132,7 +143,14 @@ export function SuggestionRow({ suggestion, decision, serverError, onChange }: S
         )}
       </div>
 
-      {isSkill && <LevelSelect skillName={name} value={level} onChange={onLevel} />}
+      {isSkill && (
+        <>
+          <Button variant="quiet" size="sm" onClick={onActivate} aria-expanded={active}>
+            {es.redesign.reviewLevel}
+          </Button>
+          {active && <LevelSelect skillName={name} value={level} onChange={onLevel} />}
+        </>
+      )}
 
       <div className="suggestion__actions">
         <Button

@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useBlocker } from 'react-router'
+import { Dialog } from '../../components/Dialog'
 import { ApiError } from '../../api/client'
 import { fieldProblems } from '../../api/identity'
 import {
@@ -52,6 +54,8 @@ export function ReviewStep({
   const { refresh } = useSession()
   const isAi = analysis.source === 'AI'
   const [decisions, setDecisions] = useState<DecisionMap>({})
+  const [confirmPending, setConfirmPending] = useState(false)
+  const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState<'none' | 'fields' | 'generic'>('none')
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
@@ -67,7 +71,23 @@ export function ReviewStep({
     )
   }
 
-  async function save() {
+  const dirty = Object.values(decisions).some((value) => value !== undefined)
+  const blocker = useBlocker(dirty && !saving)
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+  async function save(allowPending = false) {
+    if (undecided > 0 && !allowPending) {
+      setConfirmPending(true)
+      return
+    }
+    setConfirmPending(false)
     if (saving || toSave === 0) return
     setSaving(true)
     setFailure('none')
@@ -75,6 +95,7 @@ export function ReviewStep({
     const sent = buildDecisions(suggestions, decisions)
     try {
       const profile = await confirmAnalysis(analysis.id, sent)
+      if (blocker.state === 'blocked') blocker.proceed()
       onConfirmed(profile, toSave)
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) void refresh()
@@ -127,6 +148,10 @@ export function ReviewStep({
               {items.map((suggestion) => (
                 <SuggestionRow
                   key={suggestion.id}
+                  active={activeSuggestion === suggestion.id}
+                  onActivate={() =>
+                    setActiveSuggestion(activeSuggestion === suggestion.id ? null : suggestion.id)
+                  }
                   suggestion={suggestion}
                   decision={decisions[suggestion.id]}
                   serverError={rowErrors[suggestion.id]}
@@ -161,6 +186,33 @@ export function ReviewStep({
         </div>
       </div>
 
+      {confirmPending && (
+        <Dialog title={es.redesign.pendingCv} onClose={() => setConfirmPending(false)}>
+          <p>{es.redesign.pendingCvBody}</p>
+          <div className="profile__tools">
+            <Button variant="quiet" onClick={() => setConfirmPending(false)}>
+              {es.redesign.reviewPending}
+            </Button>
+            <Button onClick={() => void save(true)}>{es.redesign.discardPending}</Button>
+          </div>
+        </Dialog>
+      )}
+      {blocker.state === 'blocked' && !confirmPending && (
+        <Dialog title={es.redesign.leaveTitle} onClose={() => blocker.reset()}>
+          <p>{es.redesign.leaveBody}</p>
+          <div className="profile__tools">
+            <Button onClick={() => void save()} disabled={toSave === 0}>
+              {es.redesign.saveLeave}
+            </Button>
+            <Button variant="quiet" onClick={() => blocker.proceed()}>
+              {es.redesign.discard}
+            </Button>
+            <Button variant="quiet" onClick={() => blocker.reset()}>
+              {es.redesign.stay}
+            </Button>
+          </div>
+        </Dialog>
+      )}
       <DiscardControl analysisId={analysis.id} onDiscarded={onDiscarded} />
     </div>
   )

@@ -27,6 +27,7 @@ type RouterLinkProps = CommonProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof CommonProps | 'href'> & {
     /** Navigation inside the app (no page reload). */
     to: To
+    state?: unknown
     href?: never
   }
 

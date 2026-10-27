@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { fetchCvUsage } from '../../api/cv'
 import type { Profile } from '../../api/profile'
-import { Card } from '../../components/Card'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { sessionPaths } from '../../session/sessionPaths'
@@ -82,7 +81,22 @@ export function CvReaderScreen() {
         <h1 className="cv-reader__title">{es.cv.title}</h1>
         <p className="cv-reader__lead">{es.cv.lead}</p>
       </div>
-      <Card className="cv-reader__card">{body}</Card>
+      <ol className="cv-steps" aria-label={es.cv.title}>
+        {[es.redesign.uploadStep, es.redesign.reviewStep, es.redesign.saveStep].map(
+          (label, index) => (
+            <li
+              key={label}
+              aria-current={
+                (done ? 2 : analysis?.status === 'READY' ? 1 : 0) === index ? 'step' : undefined
+              }
+            >
+              <span>{index + 1}</span>
+              {label}
+            </li>
+          ),
+        )}
+      </ol>
+      <div className="cv-reader__card">{body}</div>
       {!done && (
         <p className="cv-reader__manual">
           <Link className="cv-reader__link" to={sessionPaths.profile}>

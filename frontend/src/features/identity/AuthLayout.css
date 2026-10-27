@@ -1,113 +1,28 @@
 .auth {
-  padding-block: var(--space-6) var(--space-16);
+  padding-block: var(--space-12) var(--space-16);
 }
-
-.auth__grid {
+.auth__form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-8);
-  justify-items: center;
+  gap: var(--space-6);
+  max-width: var(--auth-form-width);
+  margin-inline: auto;
 }
-
-.auth__card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
-  align-content: start;
-  width: 100%;
-  max-width: var(--form-card-width);
-}
-
 .auth__title {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  overflow-wrap: anywhere;
+  font-size: var(--font-size-task-title);
+  line-height: var(--line-height-tight);
 }
-
 .auth__lead {
   color: var(--color-text-muted);
-  font-size: var(--font-size-base);
 }
-
-/* The side message only exists on wide screens: on phones and tablets the form comes first. */
-.auth__aside {
-  display: none;
+.auth__back {
+  color: var(--color-link);
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
 }
-
-@media (min-width: 48rem) {
-  .auth {
-    padding-top: var(--space-12);
-  }
-}
-
-@media (min-width: 61.25rem) {
-  .auth__grid[data-with-aside] {
-    grid-template-columns: minmax(0, var(--form-card-width)) minmax(0, var(--auth-aside-width));
-    justify-content: center;
-    align-items: stretch;
-    gap: var(--space-12);
-  }
-
-  .auth__aside {
-    position: relative;
-    display: grid;
-    align-content: center;
-    gap: var(--space-4);
-    overflow: hidden;
-    padding: var(--space-10);
-    border-radius: var(--radius-lg);
-    background: var(--color-bg-inverse);
-    color: var(--color-text-inverse-soft);
-    font-size: var(--font-size-lg);
-  }
-
-  .auth__aside > * {
-    position: relative;
-  }
-
-  .auth__aside .brand-mark {
-    position: absolute;
-    top: auto;
-    right: calc(var(--space-16) * -1);
-    bottom: calc(var(--space-16) * -1);
-    width: var(--auth-mark-size);
-    color: var(--color-brand-white);
-    opacity: 0.07;
-  }
-
-  .auth__aside-title {
-    color: var(--color-text-inverse);
-    font-family: var(--font-family-heading);
-    font-size: var(--font-size-4xl);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--tracking-heading);
-    line-height: var(--line-height-heading);
-  }
-
-  .auth__aside-note {
-    padding-top: var(--space-4);
-    border-top: var(--border-width) solid var(--color-overlay-inverse-line);
-    color: var(--color-text-inverse-muted);
-    font-size: var(--font-size-md);
-  }
-}
-
-.auth-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
-}
-
-.auth-form__submit {
-  width: 100%;
-}
-
 .auth__alt {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
 }
-
 .auth__alt a {
   color: var(--color-link);
-  font-weight: var(--font-weight-semibold);
 }

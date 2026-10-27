@@ -57,6 +57,7 @@ export function SkillsForm({ profile, onSaved, onCancel, onDirtyChange }: FormPr
   )
   const [rows, setRows] = useState<Row[]>(initial)
   // With nothing in the list the search is already open: it is the one thing to do.
+  const [activeSkill, setActiveSkill] = useState<string | null>(null)
   const [picking, setPicking] = useState(initial.length === 0)
   const [announcement, setAnnouncement] = useState('')
   const { state, run } = useSubmit(onSaved)
@@ -70,6 +71,7 @@ export function SkillsForm({ profile, onSaved, onCancel, onDirtyChange }: FormPr
 
   function add(skill: CatalogSkill) {
     setRows((current) => [...current, { slug: skill.slug, name: skill.name, level: 1 }])
+    setActiveSkill(skill.slug)
     setAnnouncement(t.added(skill.name))
   }
 
@@ -101,11 +103,26 @@ export function SkillsForm({ profile, onSaved, onCancel, onDirtyChange }: FormPr
                   <span className="skill-row__name">{row.name}</span>
                   <Badge>{t.declared}</Badge>
                 </div>
-                <LevelSelect
-                  skillName={row.name}
-                  value={row.level}
-                  onChange={(level) => setLevel(row.slug, level)}
-                />
+                <div className="skill-row__editor">
+                  <button
+                    className="skill-row__toggle"
+                    type="button"
+                    aria-expanded={activeSkill === row.slug}
+                    onClick={() => setActiveSkill(activeSkill === row.slug ? null : row.slug)}
+                  >
+                    {t.levels[row.level]} <span className="visually-hidden">{row.name}</span>
+                  </button>
+                  {activeSkill === row.slug && (
+                    <>
+                      <LevelSelect
+                        skillName={row.name}
+                        value={row.level}
+                        onChange={(level) => setLevel(row.slug, level)}
+                      />
+                      <p className="field__hint">{es.redesign.levelHelp[row.level]}</p>
+                    </>
+                  )}
+                </div>
                 <Button
                   variant="quiet"
                   size="sm"
