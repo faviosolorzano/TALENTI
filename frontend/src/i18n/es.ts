@@ -176,6 +176,7 @@ export const es = {
     questionList: 'Preguntas del examen',
     answerSaved: 'Respuesta guardada',
     unsaved: 'Respuesta sin guardar',
+    codeNeeded: 'Escribe una solución antes de probar el código.',
     run: 'Probar código',
     visibleCases: 'Casos visibles',
     input: 'Entrada',

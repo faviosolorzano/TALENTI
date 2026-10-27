@@ -135,3 +135,50 @@ it('exam creation waits for explicit acceptance of the actual versioned notice',
   await waitFor(() => expect(writes).toBe(1))
   expect(await screen.findByRole('button', { name: t.startExam })).toBeInTheDocument()
 })
+
+it('persists supplied initial code when the server answer row exists with null code, before executing', async () => {
+  const data = fixture()
+  data.questions = [
+    {
+      ...data.questions[0]!,
+      id: 'code1',
+      type: 'CODE',
+      prompt: 'Corrige esta consulta',
+      language: 'SQL',
+      initialCode: 'SELECT MIN(n) FROM numbers',
+      options: [],
+      cases: [],
+    },
+  ]
+  data.answers = [
+    {
+      questionId: 'code1',
+      choiceId: null,
+      text: null,
+      code: null,
+      revision: 0,
+      runCount: 0,
+      updatedAt: '2026-10-27T18:00:00Z',
+    },
+  ]
+  const calls: string[] = []
+  const { user } = mount('/postulaciones/app-test/examen', (path, init) => {
+    if (path === '/applications/app-test/exam') return json(data)
+    if (path.endsWith('/answers/code1')) {
+      calls.push('save')
+      expect(JSON.parse(String(init?.body))).toEqual({
+        revision: 0,
+        code: 'SELECT MIN(n) FROM numbers',
+      })
+      return json({ revision: 1 })
+    }
+    if (path.endsWith('/answers/code1/run')) {
+      calls.push('run')
+      return json({ cases: [{ passed: false, output: '1', error: null, ms: 3, table: null }] })
+    }
+    return undefined
+  })
+  await user.click(await screen.findByRole('button', { name: t.run }))
+  expect(await screen.findByText('1. ' + t.failed)).toBeInTheDocument()
+  expect(calls).toEqual(['save', 'run'])
+})

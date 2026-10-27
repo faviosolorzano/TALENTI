@@ -418,7 +418,7 @@ function ExamEditor({
   const dirty = value !== saved
   async function save() {
     if (lock.current) return lock.current
-    if (!dirty && answer) return
+    if (!dirty && answer && (q.type !== 'CODE' || answer.code !== null)) return
     const operation = (async () => {
       const result = await api<{ revision: number }>(
         '/exam-attempts/' + attemptId + '/answers/' + q.id,
@@ -526,6 +526,7 @@ function ExamEditor({
       </Button>
       {q.type === 'CODE' && (
         <>
+          {!value.trim() && <p>{t.codeNeeded}</p>}
           <h3>{t.visibleCases}</h3>
           {q.cases.map((c) => (
             <div className="workflow__row" key={c.id}>
@@ -561,7 +562,7 @@ function ExamEditor({
           ))}
           <Button
             variant="quiet"
-            disabled={action.busy}
+            disabled={action.busy || !value.trim()}
             onClick={() =>
               void action.perform(async () => {
                 await save()
