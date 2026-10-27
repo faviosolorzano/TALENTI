@@ -215,12 +215,7 @@ describe('Page /postulaciones/:id (008-19, 008-20)', () => {
     const stages = within(screen.getByRole('region', { name: t.detail.process })).getAllByRole(
       'listitem',
     )
-    expect(stages.map((stage) => stage.querySelector('span')?.textContent)).toEqual([
-      'Enviada',
-      'Examen técnico',
-      'Entrevista',
-      'Revisión de la empresa',
-    ])
+    expect(stages.map((stage) => stage.querySelector('span')?.textContent)).toEqual(['Enviada'])
     expect(screen.getByText(t.finalDecision)).toBeInTheDocument()
     expect(screen.getByText(t.practicePrivate)).toBeInTheDocument()
   })
@@ -238,8 +233,8 @@ describe('Page /postulaciones/:id (008-19, 008-20)', () => {
     expect(screen.queryByRole('button', { name: t.detail.withdraw })).not.toBeInTheDocument()
   })
 
-  it('008-21: a state from the next stage is shown as "En proceso" without breaking', async () => {
-    open({ existing: [{ vacancyId: FIRST, status: 'EXAM_PENDING' }] })
+  it('008-21: an unknown state never invents a hiring stage', async () => {
+    open({ existing: [{ vacancyId: FIRST, status: 'FUTURE_UNKNOWN' }] })
     await screen.findByRole('heading', { level: 1, name: TITLE })
     expect(screen.getAllByText(t.stages.unknown).length).toBeGreaterThan(0)
   })

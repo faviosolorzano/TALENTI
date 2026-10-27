@@ -1,5 +1,6 @@
 import { useEffect, useId } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
+import { DemoNotice } from '../../components/DemoNotice'
 import { fetchVacancy, type Requirement, type VacancyDetail } from '../../api/vacancies'
 import { ApiError } from '../../api/client'
 import { Badge } from '../../components/Badge'
@@ -97,7 +98,7 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
         <span aria-hidden="true">←</span>
         {es.vacancyDetail.back}
       </Link>
-
+      <DemoNotice />
       <header className="vacancy-detail__header">
         <div className="vacancy-detail__company">
           <CompanyAvatar name={vacancy.company.name} size="lg" />

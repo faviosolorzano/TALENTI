@@ -28,10 +28,8 @@ describe('Layout', () => {
     const links = within(nav).getAllByRole('link')
 
     expect(links.map((link) => link.textContent)).toEqual([
-      es.nav.home,
       es.nav.opportunities,
       es.nav.how,
-      es.nav.dora,
       es.nav.login,
     ])
   })
@@ -40,9 +38,9 @@ describe('Layout', () => {
     renderApp('/')
 
     const banner = screen.getByRole('banner')
-    expect(within(banner).getByRole('link', { name: es.nav.register })).toHaveAttribute(
+    expect(within(banner).getByRole('link', { name: es.nav.login })).toHaveAttribute(
       'href',
-      '/registro',
+      '/ingresar',
     )
     expect(within(banner).getAllByRole('link', { name: es.nav.login })[0]).toHaveAttribute(
       'href',
@@ -65,7 +63,9 @@ describe('Layout', () => {
       'aria-current',
       'page',
     )
-    expect(within(nav).getByRole('link', { name: es.nav.home })).not.toHaveAttribute('aria-current')
+    expect(within(nav).getByRole('link', { name: es.nav.opportunities })).not.toHaveAttribute(
+      'aria-current',
+    )
   })
 
   it('navigates to another page when a navigation link is used', async () => {
@@ -82,13 +82,16 @@ describe('Layout', () => {
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
     const banner = screen.getByRole('banner')
 
-    await userEvent.click(within(banner).getByRole('link', { name: es.nav.register }))
+    await userEvent.click(within(banner).getByRole('link', { name: es.nav.login }))
+    await userEvent.click(
+      within(screen.getByRole('main')).getByRole('link', { name: es.identity.login.goToRegister }),
+    )
     expect(document.title).toBe(`${es.pages.register.title} · ${es.app.name}`)
 
     await userEvent.click(within(nav).getByRole('link', { name: es.nav.login }))
     expect(document.title).toBe(`${es.pages.login.title} · ${es.app.name}`)
 
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.home }))
+    await userEvent.click(within(banner).getByRole('link', { name: es.app.homeLink }))
     expect(document.title).toBe(`${es.pages.home.title} · ${es.app.name}`)
   })
 
@@ -96,9 +99,9 @@ describe('Layout', () => {
     renderApp('/')
     const nav = screen.getByRole('navigation', { name: es.app.mainNavLabel })
 
-    await userEvent.click(within(nav).getByRole('link', { name: es.nav.dora }))
+    await userEvent.click(within(nav).getByRole('link', { name: es.nav.how }))
 
-    const section = document.getElementById('dora')
+    const section = document.getElementById('como-funciona')
     expect(section?.scrollIntoView).toHaveBeenCalled()
     expect(section).toHaveFocus()
   })

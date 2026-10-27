@@ -20,8 +20,12 @@ const panelTitle = () => screen.findByRole('heading', { level: 1, name: es.pages
 const loginTitle = () => screen.findByRole('heading', { level: 1, name: es.identity.login.title })
 const homeTitle = () => screen.findByRole('heading', { level: 1, name: es.home.title })
 /** The student Home has no "Cerrar sesión" in the page: it is in the header (005-07). */
-const headerLogout = () =>
-  within(screen.getByRole('banner')).getAllByRole('button', { name: es.identity.nav.logout })[0]!
+const headerLogout = async () => {
+  const banner = within(screen.getByRole('banner'))
+  const account = banner.queryByRole('button', { name: es.nav.account })
+  if (account?.getAttribute('aria-expanded') === 'false') await userEvent.click(account)
+  return banner.getByRole('button', { name: es.identity.nav.logout })
+}
 /** The fakes the student Home needs: vacancies and profile (the identity fake goes after them). */
 function mockStudentApis() {
   mockBackend()
@@ -80,7 +84,7 @@ describe('Private routes (001-13, 001-14)', () => {
     expect(router.state.location.pathname).toBe('/oportunidades')
     // And the session did not end: the student's menu is still there.
     expect(within(nav).getByRole('link', { name: es.nav.myProfile })).toBeInTheDocument()
-    expect(headerLogout()).toBeInTheDocument()
+    expect(await headerLogout()).toBeInTheDocument()
   })
   it('001-14: a session that expired while the tab was idle takes to /ingresar with "Tu sesión expiró"', async () => {
     mockBackend()
@@ -248,7 +252,7 @@ describe('Header with and without a session (003-09)', () => {
     const banner = screen.getByRole('banner')
 
     await waitFor(() =>
-      expect(within(banner).getByRole('link', { name: es.nav.register })).toBeInTheDocument(),
+      expect(within(banner).getByRole('link', { name: es.nav.login })).toBeInTheDocument(),
     )
     expect(within(banner).getAllByRole('link', { name: es.nav.login }).length).toBeGreaterThan(0)
     expect(within(banner).queryByRole('link', { name: es.nav.dashboard })).not.toBeInTheDocument()
@@ -274,6 +278,7 @@ describe('Header with and without a session (003-09)', () => {
       'href',
       '/panel',
     )
+    await userEvent.click(within(menu).getByRole('button', { name: es.nav.account }))
     expect(within(menu).getByRole('button', { name: es.identity.nav.logout })).toBeInTheDocument()
   })
 
@@ -304,12 +309,13 @@ describe('Header with and without a session (003-09)', () => {
 
     await user.click(within(banner).getByRole('button', { name: es.nav.menu }))
     const menu = within(banner).getByRole('navigation', { name: es.app.mainNavLabel })
+    await user.click(within(menu).getByRole('button', { name: es.nav.account }))
     await user.click(within(menu).getByRole('button', { name: es.identity.nav.logout }))
 
     await loginTitle()
     expect(backend.sessionEmail()).toBeNull()
     expect(router.state.location.pathname).toBe('/ingresar')
-    expect(within(banner).getByRole('link', { name: es.nav.register })).toBeInTheDocument()
+    expect(within(banner).getByRole('link', { name: es.nav.login })).toBeInTheDocument()
   })
 })
 
@@ -376,7 +382,7 @@ describe('Nothing secret is kept in the browser (RNF-01 to 05)', () => {
     await user.click(screen.getByRole('checkbox', { name: /Leí y acepto/ }))
     await user.click(screen.getByRole('button', { name: es.identity.register.submit }))
     await homeTitle()
-    await user.click(headerLogout())
+    await user.click(await headerLogout())
     await loginTitle()
     await user.type(screen.getByLabelText(es.identity.form.emailLabel), EMAIL)
     await user.type(screen.getByLabelText(es.identity.form.passwordLabel), PASSWORD)

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
+import { DemoNotice } from '../../components/DemoNotice'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
 import './OpportunitiesIntro.css'
@@ -26,6 +27,7 @@ export function OpportunitiesIntro({ lead, view, children }: OpportunitiesIntroP
           </h1>
         </div>
         <p className="opportunities__lead">{lead}</p>
+        <DemoNotice />
         {session.isStudent && (
           <nav className="view-switch" aria-label={t.label}>
             <Link

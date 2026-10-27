@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { DemoNotice } from '../../components/DemoNotice'
 import { fetchFeaturedVacancies, fetchFilters } from '../../api/vacancies'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
@@ -45,7 +46,7 @@ export function FeaturedVacancies() {
             <span aria-hidden="true">→</span>
           </Link>
         </div>
-
+        <DemoNotice />
         {featured.state.status === 'loading' && (
           <VacancyListSkeleton count={FEATURED_LIMIT} className="featured__grid" />
         )}

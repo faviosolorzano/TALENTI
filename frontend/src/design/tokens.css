@@ -73,6 +73,7 @@
   --color-text-accent-inverse: var(--color-orb-300);
   --color-border: var(--color-neutral-200);
   --color-border-strong: var(--color-neutral-300);
+  --color-control: #7d899e;
   --color-border-accent: var(--color-brand-blue-line);
   --color-action: var(--color-brand-blue);
   --color-action-hover: var(--color-brand-blue-hover);
@@ -99,9 +100,8 @@
   /* ---- Typography ---- */
   /* Families are self-hosted (@fontsource-variable, imported in main.tsx). The fallbacks keep
      the layout readable while the font loads or if it fails. */
-  --font-family-base: 'Figtree Variable', system-ui, 'Segoe UI', sans-serif;
-  --font-family-heading:
-    'Bricolage Grotesque Variable', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  --font-family-base: 'Hanken Grotesk', system-ui, 'Segoe UI', sans-serif;
+  --font-family-heading: 'Hanken Grotesk', system-ui, 'Segoe UI', sans-serif;
   --font-family-mono: ui-monospace, 'SFMono-Regular', menlo, consolas, monospace;
 
   --font-size-2xs: 0.6875rem; /* 11 px */
@@ -110,7 +110,7 @@
   --font-size-sm: 0.875rem; /* 14 px */
   --font-size-ui: 0.9375rem; /* 15 px */
   --font-size-md: 1rem; /* 16 px */
-  --font-size-base: 1.0625rem; /* 17 px: body text */
+  --font-size-base: 1rem; /* 16 px: body text */
   --font-size-lg: 1.125rem; /* 18 px */
   --font-size-subtitle: 1.1875rem; /* 19 px */
   --font-size-xl: 1.3125rem; /* 21 px */
@@ -131,7 +131,7 @@
   --font-weight-medium: 500;
   --font-weight-nav: 550;
   --font-weight-semibold: 600;
-  --font-weight-heading: 650;
+  --font-weight-heading: 700;
   --font-weight-bold: 700;
 
   --line-height-none: 1;
@@ -175,7 +175,7 @@
   /* ---- Radii ---- */
   --radius-xs: 0.5rem; /* 8 px */
   --radius-sm: 0.75rem; /* 12 px */
-  --radius-button: 0.875rem; /* 14 px */
+  --radius-button: 0.75rem; /* 12 px */
   --radius-md: 1rem; /* 16 px */
   --radius-lg: 1.75rem; /* 28 px */
   --radius-full: 9999px;
@@ -193,11 +193,14 @@
 
   /* ---- Layout ---- */
   --content-max-width: 72.5rem; /* 1160 px */
-  --page-gutter: 1.125rem; /* 18 px on phones */
+  --page-gutter: 1.25rem; /* 20 px on phones */
+  --control-height: 3rem;
+  --header-login-width: 7rem;
+  --account-menu-width: 12rem;
   --touch-target-min: 2.75rem; /* 44 px */
-  --header-height: 4.125rem; /* 66 px on phones */
+  --header-height: 4rem; /* 64 px on phones */
   --header-min-height: var(--header-height);
-  --logo-height: 2rem;
+  --logo-height: 1.5rem;
   --section-padding: var(--space-19);
   --scroll-offset: calc(var(--header-height) + var(--space-4));
   --z-header: 30;
@@ -252,7 +255,7 @@
   --duration-enter: 450ms;
   --duration-panel: 500ms;
   --duration-ring: 1000ms;
-  --opacity-stale: 0.6; /* results kept on screen while a new answer arrives */
+  --opacity-stale: 1; /* results stay fully readable while refreshing */
   --duration-shimmer: 1400ms; /* loading skeletons; reduced motion stops the animation */
   --easing-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -260,8 +263,7 @@
 @media (min-width: 32.5rem) {
   :root {
     --page-gutter: var(--space-6);
-    --header-height: 4.75rem; /* 76 px */
-    --logo-height: 2.375rem;
+    --header-height: 4rem;
     --ring-size: 9.25rem; /* 148 px */
   }
 }
@@ -270,6 +272,14 @@
   :root {
     --section-padding: var(--space-26);
     --stage-min-height: 23.75rem; /* 380 px */
+  }
+}
+
+@media (min-width: 53.75rem) {
+  :root {
+    --header-height: 4.5rem;
+    --page-gutter: 2.5rem;
+    --logo-height: 1.75rem;
   }
 }
 

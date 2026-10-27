@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: var(--touch-target-min);
+  min-height: var(--control-height);
   padding: var(--space-3) var(--space-5);
   border: var(--border-width-strong) solid transparent;
   border-radius: var(--radius-button);
@@ -35,19 +35,17 @@
 .btn--primary {
   background: var(--color-action);
   color: var(--color-action-text);
-  box-shadow: var(--shadow-action);
 }
 
 .btn--primary:hover {
   background: var(--color-action-hover);
-  box-shadow: var(--shadow-action-hover);
 }
 
 /* Quiet: outlined */
 .btn--quiet {
   background: transparent;
   color: var(--color-text);
-  border-color: var(--color-border);
+  border-color: var(--color-control);
 }
 
 .btn--quiet:hover {

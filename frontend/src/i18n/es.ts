@@ -12,7 +12,8 @@ export const es = {
   },
   nav: {
     home: 'Inicio',
-    opportunities: 'Oportunidades',
+    opportunities: 'Vacantes',
+    account: 'Cuenta',
     how: 'Cómo funciona',
     dora: 'DORA',
     register: 'Crear cuenta',
@@ -27,6 +28,9 @@ export const es = {
   placeholder: {
     underConstruction: 'En construcción',
     description: 'Esta pantalla todavía no está lista. Estamos trabajando en ella.',
+  },
+  demo: {
+    notice: 'Demostración · vacantes y empresas de ejemplo',
   },
   pages: {
     home: { title: 'Inicio' },
@@ -66,7 +70,7 @@ export const es = {
     },
     register: {
       title: 'Crea tu cuenta',
-      lead: 'Con tu cuenta ves qué vacantes encajan contigo y ensayas entrevistas con DORA, nuestra asistente de inteligencia artificial.',
+      lead: 'Prepara tu perfil, compara vacantes y revisa tus postulaciones.',
       passwordHint: 'Usa al menos 8 caracteres, con una letra y un número.',
       submit: 'Crear mi cuenta',
       submitting: 'Creando tu cuenta…',
@@ -110,7 +114,7 @@ export const es = {
     },
     recover: {
       title: 'Recuperar tu cuenta',
-      body: 'Pronto podrás recuperar tu cuenta con tu correo.',
+      body: 'La recuperación de acceso aún no está disponible en esta demostración.',
       back: 'Volver a ingresar',
     },
     aside: {
@@ -193,7 +197,7 @@ export const es = {
   // ---- Student profile (spec 006) ----
   profile: {
     title: 'Mi perfil',
-    lead: 'Un paso a la vez. Cada sección se guarda sola.',
+    lead: 'Revisa tus datos y guarda los cambios de cada sección.',
     loading: 'Cargando tu perfil…',
     loadError: 'No pudimos cargar tu perfil.',
     studentsOnlyTitle: 'Esta pantalla es para estudiantes',
@@ -239,7 +243,7 @@ export const es = {
     about: {
       title: 'Datos personales',
       empty: 'Aún no registras tus datos personales.',
-      lead: 'Estos datos son solo para ti: ninguna empresa los ve por ahora.',
+      lead: 'Datos opcionales para tu perfil. Esta demostración no los envía a una empresa real.',
       firstNames: 'Nombres',
       firstNamesHint: 'Como figuran en tu documento de identidad. Entre 2 y 60 caracteres.',
       lastNames: 'Apellidos',
@@ -350,6 +354,7 @@ export const es = {
   // ---- Applications (spec 008) ----
   applications: {
     title: 'Mis postulaciones',
+    noNewEvents: 'Se muestran los eventos registrados en Talenti.',
     lead: 'Aquí ves a qué vacantes te postulaste y cómo va cada proceso.',
     loading: 'Cargando tus postulaciones…',
     loadError: 'No pudimos cargar tus postulaciones.',
@@ -360,7 +365,9 @@ export const es = {
     stages: {
       SUBMITTED: 'Enviada',
       WITHDRAWN: 'Retirada',
-      unknown: 'En proceso',
+      EXAM_PENDING: 'Examen pendiente',
+      EXAM_DONE: 'Examen completado',
+      unknown: 'Estado no disponible',
       next: ['Examen técnico', 'Entrevista', 'Revisión de la empresa'] as readonly string[],
       soon: 'Próximamente',
     },
@@ -384,7 +391,8 @@ export const es = {
     apply: {
       title: (vacancy: string) => `Postular a ${vacancy}`,
       company: (name: string) => `Empresa: ${name}`,
-      shared: 'La empresa verá tu perfil completo y tu CV.',
+      shared:
+        'Esta postulación forma parte de la demostración. Se registra en Talenti; no contacta a una empresa real ni adjunta un PDF.',
       notShared: 'Tus sesiones de práctica con DORA son privadas y no se comparten.',
       profile: (percent: number) => `Tu perfil está al ${percent} %.`,
       completeProfile: 'Completar mi perfil',
@@ -399,7 +407,7 @@ export const es = {
       back: 'Mis postulaciones',
       viewVacancy: 'Ver la vacante',
       vacancyClosed: 'Esta vacante ya no está abierta',
-      process: 'Etapas del proceso',
+      process: 'Actividad de tu postulación',
       notFoundTitle: 'Esta postulación no existe',
       notFoundLink: 'Ver mis postulaciones',
       loading: 'Cargando tu postulación…',
@@ -582,10 +590,9 @@ export const es = {
       failed: 'No pudimos borrar tu CV. Inténtalo de nuevo.',
     },
     done: {
-      title: 'Guardamos tus datos',
+      title: 'Cambios guardados',
       lead: 'Tu perfil está al',
-      saved: (count: number) =>
-        count === 1 ? 'Guardamos 1 dato en tu perfil.' : `Guardamos ${count} datos en tu perfil.`,
+      saved: 'Tu perfil se actualizó con las decisiones que confirmaste.',
       viewProfile: 'Ver mi perfil',
       keepGoing: 'Seguir completando',
     },
@@ -903,22 +910,22 @@ export const es = {
           'Cada vacante te dice qué coincide, qué te falta y qué aún no sabemos. Sin cajas negras.',
       },
       {
-        title: 'Practica y postula',
+        title: 'Revisa y postula',
         description:
-          'Ensaya entrevistas en privado con DORA y postula cuando te sientas listo. La empresa decide.',
+          'Revisa la vacante y confirma tu postulación. En esta demostración no contactamos a una empresa real.',
       },
     ],
     chips: ['Java', 'Spring Boot', 'SQL', 'Git', 'Docker', 'React'],
     bars: ['Requisitos obligatorios', 'Requisitos deseables', 'Condiciones'],
     flow: [
-      { label: 'Sesión de práctica', state: 'Privada' },
-      { label: 'Postulación enviada', state: 'Hoy' },
-      { label: 'Revisión de la empresa', state: 'Próximamente' },
+      { label: 'Revisa la vacante', state: 'Requisitos' },
+      { label: 'Confirma tu decisión', state: 'Postulación' },
+      { label: 'Consulta el registro', state: 'Mis postulaciones' },
     ],
   },
   dora: {
-    title: 'Practica con DORA antes de que cuente.',
-    lead: 'Una asistente de inteligencia artificial que te pregunta sobre tu propio perfil. Es privada: nadie más la ve.',
+    title: 'Vista previa de DORA',
+    lead: 'Este ejemplo muestra los estados del orbe. No inicia una sesión de práctica ni reproduce respuestas de voz.',
     statesLabel: 'Estado de DORA',
     states: {
       idle: 'Reposo',
@@ -979,7 +986,7 @@ export const es = {
         heading: 'En pocas palabras',
         body: [
           '- **Tú decides.** Lo que la IA sugiere sobre ti, lo confirmas tú. La empresa decide si te contacta; tú decides a qué vacantes postulas.',
-          '- **Pedimos permiso por separado** para leer tu CV y para usar tu voz, justo cuando hace falta. Si no lo das, hay una alternativa: completar tu perfil a mano o practicar por texto.',
+          '- **Tú eliges** si subes tu CV y si usas la lectura con IA. Antes de usar el micrófono, el navegador pide permiso. También puedes completar tu perfil a mano.',
           '- **No vendemos tus datos** ni los usamos para publicidad.',
           '- **Tus sesiones de práctica son privadas.** Nunca las ven las empresas.',
         ].join('\n'),
@@ -1004,7 +1011,7 @@ export const es = {
         id: 'compartir',
         heading: 'Con quién los compartimos',
         body: [
-          '- **Con las empresas**, solo cuando postulas y solo la parte de tu perfil que te mostramos antes de confirmar.',
+          '- **Demostración:** las empresas y vacantes son de ejemplo. Postular crea un registro en Talenti; no envía un PDF ni contacta a una empresa real.',
           '- **Con proveedores que nos prestan servicios**, como IA, voz y alojamiento, que reciben solo lo necesario. Pueden estar fuera del Perú.',
           '- **Nunca** enviamos tu contraseña ni tu correo a los proveedores de IA y voz.',
         ].join('\n'),
@@ -1016,7 +1023,7 @@ export const es = {
       {
         id: 'conservacion',
         heading: 'Cuánto tiempo los conservamos',
-        body: 'El PDF de tu CV se elimina cuando confirmas o descartas las sugerencias, o a los 7 días. **Talenti no guarda tu audio**, solo su transcripción. El resto se conserva mientras tu cuenta exista o hasta que lo borres.',
+        body: 'El PDF se lee para generar sugerencias y no se conserva como archivo adjunto. El análisis conserva los datos necesarios para revisarlo. Puedes descartar el análisis sin borrar lo que ya confirmaste en tu perfil. Consulta los plazos y condiciones en la Política de Privacidad.',
         links: [{ label: 'Ver los plazos', to: '/privacidad#seccion-7' }],
       },
       {

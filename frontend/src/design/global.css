@@ -28,6 +28,7 @@ body {
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
 }
 
 h1,

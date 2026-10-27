@@ -354,7 +354,7 @@ describe('Session shared with the rest of the app (no page reload)', () => {
 
     await waitFor(() => expect(where()).toBe('/ingresar'))
     expect(
-      await within(screen.getByRole('banner')).findByRole('link', { name: es.nav.register }),
+      await within(screen.getByRole('banner')).findByRole('link', { name: es.nav.login }),
     ).toBeVisible()
   })
 })

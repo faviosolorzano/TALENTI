@@ -12,8 +12,12 @@ const COMPANY_ACCOUNT = { [EMAIL]: { password: 'Clave12345', role: 'COMPANY' as 
 afterEach(clearCsrfCookie)
 
 const loginTitle = () => screen.findByRole('heading', { level: 1, name: es.identity.login.title })
-const headerLogout = () =>
-  within(screen.getByRole('banner')).getAllByRole('button', { name: es.identity.nav.logout })
+const headerLogout = async () => {
+  const banner = within(screen.getByRole('banner'))
+  const account = banner.queryByRole('button', { name: es.nav.account })
+  if (account?.getAttribute('aria-expanded') === 'false') await userEvent.click(account)
+  return banner.getAllByRole('button', { name: es.identity.nav.logout })
+}
 
 describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
   it('unavailable: the header says so, offers "Reintentar" and "Cerrar sesión", and does NOT offer "Ingresar" or "Crear cuenta"', async () => {
@@ -23,7 +27,7 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
 
     expect(await within(banner).findByText(es.identity.guard.unavailable)).toBeVisible()
     expect(within(banner).getByRole('button', { name: es.common.retry })).toBeVisible()
-    expect(headerLogout().length).toBeGreaterThan(0)
+    expect((await headerLogout()).length).toBeGreaterThan(0)
     expect(within(banner).queryByRole('link', { name: es.nav.register })).not.toBeInTheDocument()
     expect(within(banner).queryByRole('link', { name: es.nav.login })).not.toBeInTheDocument()
   })
@@ -38,7 +42,7 @@ describe('"Cerrar sesión" when the session cannot be checked (M1)', () => {
     const user = userEvent.setup()
     await within(screen.getByRole('banner')).findByText(es.identity.guard.unavailable)
 
-    await user.click(headerLogout()[0]!)
+    await user.click((await headerLogout())[0]!)
 
     await loginTitle()
     expect(backend.calls('POST', '/auth/logout')).toHaveLength(1)
@@ -138,7 +142,7 @@ describe('A failed sign-out from the header is visible (M2)', () => {
     const { backend, banner, router, user } = await signedInAt('/oportunidades')
 
     backend.setOptions({ offline: true })
-    await user.click(headerLogout()[0]!)
+    await user.click((await headerLogout())[0]!)
 
     const note = await within(banner).findByRole('alert')
     expect(note).toHaveTextContent(es.identity.dashboard.logoutFailed)
@@ -146,7 +150,7 @@ describe('A failed sign-out from the header is visible (M2)', () => {
     expect(note).not.toHaveClass('visually-hidden')
 
     backend.setOptions({ offline: false })
-    await user.click(headerLogout()[0]!)
+    await user.click((await headerLogout())[0]!)
     await loginTitle()
     expect(within(banner).queryByRole('alert')).not.toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/ingresar')
@@ -155,7 +159,7 @@ describe('A failed sign-out from the header is visible (M2)', () => {
   it('the note disappears when the person goes to another page', async () => {
     const { backend, banner, router, user } = await signedInAt('/oportunidades')
     backend.setOptions({ offline: true })
-    await user.click(headerLogout()[0]!)
+    await user.click((await headerLogout())[0]!)
     await within(banner).findByRole('alert')
 
     await router.navigate('/registro')

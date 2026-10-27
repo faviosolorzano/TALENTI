@@ -270,7 +270,7 @@ describe('Header: Oportunidades (004-24)', () => {
         'aria-current',
         'page',
       )
-      expect(within(nav).getByRole('link', { name: es.nav.home })).not.toHaveAttribute(
+      expect(screen.getByRole('link', { name: es.app.homeLink })).not.toHaveAttribute(
         'aria-current',
       )
     },
@@ -285,7 +285,7 @@ describe('Header: Oportunidades (004-24)', () => {
         .getAllByRole('link')
         .map((link) => link.textContent)
         .slice(0, 4),
-    ).toEqual([es.nav.home, es.nav.opportunities, es.nav.how, es.nav.dora])
+    ).toEqual([es.nav.opportunities, es.nav.how, es.nav.login])
 
     await userEvent.click(screen.getByRole('button', { name: es.nav.menu }))
     await userEvent.click(within(nav).getByRole('link', { name: es.nav.opportunities }))

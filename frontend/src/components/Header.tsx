@@ -1,113 +1,127 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Link, NavLink } from 'react-router'
+import { Link, NavLink, useLocation } from 'react-router'
 import { es } from '../i18n/es'
 import { sessionPaths } from '../session/sessionPaths'
 import { useSession } from '../session/useSession'
 import { useSignOut } from '../session/useSignOut'
-import { Button } from './Button'
 import { Logo } from './Logo'
 import './Header.css'
 
-/** Scroll distance (px) after which the header shows its bottom line. */
-const SCROLLED_AFTER = 8
-
-/**
- * A menu entry that is not available yet ("Próximamente"): it is drawn disabled, goes nowhere
- * and a note tied to it with `aria-describedby` says why (005-07).
- */
-function SoonItem({ label }: { label: string }) {
-  const noteId = useId()
-  return (
-    <>
-      <span
-        className="header__link header__link--soon"
-        role="link"
-        aria-disabled="true"
-        aria-describedby={noteId}
-      >
-        {label}
-        <span className="header__soon">{es.nav.soon}</span>
-      </span>
-      <span id={noteId} className="visually-hidden">
-        {es.nav.soonNote}
-      </span>
-    </>
-  )
-}
-
-/** After this many ms without an answer about the session, "Cerrar sesión" is offered anyway. */
 const SLOW_SESSION_MS = 1500
 
-/**
- * Fixed header. It shows a bottom line once the page scrolls more than 8 px. Under tablet
- * width the menu folds into the "Menú" button (`aria-expanded`, `aria-controls`); it closes
- * when a link is chosen or with Esc, and then focus goes back to the button.
- */
+/** One top navigation, with the same destinations on a phone and a desktop. */
 export function Header() {
   const menuId = useId()
+  const accountId = useId()
+  const location = useLocation()
   const session = useSession()
   const { signOut, pending: signingOut, failed: signOutFailed } = useSignOut()
   const [slow, setSlow] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(() => window.scrollY > SCROLLED_AFTER)
+  const [openAt, setOpenAt] = useState<string | null>(null)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 8)
+  const headerRef = useRef<HTMLElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const accountRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLElement>(null)
   const focusFirstLink = useRef(false)
+  const open = openAt === location.key
+  const status = session.status
+  const unavailable = status === 'unavailable'
+  const authenticated = status === 'authenticated'
+  const canSignOut = authenticated || unavailable || (status === 'loading' && slow)
+
+  const closeMenu = () => {
+    setOpenAt(null)
+    setAccountOpen(false)
+  }
 
   useEffect(() => {
-    const update = () => setScrolled(window.scrollY > SCROLLED_AFTER)
+    const update = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', update, { passive: true })
     return () => window.removeEventListener('scroll', update)
   }, [])
 
-  // The first answer about the session is slow: do not leave a signed-in person without a way out.
   useEffect(() => {
-    if (session.status !== 'loading') return
-    const timer = setTimeout(() => setSlow(true), SLOW_SESSION_MS)
-    return () => clearTimeout(timer)
-  }, [session.status])
+    if (!window.matchMedia) return
+    const width = window.matchMedia('(min-width: 53.75rem)')
+    const close = () => {
+      setOpenAt(null)
+      setAccountOpen(false)
+    }
+    width.addEventListener('change', close)
+    return () => width.removeEventListener('change', close)
+  }, [])
 
   useEffect(() => {
-    if (!open) return
-    // Opening with the button moves focus to the first link, so the keyboard continues
-    // inside the menu (the menu is drawn after the button has been pressed).
-    if (focusFirstLink.current) {
+    if (status !== 'loading') return
+    const timer = setTimeout(() => setSlow(true), SLOW_SESSION_MS)
+    return () => clearTimeout(timer)
+  }, [status])
+
+  useEffect(() => {
+    if (open && focusFirstLink.current) {
       focusFirstLink.current = false
       menuRef.current?.querySelector('a')?.focus()
     }
+    if (!open && !accountOpen) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      setOpen(false)
-      buttonRef.current?.focus()
+      event.preventDefault()
+      if (accountOpen) {
+        setAccountOpen(false)
+        accountRef.current?.focus()
+      } else {
+        setOpenAt(null)
+        buttonRef.current?.focus()
+      }
+    }
+    const outside = (event: PointerEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) closeMenu()
     }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+    document.addEventListener('pointerdown', outside)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('pointerdown', outside)
+    }
+  }, [open, accountOpen])
 
-  function toggleMenu() {
-    focusFirstLink.current = !open
-    setOpen(!open)
-  }
-
-  const closeMenu = () => setOpen(false)
-  const status = session.status
-  // A student has their own menu (005-07); other roles keep the public one plus "Mi panel".
-  const student = session.isStudent
-  const unavailable = status === 'unavailable'
-  // "Cerrar sesión" does not depend on `GET /auth/me`: it is offered whenever a session may exist.
-  const canSignOut = status === 'authenticated' || unavailable || (status === 'loading' && slow)
   const logout = () => {
     closeMenu()
     void signOut()
   }
 
   return (
-    <header className="header" data-scrolled={scrolled || undefined}>
+    <header
+      ref={headerRef}
+      className="header"
+      data-scrolled={scrolled || undefined}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeMenu()
+      }}
+    >
       <div className="container header__bar">
         <Link className="header__brand" to="/" aria-label={es.app.homeLink} onClick={closeMenu}>
           <Logo />
         </Link>
-
+        <button
+          ref={buttonRef}
+          type="button"
+          className="header__menu-button"
+          aria-expanded={open}
+          aria-controls={menuId}
+          onClick={() => {
+            focusFirstLink.current = !open
+            setAccountOpen(false)
+            setOpenAt(open ? null : location.key)
+          }}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          {es.nav.menu}
+        </button>
         <nav
           ref={menuRef}
           id={menuId}
@@ -117,22 +131,12 @@ export function Header() {
         >
           <ul className="header__list">
             <li>
-              <NavLink className="header__link" to="/" end onClick={closeMenu}>
-                {es.nav.home}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink className="header__link" to="/oportunidades" onClick={closeMenu}>
+              <NavLink className="header__link" to={sessionPaths.opportunities} onClick={closeMenu}>
                 {es.nav.opportunities}
               </NavLink>
             </li>
-            {student ? (
+            {session.isStudent ? (
               <>
-                <li>
-                  <NavLink className="header__link" to={sessionPaths.profile} onClick={closeMenu}>
-                    {es.nav.myProfile}
-                  </NavLink>
-                </li>
                 <li>
                   <NavLink
                     className="header__link"
@@ -143,41 +147,60 @@ export function Header() {
                   </NavLink>
                 </li>
                 <li>
-                  <SoonItem label={es.nav.dora} />
+                  <NavLink className="header__link" to={sessionPaths.profile} onClick={closeMenu}>
+                    {es.nav.myProfile}
+                  </NavLink>
                 </li>
               </>
             ) : (
-              <>
-                <li>
-                  <Link
-                    className="header__link"
-                    to={{ pathname: '/', hash: 'como-funciona' }}
-                    onClick={closeMenu}
-                  >
-                    {es.nav.how}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    className="header__link"
-                    to={{ pathname: '/', hash: 'dora' }}
-                    onClick={closeMenu}
-                  >
-                    {es.nav.dora}
-                  </Link>
-                </li>
-              </>
+              <li>
+                <Link
+                  className="header__link"
+                  to={{ pathname: '/', hash: 'como-funciona' }}
+                  onClick={closeMenu}
+                >
+                  {es.nav.how}
+                </Link>
+              </li>
             )}
-            {/* Only in the folded menu: on wide screens the account actions sit on the right. */}
-            {status === 'authenticated' && !student && (
-              <li className="header__list-login">
+            {authenticated && !session.isStudent && (
+              <li>
                 <NavLink className="header__link" to={sessionPaths.dashboard} onClick={closeMenu}>
                   {es.nav.dashboard}
                 </NavLink>
               </li>
             )}
-            {canSignOut && (
-              <li className="header__list-login">
+            {authenticated && (
+              <li className="header__account">
+                <button
+                  ref={accountRef}
+                  type="button"
+                  className="header__link header__link--button"
+                  aria-expanded={accountOpen}
+                  aria-controls={accountId}
+                  onClick={() => setAccountOpen(!accountOpen)}
+                >
+                  {es.nav.account}
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <ul id={accountId} className="header__account-panel" hidden={!accountOpen}>
+                  <li>
+                    <button
+                      type="button"
+                      className="header__link header__link--button"
+                      disabled={signingOut}
+                      onClick={logout}
+                    >
+                      {es.identity.nav.logout}
+                    </button>
+                  </li>
+                </ul>
+              </li>
+            )}
+            {canSignOut && !authenticated && (
+              <li>
                 <button
                   type="button"
                   className="header__link header__link--button"
@@ -188,68 +211,30 @@ export function Header() {
                 </button>
               </li>
             )}
+            {unavailable && (
+              <li>
+                <button
+                  className="header__link header__link--button"
+                  type="button"
+                  onClick={() => void session.refresh()}
+                >
+                  {es.common.retry}
+                </button>
+              </li>
+            )}
             {status === 'visitor' && (
-              <li className="header__list-login">
-                <NavLink className="header__link" to="/ingresar" onClick={closeMenu}>
+              <li>
+                <NavLink
+                  className="btn btn--primary btn--sm header__login"
+                  to={sessionPaths.login}
+                  onClick={closeMenu}
+                >
                   {es.nav.login}
                 </NavLink>
               </li>
             )}
           </ul>
         </nav>
-
-        <div className="header__actions">
-          {canSignOut && (
-            <Button
-              className="header__login"
-              variant="quiet"
-              size="sm"
-              disabled={signingOut}
-              onClick={logout}
-            >
-              {es.identity.nav.logout}
-            </Button>
-          )}
-          {status === 'authenticated' && !student && (
-            <Button size="sm" to={sessionPaths.dashboard} onClick={closeMenu}>
-              {es.nav.dashboard}
-            </Button>
-          )}
-          {unavailable && (
-            <Button size="sm" onClick={() => void session.refresh()}>
-              {es.common.retry}
-            </Button>
-          )}
-          {status === 'visitor' && (
-            <>
-              <Button
-                className="header__login"
-                variant="quiet"
-                size="sm"
-                to="/ingresar"
-                onClick={closeMenu}
-              >
-                {es.nav.login}
-              </Button>
-              <Button size="sm" to="/registro" onClick={closeMenu}>
-                {es.nav.register}
-              </Button>
-            </>
-          )}
-        </div>
-
-        <button
-          ref={buttonRef}
-          type="button"
-          className="header__menu-button"
-          aria-expanded={open}
-          aria-controls={menuId}
-          onClick={toggleMenu}
-        >
-          {es.nav.menu}
-        </button>
-
-        {/* Visible notes under the bar: the session could not be checked / sign-out failed. */}
         {unavailable && (
           <p className="header__note" role="status">
             {es.identity.guard.unavailable}

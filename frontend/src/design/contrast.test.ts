@@ -3,6 +3,7 @@ import { contrastRatio, overlay } from './color'
 import {
   avatarTones,
   brandColors,
+  controlColor,
   neutralColors,
   onDarkColors,
   orbColors,
@@ -42,6 +43,9 @@ const avatarPairs = avatarTones.tones.map(
 )
 
 describe('Color contrast (003-02)', () => {
+  it('control outlines reach 3:1 against white', () => {
+    expect(contrastRatio(controlColor, white)).toBeGreaterThanOrEqual(3)
+  })
   it.each(pairs)('%s reaches 4.5:1', (_name, text, background) => {
     expect(contrastRatio(text, background)).toBeGreaterThanOrEqual(AA)
   })

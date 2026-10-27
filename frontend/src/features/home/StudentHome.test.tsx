@@ -160,14 +160,8 @@ describe('Menu by role (005-07, 005-08)', () => {
       'href',
       '/postulaciones',
     )
-    for (const label of [es.nav.dora]) {
-      const item = within(nav).getByText(label, {
-        exact: false,
-        selector: '[aria-disabled="true"]',
-      })
-      expect(item).toHaveAttribute('aria-disabled', 'true')
-      expect(item).toHaveAccessibleDescription(es.nav.soonNote)
-    }
+    expect(within(nav).queryByText(es.nav.dora)).not.toBeInTheDocument()
+    await userEvent.click(within(nav).getByRole('button', { name: es.nav.account }))
     expect(within(nav).queryByText(es.nav.how)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: es.nav.dashboard })).not.toBeInTheDocument()
     expect(
@@ -180,7 +174,7 @@ describe('Menu by role (005-07, 005-08)', () => {
     openStudentApp('/', { signedOut: true })
     const nav = await screen.findByRole('navigation', { name: es.app.mainNavLabel })
     expect(within(nav).getByRole('link', { name: es.nav.how })).toBeInTheDocument()
-    expect(within(nav).getByRole('link', { name: es.nav.dora })).toBeInTheDocument()
+    expect(within(nav).queryByRole('link', { name: es.nav.dora })).not.toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: es.nav.myProfile })).not.toBeInTheDocument()
   })
 })

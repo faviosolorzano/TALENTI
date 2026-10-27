@@ -60,17 +60,17 @@ describe('Fonts and third parties (003-03)', () => {
     expect(offenders(/googleapis|gstatic/i, files)).toEqual([])
   })
 
-  it('the font packages declare the families used by the tokens and no external URL', () => {
-    const bricolage = readFileSync(
-      join(frontendDir, 'node_modules/@fontsource-variable/bricolage-grotesque/opsz.css'),
-      'utf-8',
+  it('Hanken is served locally with its license and variable weights', () => {
+    const css = readFileSync(join(srcDir, 'design/fonts.css'), 'utf-8')
+    expect(css).toContain("font-family: 'Hanken Grotesk'")
+    expect(css).toContain('./fonts/HankenGrotesk-Latin-Variable.woff2')
+    expect(css).toContain('font-weight: 100 900')
+    expect(css).not.toMatch(/https?:\/\/|data:/)
+    expect(
+      statSync(join(srcDir, 'design/fonts/HankenGrotesk-Latin-Variable.woff2')).size,
+    ).toBeGreaterThan(30000)
+    expect(readFileSync(join(srcDir, 'design/fonts/OFL.txt'), 'utf-8')).toContain(
+      'SIL OPEN FONT LICENSE',
     )
-    const figtree = readFileSync(
-      join(frontendDir, 'node_modules/@fontsource-variable/figtree/wght.css'),
-      'utf-8',
-    )
-    expect(bricolage).toContain("font-family: 'Bricolage Grotesque Variable'")
-    expect(figtree).toContain("font-family: 'Figtree Variable'")
-    expect(bricolage + figtree).not.toMatch(/googleapis|gstatic|https?:\/\//)
   })
 })
