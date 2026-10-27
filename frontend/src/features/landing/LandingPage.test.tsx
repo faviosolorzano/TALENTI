@@ -211,14 +211,14 @@ describe('"Cómo funciona" (003-18)', () => {
     tabs[1]?.focus()
     await userEvent.keyboard('{ArrowDown}')
     expect(tabs[2]).toHaveFocus()
-    expect(within(section).getByRole('tabpanel')).toHaveTextContent('Sesión de práctica')
+    expect(within(section).getByRole('tabpanel')).toHaveTextContent('Revisa la vacante')
   })
 
-  it('says in step 3 that the company decides', () => {
+  it('says in step 3 that the demonstration does not contact a real company', () => {
     renderApp('/')
     const section = screen.getByRole('region', { name: es.how.title })
     expect(within(section).getAllByRole('tab')[2]).toHaveAccessibleDescription(
-      /La empresa decide\./,
+      /no contactamos a una empresa real/,
     )
   })
 })

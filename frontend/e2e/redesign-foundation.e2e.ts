@@ -10,7 +10,18 @@ const profile = {
   skills: [],
   availability: { hoursPerWeek: null, acceptedModalities: [], location: null },
   projects: [],
-  completeness: { percent: 0, items: [], nextStep: 'SKILLS' },
+  completeness: {
+    percent: 0,
+    items: [
+      { key: 'ACADEMIC', weight: 15, done: false },
+      { key: 'SKILLS', weight: 25, done: false },
+      { key: 'AVAILABILITY', weight: 15, done: false },
+      { key: 'PROJECTS', weight: 25, done: false },
+      { key: 'LOCATION', weight: 10, done: false },
+      { key: 'ABOUT', weight: 10, done: false },
+    ],
+    nextStep: 'SKILLS',
+  },
   updatedAt: null,
 }
 
