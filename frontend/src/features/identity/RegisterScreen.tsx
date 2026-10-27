@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { safeReturnTo } from '../../session/returnTo'
 import { registerStudent } from '../../api/identity'
 import { fetchLegalCatalog } from '../../api/legal'
@@ -31,6 +31,7 @@ function NewTabLink({ href, children }: { href: string; children: string }) {
 export function RegisterScreen() {
   const session = useSession()
   const navigate = useNavigate()
+  const location = useLocation()
   const [params] = useSearchParams()
   const returnTo = safeReturnTo(params.get('returnTo'))
   const legal = useApiResource('legal-current', (signal) => fetchLegalCatalog(signal))
@@ -64,7 +65,13 @@ export function RegisterScreen() {
   }, [errors])
 
   if (session.status === 'authenticated' && !leaving) {
-    return <Navigate to={landingPathFor(session.user?.role)} replace />
+    return (
+      <Navigate
+        to={returnTo ?? landingPathFor(session.user?.role)}
+        state={location.state}
+        replace
+      />
+    )
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -81,7 +88,10 @@ export function RegisterScreen() {
       })
       setLeaving(true)
       await session.refresh()
-      navigate(returnTo ?? sessionPaths.home, { replace: true, state: { welcome: true } })
+      navigate(returnTo ?? sessionPaths.home, {
+        replace: true,
+        state: { ...location.state, welcome: true },
+      })
     } catch (error) {
       const failure = registerErrors(error)
       if (failure.legalOutdated) {
@@ -178,6 +188,7 @@ export function RegisterScreen() {
         <p className="auth__alt">
           {es.identity.register.haveAccount}{' '}
           <Link
+            state={location.state}
             to={
               returnTo
                 ? `${sessionPaths.login}?returnTo=${encodeURIComponent(returnTo)}`

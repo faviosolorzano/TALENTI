@@ -131,13 +131,15 @@ export function SuggestionRow({
           </span>
         </div>
 
-        <details className="suggestion__evidence">
-          <summary>{t.fromCv}</summary>
-          <p>«{suggestion.evidence}»</p>
-        </details>
-        {suggestion.currentValue && (
-          <p className="suggestion__current">{t.current(suggestion.currentValue)}</p>
+        {suggestion.evidence?.trim() && (
+          <details className="suggestion__evidence">
+            <summary>{t.fromCv}</summary>
+            <p>«{suggestion.evidence}»</p>
+          </details>
         )}
+        <p className="suggestion__current">
+          {t.current(suggestion.currentValue || es.redesign.noData)}
+        </p>
         {isSkill && skill && !skill.slug && !decision?.slug && (
           <p className="suggestion__note">{t.unlinked}</p>
         )}

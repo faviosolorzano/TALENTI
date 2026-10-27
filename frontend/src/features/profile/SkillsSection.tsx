@@ -1,3 +1,4 @@
+import { TechnologyIcon } from '../../components/TechnologyIcon'
 import { useEffect, useMemo, useState } from 'react'
 import {
   saveSkills,
@@ -100,6 +101,7 @@ export function SkillsForm({ profile, onSaved, onCancel, onDirtyChange }: FormPr
             return (
               <li key={row.slug} className="skill-row">
                 <div className="skill-row__who">
+                  <TechnologyIcon slug={row.slug} />
                   <span className="skill-row__name">{row.name}</span>
                   <Badge>{t.declared}</Badge>
                 </div>

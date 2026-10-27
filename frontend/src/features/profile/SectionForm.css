@@ -45,3 +45,12 @@
     flex: 0 0 auto;
   }
 }
+
+.section-form__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-cookie-banner);
+  padding-block: var(--space-4);
+  background: var(--color-surface);
+  border-top: var(--border-width) solid var(--color-border);
+}

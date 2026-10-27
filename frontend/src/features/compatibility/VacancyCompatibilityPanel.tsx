@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { fetchCompatibility, type Compatibility } from '../../api/compatibility'
 import { AiLabel } from '../../components/AiLabel'
@@ -88,7 +88,13 @@ function Insufficient({ result }: { result: Compatibility }) {
  * calculated by the server; this component never calculates. If the call fails, only this card
  * shows the error: the vacancy stays readable.
  */
-export function VacancyCompatibilityPanel({ vacancyId }: { vacancyId: string }) {
+export function VacancyCompatibilityPanel({
+  vacancyId,
+  fallback,
+}: {
+  vacancyId: string
+  fallback?: ReactNode
+}) {
   const titleId = useId()
   const sessionLost = useSessionLost()
   const resource = useApiResource(`compatibility:${vacancyId}`, async (signal) => {
@@ -126,13 +132,21 @@ export function VacancyCompatibilityPanel({ vacancyId }: { vacancyId: string }) 
         </div>
       )}
 
-      {state.status === 'error' && <ErrorNotice message={t.error} onRetry={resource.retry} />}
+      {state.status === 'error' && (
+        <>
+          <ErrorNotice message={t.error} onRetry={resource.retry} />
+          {fallback}
+        </>
+      )}
 
       {state.status === 'success' &&
         (state.data.status === 'CALCULATED' ? (
           <Calculated result={state.data} />
         ) : (
-          <Insufficient result={state.data} />
+          <>
+            <Insufficient result={state.data} />
+            {fallback}
+          </>
         ))}
     </section>
   )

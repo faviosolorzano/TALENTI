@@ -28,7 +28,7 @@ export const es = {
   redesign: {
     vacancySections: 'Secciones de la vacante',
     descriptionTab: 'La vacante',
-    fitTab: 'Tu encaje',
+    fitTab: 'Cómo encajas',
     uploadStep: 'Subir',
     reviewStep: 'Revisar',
     saveStep: 'Guardar',
@@ -151,6 +151,7 @@ export const es = {
     pending: 'Por revisar',
     observed: 'Visto en GitHub',
     level: 'Nivel que declaras',
+    chooseLevel: 'Elige tu nivel',
     noRepos: 'No hay repositorios públicos disponibles.',
     noSuggestions: 'No hay nuevas sugerencias para revisar.',
     linked: 'Cuenta conectada',
@@ -242,6 +243,11 @@ export const es = {
       'attempt-not-started': 'Inicia el examen antes de responder.',
       'exam-unavailable': 'El examen no está disponible para esta postulación.',
       'interview-unavailable': 'La entrevista no está disponible todavía para esta postulación.',
+      'stale-revision':
+        'Esta respuesta cambió en otra pestaña. Conserva tu texto y actualiza el examen antes de guardar.',
+      'exam-notice-outdated':
+        'El aviso del examen cambió. Actualiza la web para leer la versión vigente antes de aceptar.',
+      'exam-exists': 'Este examen ya fue preparado. Actualiza para continuar tu intento.',
       'revision-conflict':
         'La respuesta cambió en otra pestaña. Actualiza el examen antes de guardar.',
       'exam-not-completed': 'Primero completa el examen técnico.',
@@ -455,7 +461,7 @@ export const es = {
     actions: {
       edit: 'Editar',
       editSection: (title: string) => `Editar ${title}`,
-      save: 'Guardar',
+      save: 'Guardar y continuar',
       saving: 'Guardando…',
       saved: 'Guardado',
       cancel: 'Cancelar',
@@ -751,7 +757,7 @@ export const es = {
       aiNote: 'Sugerencias de DORA a partir de tu CV. Pueden equivocarse.',
       youDecide: 'Tú decides: nada se guarda hasta que confirmes.',
       groups: { ACADEMIC: 'Estudios', SKILL: 'Habilidades', PROJECT: 'Proyectos' } as const,
-      fromCv: 'Del CV:',
+      fromCv: 'Ver evidencia',
       current: (value: string) => `Ahora en tu perfil: ${value}`,
       fields: { CAREER: 'Carrera', INSTITUTE: 'Instituto', CYCLE: 'Ciclo' } as const,
       accept: 'Aceptar',

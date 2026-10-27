@@ -1,5 +1,6 @@
+import { safeReturnTo } from '../../session/returnTo'
 import { useRef, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 import { fetchApplication, type Application } from '../../api/applications'
 import { ApiError } from '../../api/client'
 import { Button } from '../../components/Button'
@@ -20,6 +21,8 @@ const t = es.applications.detail
 /** Page /postulaciones/:id (008-19): the vacancy, the state, the line of stages and the withdrawal. */
 export function ApplicationDetailScreen() {
   const { id = '' } = useParams()
+  const location = useLocation()
+  const previous = safeReturnTo(location.state?.applicationList)
   const { refresh } = useSession()
   const resource = useApiResource(`application-${id}`, async (signal) => {
     try {
@@ -31,7 +34,10 @@ export function ApplicationDetailScreen() {
   })
 
   const back = (
-    <Link className="applications__back" to={sessionPaths.applications}>
+    <Link
+      className="applications__back"
+      to={previous?.startsWith('/postulaciones?') ? previous : sessionPaths.applications}
+    >
       <span aria-hidden="true">←</span>
       {t.back}
     </Link>
@@ -139,7 +145,9 @@ function ApplicationView({
         {vacancy.status === 'CLOSED' && <p className="applications__note">{t.vacancyClosed}</p>}
         <p className="applications__note">{es.applications.finalDecision}</p>
         <p className="applications__note">{es.applications.practicePrivate}</p>
-        {application.status === 'SUBMITTED' && (
+        {['SUBMITTED', 'EXAM_PENDING', 'EXAM_DONE', 'INTERVIEW_PENDING', 'INTERVIEW_DONE'].includes(
+          application.status,
+        ) && (
           <div>
             <Button variant="quiet" onClick={() => setDialogOpen(true)}>
               {t.withdraw}

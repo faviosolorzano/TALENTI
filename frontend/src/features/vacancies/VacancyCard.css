@@ -86,3 +86,13 @@
     animation: none;
   }
 }
+
+.vacancy-card__skill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.vacancy-card__skill .technology-icon {
+  width: var(--space-6);
+  height: var(--space-6);
+}

@@ -247,10 +247,12 @@ export function DoraConversation({
   session,
   refresh,
   interview = false,
+  onTranscript,
 }: {
   session: DoraSession
   refresh: () => void
   interview?: boolean
+  onTranscript?: (position: number, turnId: string) => void
 }) {
   const action = useWorkflowAction()
   const [text, setText] = useState('')
@@ -315,6 +317,8 @@ export function DoraConversation({
     setReply('')
     setDegraded(false)
     await streamDora(path, { ...body, signal: controller.current.signal }, (name, data) => {
+      if (name === 'transcript' && typeof data.turnId === 'string')
+        onTranscript?.(position, data.turnId)
       if (name === 'reply.text') {
         setReply((value) => value + String(data.text ?? ''))
         setReplySource(String(data.source ?? data.generatedBy ?? ''))
@@ -381,6 +385,7 @@ export function DoraConversation({
   return (
     <>
       <p className="workflow__notice">{interview ? t.interviewIntro : t.practiceIntro}</p>
+      {session.versions?.llmAdapter.includes('simulated') && <p role="status">{t.simulated}</p>}
       <ActionError message={action.error} />
       {audioBlocked && (
         <Button variant="quiet" onClick={() => playbackRef.current?.resume()}>

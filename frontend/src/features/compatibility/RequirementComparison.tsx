@@ -1,3 +1,4 @@
+import { TechnologyIcon } from '../../components/TechnologyIcon'
 import { Link, useLocation } from 'react-router'
 import type { CompatibilityItem } from '../../api/compatibility'
 import { es } from '../../i18n/es'
@@ -51,6 +52,7 @@ export function RequirementComparison({ items }: { items: CompatibilityItem[] })
               data-outcome={outcome}
             >
               <div className="comparison-row__name">
+                {item.type === 'REQUIREMENT' && <TechnologyIcon slug={item.skill.slug} />}
                 <strong>{name}</strong>
                 {item.type === 'REQUIREMENT' && (
                   <small>
@@ -67,6 +69,16 @@ export function RequirementComparison({ items }: { items: CompatibilityItem[] })
                         ? es.redesign.noData
                         : es.vacancies.levels[item.profileLevel]}
                     </p>
+                    <div className="comparison-level" aria-hidden="true">
+                      {[1, 2, 3].map((level) => (
+                        <span
+                          key={level}
+                          data-filled={
+                            (item.profileLevel !== null && item.profileLevel >= level) || undefined
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
                   <svg
                     className="comparison-row__connector"
@@ -80,6 +92,11 @@ export function RequirementComparison({ items }: { items: CompatibilityItem[] })
                   <div>
                     <small>{es.redesign.requiredLevel}</small>
                     <p>{es.vacancies.levels[item.requiredLevel]}</p>
+                    <div className="comparison-level" aria-hidden="true">
+                      {[1, 2, 3].map((level) => (
+                        <span key={level} data-filled={item.requiredLevel >= level || undefined} />
+                      ))}
+                    </div>
                   </div>
                 </>
               ) : (

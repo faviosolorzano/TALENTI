@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useSearchParams, useBlocker, useLocation, useNavigate } from 'react-router'
+import { Navigate, useSearchParams, useBlocker, useLocation, useNavigate } from 'react-router'
 import { Dialog } from '../../components/Dialog'
 import { Button } from '../../components/Button'
 import { safeReturnTo } from '../../session/returnTo'
@@ -41,6 +41,9 @@ const TITLES: Record<SectionKey, string> = {
  * server answers (percentage included).
  */
 export function ProfileScreen() {
+  const [query] = useSearchParams()
+  const githubOutcome = query.get('github')
+
   const { refresh } = useSession()
   const resource = useApiResource('profile', async (signal) => {
     try {
@@ -52,6 +55,8 @@ export function ProfileScreen() {
     }
   })
 
+  if (githubOutcome === 'linked' || githubOutcome === 'error')
+    return <Navigate replace to={'/perfil/github?github=' + githubOutcome} />
   if (resource.state.status === 'loading') return <ProfileSkeleton />
 
   if (resource.state.status === 'error') {

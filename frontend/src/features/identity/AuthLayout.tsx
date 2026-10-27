@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { safeReturnTo } from '../../session/returnTo'
 import { es } from '../../i18n/es'
 import './AuthLayout.css'
@@ -10,13 +10,14 @@ interface AuthLayoutProps {
   children: ReactNode
 }
 export function AuthLayout({ title, lead, children }: AuthLayoutProps) {
+  const location = useLocation()
   const [params] = useSearchParams()
   const back = safeReturnTo(params.get('returnTo'))
   return (
     <div className="container auth">
       <section className="auth__form" aria-labelledby="auth-title">
         {back && (
-          <Link className="auth__back" to={back}>
+          <Link className="auth__back" to={back} state={location.state}>
             {es.redesign.backVacancy}
           </Link>
         )}

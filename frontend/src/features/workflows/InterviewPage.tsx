@@ -1,3 +1,4 @@
+import { Markdown } from '../../components/Markdown'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { workflowApi as api, type DoraSession, type PracticeOptions } from '../../api/workflows'
@@ -41,6 +42,7 @@ function Interview({ id }: { id: string }) {
     api<PracticeOptions>('/practice/options', { signal }),
   )
   const action = useWorkflowAction()
+  const [turnIds, setTurnIds] = useState<Record<number, string>>({})
   const [accepted, setAccepted] = useState(false)
   const [created, setCreated] = useState<DoraSession | null>(null)
   const view = resource.state.status === 'success' ? resource.state.data : null
@@ -52,7 +54,8 @@ function Interview({ id }: { id: string }) {
         basis: 'VACANCY',
         topic: null,
         questionCount: view.questions.length,
-        voice: created?.id === view.sessionId ? created.voice : false,
+        voice: true,
+        versions: created?.id === view.sessionId ? created.versions : undefined,
         status: view.status,
         nextPosition: view.nextPosition,
         answered: view.questions.filter((q) => q.transcriptFinal != null).length,
@@ -64,7 +67,7 @@ function Interview({ id }: { id: string }) {
           answer:
             q.transcriptFinal != null
               ? {
-                  turnId: '',
+                  turnId: turnIds[q.position] ?? '',
                   attempt: view.attempt,
                   inputMode: 'TEXT',
                   transcriptRaw: q.transcriptRaw ?? '',
@@ -88,13 +91,24 @@ function Interview({ id }: { id: string }) {
         </>
       ) : (
         <>
-          {session && <DoraConversation session={session} refresh={resource.retry} interview />}
+          {session && (
+            <DoraConversation
+              session={session}
+              refresh={resource.retry}
+              interview
+              onTranscript={(position, turnId) =>
+                setTurnIds((current) => ({ ...current, [position]: turnId }))
+              }
+            />
+          )}
           {(!session || view?.canRetry) && (
             <>
               <p>{t.interviewIntro}</p>
               {notice ? (
                 <>
-                  <div className="workflow__notice workflow__pre">{notice.text}</div>
+                  <div className="workflow__notice">
+                    <Markdown>{notice.text}</Markdown>
+                  </div>
                   <label className="workflow__choice">
                     <input
                       type="checkbox"

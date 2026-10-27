@@ -317,7 +317,8 @@
   background: none;
   border: 0;
   border-bottom: var(--border-width-accent) solid transparent;
-  font: inherit;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
   cursor: pointer;
@@ -325,4 +326,39 @@
 .vacancy-detail__tabs button[aria-current] {
   color: var(--color-action);
   border-bottom-color: var(--color-action);
+}
+
+.vacancy-detail__header {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+.vacancy-detail__heading {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.vacancy-detail__title {
+  margin: 0;
+}
+.vacancy-detail__headline-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+}
+.vacancy-detail__apply {
+  padding: 0;
+  border: 0;
+}
+@media (min-width: 61.25rem) {
+  .vacancy-detail__header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .vacancy-detail__apply {
+    padding-top: var(--space-1);
+  }
 }

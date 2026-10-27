@@ -34,6 +34,24 @@ describe('API client', () => {
     expect(init?.credentials).toBe('same-origin')
   })
 
+  it('raw streaming responses retain the same session and CSRF protections', async () => {
+    const response = new Response('event: ready\ndata: {}\n\n', {
+      headers: { 'Content-Type': 'text/event-stream' },
+    })
+    fetchMock.mockResolvedValue(response)
+    expect(await apiFetch('/dora/sessions/id/start', { method: 'POST', rawResponse: true })).toBe(
+      response,
+    )
+    const init = fetchMock.mock.calls[0]![1]!
+    expect(init.credentials).toBe('same-origin')
+    expect(new Headers(init.headers).get(CSRF_HEADER_NAME)).toBe('token-de-prueba')
+    expect(init).not.toHaveProperty('rawResponse')
+  })
+  it('raw mode still rejects problem details and never treats an error body as audio', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ code: 'access-denied' }, 403))
+    await expect(apiFetch('/audio', { rawResponse: true })).rejects.toMatchObject({ status: 403 })
+  })
+
   it('does not send the CSRF token on read requests', async () => {
     fetchMock.mockResolvedValue(jsonResponse({}))
 

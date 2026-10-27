@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
 import { RequireSession } from '../identity/RequireSession'
@@ -30,9 +30,10 @@ export function WorkflowFrame({
   back?: string
   children: ReactNode
 }) {
+  const location = useLocation()
   return (
     <div className="container workflow">
-      <Link className="workflow__back" to={back}>
+      <Link className="workflow__back" to={back} state={location.state}>
         {t.back}
       </Link>
       <h1>{title}</h1>

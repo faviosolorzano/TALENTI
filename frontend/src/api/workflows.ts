@@ -33,6 +33,7 @@ export interface DoraAnswer {
   feedback: DoraFeedback | null
 }
 export interface DoraSession {
+  versions?: { llmAdapter: string }
   id: string
   mode: string
   basis: string

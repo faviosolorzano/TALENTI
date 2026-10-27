@@ -92,6 +92,23 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
   const signedIn = session.status === 'authenticated'
   const checkingSession = session.status === 'loading'
 
+  const requirementsView = (
+    <section aria-labelledby="detail-requirements">
+      <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
+      {required.length > 0 && (
+        <>
+          <h3>{es.vacancyDetail.required}</h3>
+          <RequirementList items={required} kind="required" />
+        </>
+      )}
+      {desirable.length > 0 && (
+        <>
+          <h3>{es.vacancyDetail.desirable}</h3>
+          <RequirementList items={desirable} kind="desirable" />
+        </>
+      )}
+    </section>
+  )
   return (
     <div className="container vacancy-detail">
       <Link
@@ -104,18 +121,26 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
       </Link>
       <DemoNotice />
       <header className="vacancy-detail__header">
-        <div className="vacancy-detail__company">
-          <CompanyAvatar name={vacancy.company.name} size="lg" />
-          <p>
-            <strong>{vacancy.company.name}</strong>
-            <span>{vacancy.company.city}</span>
-          </p>
-        </div>
-        <h1 className="vacancy-detail__title">{vacancy.title}</h1>
-        <p className="vacancy-detail__summary">{vacancy.summary}</p>
-      </header>
-
-      <div className="vacancy-detail__grid">
+        <div className="vacancy-detail__heading">
+          {' '}
+          <h1 className="vacancy-detail__title">{vacancy.title}</h1>{' '}
+          <div className="vacancy-detail__company">
+            <CompanyAvatar name={vacancy.company.name} size="lg" />
+            <p>
+              <strong>{vacancy.company.name}</strong>
+              <span>{vacancy.company.city}</span>
+            </p>
+          </div>
+          <ul className="vacancy-detail__headline-facts">
+            <li>
+              {es.vacancies.modality[vacancy.modality]}
+              {vacancy.location ? ' · ' + vacancy.location : ''}
+            </li>
+            <li>{es.vacancies.hoursPerWeek(vacancy.hoursPerWeek)}</li>
+            <li>{publishedLabel(vacancy.publishedAt)}</li>
+          </ul>
+          <p className="vacancy-detail__summary">{vacancy.summary}</p>
+        </div>{' '}
         <section className="vacancy-detail__apply" aria-label={es.vacancyDetail.apply}>
           {open ? (
             session.isStudent ? (
@@ -130,7 +155,9 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
               <Button disabled>{es.vacancyDetail.apply}</Button>
             ) : (
               <>
-                <Button to={`/ingresar?returnTo=${returnTo}`}>{es.vacancyDetail.apply}</Button>
+                <Button state={location.state} to={`/ingresar?returnTo=${returnTo}`}>
+                  {es.vacancyDetail.apply}
+                </Button>
                 <p className="vacancy-detail__notice">{es.vacancyDetail.applyLoginNotice}</p>
               </>
             )
@@ -144,7 +171,9 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
             </>
           )}
         </section>
+      </header>
 
+      <div className="vacancy-detail__grid">
         <nav className="vacancy-detail__tabs" aria-label={es.redesign.vacancySections}>
           <button
             type="button"
@@ -162,22 +191,10 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
           </button>
         </nav>
         <div className="vacancy-detail__main" hidden={tab !== 'fit'}>
-          {open && session.isStudent && <VacancyCompatibilityPanel vacancyId={vacancy.id} />}
-          <section aria-labelledby="detail-requirements">
-            <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
-            {required.length > 0 && (
-              <>
-                <h3>{es.vacancyDetail.required}</h3>
-                <RequirementList items={required} kind="required" />
-              </>
-            )}
-            {desirable.length > 0 && (
-              <>
-                <h3>{es.vacancyDetail.desirable}</h3>
-                <RequirementList items={desirable} kind="desirable" />
-              </>
-            )}
-          </section>
+          {open && session.isStudent && (
+            <VacancyCompatibilityPanel vacancyId={vacancy.id} fallback={requirementsView} />
+          )}
+          {(!open || !session.isStudent) && requirementsView}
         </div>
         <div className="vacancy-detail__main" hidden={tab !== 'description'}>
           <section aria-labelledby="detail-about">

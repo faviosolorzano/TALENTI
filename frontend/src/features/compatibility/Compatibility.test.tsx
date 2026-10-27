@@ -210,7 +210,7 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
   })
 
   it('007-25: while loading it is a busy skeleton that does not block the vacancy', async () => {
-    openStudentApp(detailPath, { compatibility: { delayMs: 60 } })
+    openStudentApp(detailPath, { compatibility: { delayMs: 400 } })
     const region = await panel()
     expect(region).toHaveAttribute('aria-busy', 'true')
     expect(

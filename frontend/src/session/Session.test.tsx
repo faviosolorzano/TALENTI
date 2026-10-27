@@ -328,10 +328,10 @@ describe('"Postular" and the session (004-22)', () => {
     mockIdentityBackend({ signedInAs: EMAIL, accounts: STUDENT })
     renderAppWithSession(`/oportunidades/${FIRST}`)
 
-    const button = await screen.findByRole('button', { name: es.vacancyDetail.apply })
-    expect(button).toBeEnabled()
+    const button = await screen.findByRole('link', { name: es.vacancyDetail.apply })
+    expect(button).toHaveAttribute('href', expect.stringContaining('/postular'))
     expect(screen.queryByText(es.vacancyDetail.applyLoginNotice)).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: es.vacancyDetail.apply })).not.toBeInTheDocument()
+    expect(button).toHaveAttribute('href', `/oportunidades/${FIRST}/postular`)
   })
 
   it('as a visitor it is still the link to /ingresar that comes back to the vacancy', async () => {
@@ -357,7 +357,7 @@ describe('"Postular" and the session (004-22)', () => {
     await user.type(screen.getByLabelText(es.identity.form.passwordLabel), PASSWORD)
     await user.click(screen.getByRole('button', { name: es.identity.login.submit }))
 
-    expect(await screen.findByRole('button', { name: es.vacancyDetail.apply })).toBeEnabled()
+    expect(await screen.findByRole('link', { name: es.vacancyDetail.apply })).toBeEnabled()
     expect(router.state.location.pathname).toBe(`/oportunidades/${FIRST}`)
   })
 })

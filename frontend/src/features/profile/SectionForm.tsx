@@ -1,3 +1,5 @@
+import { useSearchParams } from 'react-router'
+import { safeReturnTo } from '../../session/returnTo'
 import { useEffect, useRef, type FormEvent, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
 import { Notice } from '../../components/Notice'
@@ -30,6 +32,10 @@ export function SectionForm({
   onCancel,
   children,
 }: SectionFormProps) {
+  const [query] = useSearchParams()
+  const effectiveSaveLabel = safeReturnTo(query.get('returnTo'))
+    ? es.redesign.saveReturn
+    : saveLabel
   const formRef = useRef<HTMLFormElement>(null)
   const saving = state.status === 'saving'
 
@@ -65,7 +71,7 @@ export function SectionForm({
 
       <div className="section-form__actions">
         <Button type="submit" disabled={saving}>
-          {saving ? es.profile.actions.saving : saveLabel}
+          {saving ? es.profile.actions.saving : effectiveSaveLabel}
         </Button>
         <Button variant="quiet" onClick={onCancel} disabled={saving}>
           {es.profile.actions.cancel}

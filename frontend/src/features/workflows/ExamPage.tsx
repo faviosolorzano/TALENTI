@@ -1,3 +1,4 @@
+import { Markdown } from '../../components/Markdown'
 import { useWorkflowAction } from './useWorkflowAction'
 import { t } from './workflowLabels'
 import { useEffect, useRef, useState } from 'react'
@@ -47,7 +48,9 @@ function ExamLoader({ id }: { id: string }) {
       ) : (
         <>
           <p>{t.examIntro}</p>
-          <div className="workflow__notice workflow__pre">{notice}</div>
+          <div className="workflow__notice">
+            <Markdown>{notice}</Markdown>
+          </div>
           <label className="workflow__choice">
             <input
               type="checkbox"
@@ -119,7 +122,13 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
     return () => clearInterval(timer)
   }, [running])
   useEffect(() => {
-    if (!running) return
+    if (
+      !running &&
+      (attempt.gradingStatus === 'DONE' ||
+        attempt.status === 'NOT_STARTED' ||
+        attempt.status === 'CLOSED_WITHDRAWN')
+    )
+      return
     let controller: AbortController | null = null
     const timer = setInterval(() => {
       controller?.abort()
@@ -134,7 +143,7 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
       clearInterval(timer)
       controller?.abort()
     }
-  }, [running, attempt.id])
+  }, [running, attempt.id, attempt.status, attempt.gradingStatus])
   useEffect(() => {
     if (!running) return
     const before = (e: BeforeUnloadEvent) => {
@@ -176,8 +185,31 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
           if (mounted.current) setEventMessage(t.eventUnsent)
         })
     }
-    const visibility = () =>
-      report(document.visibilityState === 'hidden' ? 'SCREEN_LEFT' : 'SCREEN_RETURNED')
+    let outside = false
+    let wasFullscreen = false
+    const leave = () => {
+      if (!outside) {
+        outside = true
+        report('SCREEN_LEFT')
+      }
+    }
+    const returned = () => {
+      if (outside) {
+        outside = false
+        report('SCREEN_RETURNED')
+      }
+    }
+    const visibility = () => (document.visibilityState === 'hidden' ? leave() : returned())
+    const fullscreen = () => {
+      if (document.fullscreenElement) {
+        wasFullscreen = true
+        returned()
+      } else if (wasFullscreen) {
+        wasFullscreen = false
+        leave()
+      }
+    }
+    document.addEventListener('fullscreenchange', fullscreen)
     const offline = () => report('CONNECTION_LOST')
     const online = () => report('CONNECTION_RESTORED')
     const focus = () => report('FOCUS_LOST')
@@ -187,6 +219,7 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
     window.addEventListener('blur', focus)
     return () => {
       controller.abort()
+      document.removeEventListener('fullscreenchange', fullscreen)
       document.removeEventListener('visibilitychange', visibility)
       window.removeEventListener('offline', offline)
       window.removeEventListener('online', online)
@@ -199,7 +232,9 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
       <p role="status">{eventMessage}</p>
       {attempt.status === 'NOT_STARTED' ? (
         <>
-          <div className="workflow__notice workflow__pre">{attempt.notice}</div>
+          <div className="workflow__notice">
+            <Markdown>{attempt.notice}</Markdown>
+          </div>
           <Button
             disabled={action.busy}
             onClick={() =>
@@ -226,15 +261,31 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
             {t.statuses[attempt.gradingStatus as keyof typeof t.statuses] ?? t.unknownState}
           </p>
           <p>{t.noScore}</p>
-          <Button to={'/postulaciones/' + attempt.applicationId + '/entrevista'}>
-            {t.interview}
-          </Button>
+          {attempt.status !== 'CLOSED_WITHDRAWN' && (
+            <Button to={'/postulaciones/' + attempt.applicationId + '/entrevista'}>
+              {t.interview}
+            </Button>
+          )}
         </>
       ) : (
         <>
           <div className="workflow__timer" role="timer" aria-label={t.timeRemaining}>
             {t.timeRemaining}: {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
           </div>
+          <p>{t.visibilityNotice}</p>
+          {document.fullscreenEnabled && (
+            <Button
+              variant="quiet"
+              disabled={action.busy}
+              onClick={() =>
+                void action.perform(async () => {
+                  await document.documentElement.requestFullscreen()
+                })
+              }
+            >
+              {t.fullscreen}
+            </Button>
+          )}
           <details>
             <summary>{t.examRules}</summary>
             <p className="workflow__pre">{attempt.notice}</p>

@@ -59,13 +59,19 @@ function LiveProfileBlock({ resource }: { resource: ProfileResource }) {
 
   const { completeness } = state.data
   const next = completeness.nextStep
+  const hasSkills = state.data.skills.length > 0
   return (
     <HomeBlock title={t.title} className="home-block--wide">
       <div className="home-profile">
         <div className="home-profile__progress">
           <ProgressHeadline percent={completeness.percent} />
         </div>
-        {next ? (
+        {hasSkills ? (
+          <div className="home-profile__next">
+            <p className="home-profile__caption">{es.home.vacancies.forYouTitle}</p>
+            <Button to="/oportunidades?vista=para-ti">{es.home.vacancies.seeAll}</Button>
+          </div>
+        ) : next ? (
           <div className="home-profile__next">
             <p className="home-profile__caption">{t.nextStep}</p>
             <Button to={sectionPath(sectionOfItem(next))}>{es.profile.steps[next]}</Button>

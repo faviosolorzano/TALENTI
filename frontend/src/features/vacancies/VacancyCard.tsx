@@ -1,3 +1,4 @@
+import { TechnologyIcon } from '../../components/TechnologyIcon'
 import { Link } from 'react-router'
 import type { CompatibilitySummary } from '../../api/compatibility'
 import type { VacancyCardData } from '../../api/vacancies'
@@ -63,6 +64,7 @@ export function VacancyCard({ vacancy, from, compatibility }: VacancyCardProps) 
           <ul className="vacancy-card__skills" aria-label={es.vacancies.skillsLabel}>
             {visibleSkills.map((skill) => (
               <li key={skill.slug} className="vacancy-card__skill">
+                <TechnologyIcon slug={skill.slug} />
                 {skill.name}
               </li>
             ))}

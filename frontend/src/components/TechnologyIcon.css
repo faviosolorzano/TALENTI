@@ -1,0 +1,6 @@
+.technology-icon {
+  width: var(--technology-icon-size);
+  height: var(--technology-icon-size);
+  object-fit: contain;
+  flex: none;
+}

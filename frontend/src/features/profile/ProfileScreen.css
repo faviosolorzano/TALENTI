@@ -153,3 +153,7 @@
 .profile .section-card__tick {
   display: none;
 }
+
+.profile__title {
+  font-size: var(--font-size-task-title);
+}

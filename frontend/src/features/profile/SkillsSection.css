@@ -135,3 +135,7 @@
   gap: var(--space-3);
   min-width: 0;
 }
+
+.skill-row__editor {
+  grid-area: level;
+}
