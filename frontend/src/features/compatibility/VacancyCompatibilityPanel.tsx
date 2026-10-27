@@ -37,14 +37,15 @@ function Calculated({ result }: { result: Compatibility }) {
 
       {result.capped && <p className="compat-panel__cap">{t.capped(result.formula.cap)}</p>}
 
-      <div className="compat-panel__explanation">
+      <details className="compat-panel__explanation">
+        <summary>{es.redesign.explanationHelp}</summary>
         {aiWritten ? (
           <AiLabel />
         ) : (
           <p className="compat-panel__explanation-label">{t.explanationLabel}</p>
         )}
         <p>{result.explanation.text}</p>
-      </div>
+      </details>
 
       <RequirementComparison items={[...result.matches, ...result.gaps, ...result.missingInfo]} />
       <HowItIsCalculated formula={result.formula} />

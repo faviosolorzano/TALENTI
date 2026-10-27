@@ -38,7 +38,7 @@ export interface DoraSession {
   mode: string
   basis: string
   topic: string | null
-  questionCount: number
+  questionCount: number | null
   voice: boolean
   status: string
   nextPosition: number | null

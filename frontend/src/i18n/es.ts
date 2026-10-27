@@ -26,6 +26,14 @@ export const es = {
     menu: 'Menú',
   },
   redesign: {
+    explanationHelp: 'Ver explicación del resultado',
+    outcomes: {
+      MATCH: 'Coincide',
+      PARTIAL: 'Nivel por reforzar',
+      MISSING: 'Sin dato',
+      UNKNOWN: 'Por completar',
+      MISMATCH: 'No coincide',
+    },
     vacancySections: 'Secciones de la vacante',
     descriptionTab: 'La vacante',
     fitTab: 'Cómo encajas',
@@ -863,7 +871,7 @@ export const es = {
     companiesList: 'Empresas destacadas',
   },
   opportunities: {
-    title: 'Oportunidades',
+    title: 'Encuentra tu próxima práctica',
     lead: 'Explora vacantes de prácticas preprofesionales sin crear cuenta.',
     view: {
       label: 'Qué vacantes ver',

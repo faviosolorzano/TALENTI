@@ -61,7 +61,7 @@ function PracticeSetup() {
       ) : (
         data && (
           <form
-            className="workflow__form"
+            className="workflow__form workflow__setup"
             onSubmit={(event) => {
               event.preventDefault()
               void action.perform(async () => {
@@ -320,7 +320,14 @@ export function DoraConversation({
       if (name === 'transcript' && typeof data.turnId === 'string')
         onTranscript?.(position, data.turnId)
       if (name === 'reply.text') {
-        setReply((value) => value + String(data.text ?? ''))
+        setReply(
+          (value) =>
+            value +
+            (value && !/\s$/.test(value) && !/^[,.;?!:\s]/.test(String(data.text ?? ''))
+              ? ' '
+              : '') +
+            String(data.text ?? ''),
+        )
         setReplySource(String(data.source ?? data.generatedBy ?? ''))
       }
       if (name === 'reply.audio' && session.voice)
@@ -411,7 +418,8 @@ export function DoraConversation({
       {question && session.nextPosition !== null && !ended && session.status !== 'CREATED' && (
         <section className="workflow__row">
           <h2>
-            {t.question} {position}/{session.questionCount}
+            {t.question} {position}
+            {session.questionCount !== null ? '/' + session.questionCount : ''}
           </h2>
           <Source value={question.generatedBy} />
           <p className="workflow__question">{question.text}</p>

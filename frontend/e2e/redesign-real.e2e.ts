@@ -8,6 +8,7 @@ const output = process.env.E2E_REDESIGN_OUTPUT ?? 'test-results/redesign'
 test.describe.configure({ mode: 'serial', timeout: 240000 })
 test.skip(process.env.E2E_REAL_BACKEND !== '1', 'Requires an isolated simulated-provider backend.')
 test.use({
+  actionTimeout: 20000,
   launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
   permissions: ['microphone'],
 })
@@ -176,7 +177,25 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   await page.getByRole('button', { name: '1', exact: true }).click()
   await expect(page.getByRole('radio').first()).toBeChecked()
   await shot(page, 'examen-escritorio')
+  await page.setViewportSize({ width: 360, height: 900 })
+  await reflow(page)
+  await shot(page, 'examen-movil')
+  await page.setViewportSize({ width: 1440, height: 1000 })
   await page.getByRole('button', { name: '8', exact: true }).click()
+  const codeEditor = page.locator('textarea')
+  if (!(await codeEditor.inputValue()).trim()) {
+    const label = await codeEditor.locator('..').innerText()
+    await codeEditor.fill(
+      label.includes('SQL')
+        ? 'SELECT 0 AS total;'
+        : label.includes('PYTHON')
+          ? 'print(0)'
+          : label.includes('JAVASCRIPT')
+            ? 'console.log(0)'
+            : 'class Main {public static void main(String[] args){System.out.println(0);}}',
+    )
+  }
+
   await page.getByRole('button', { name: t.run, exact: true }).click()
   await expect(
     page.locator('.workflow__row strong').filter({ hasText: /1\./ }).first(),
@@ -189,18 +208,37 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   await page.getByRole('checkbox', { name: t.acceptInterview, exact: true }).check()
   await page.getByRole('button', { name: t.startInterview, exact: true }).click()
   await page.getByRole('button', { name: t.start, exact: true }).click()
-  for (let n = 0; n < 5; n++) {
+  const firstQuestion = await page
+    .getByRole('heading', { level: 2, name: /Pregunta 1\// })
+    .innerText()
+  const actualQuestions = Number(firstQuestion.split('/')[1])
+  for (let n = 0; n < actualQuestions; n++) {
     const input = page.getByLabel(t.answer, { exact: true })
     await input.fill(
       'En un proyecto de estudio separé los requisitos, implementé la solución, ejecuté pruebas y documenté los resultados para que el equipo pudiera revisarlos.',
     )
     await page.getByRole('button', { name: t.send, exact: true }).click()
-    await expect(page.getByRole('button', { name: t.finish, exact: true })).toBeEnabled()
+    if (n + 1 < actualQuestions)
+      await expect(
+        page.getByRole('heading', {
+          level: 2,
+          name: `${t.question} ${n + 2}/${actualQuestions}`,
+          exact: true,
+        }),
+      ).toBeVisible({ timeout: 30000 })
+    else
+      await expect(page.getByText(t.closedSession, { exact: true })).toBeVisible({ timeout: 30000 })
     if (await page.getByText(t.allAnswered, { exact: true }).count()) break
   }
   await shot(page, 'entrevista-escritorio')
-  await page.getByRole('button', { name: t.finish, exact: true }).click()
-  await page.getByRole('dialog').getByRole('button', { name: t.finish, exact: true }).click()
+  await page.setViewportSize({ width: 360, height: 900 })
+  await reflow(page)
+  await shot(page, 'entrevista-movil')
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  if (!(await page.getByText(t.closedSession, { exact: true }).count())) {
+    await page.getByRole('button', { name: t.finish, exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: t.finish, exact: true }).click()
+  }
   await expect(page.getByText(t.closedSession, { exact: true })).toBeVisible()
   await expect(page.getByRole('main')).not.toContainText(t.feedback)
   for (const [route, name] of [

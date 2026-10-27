@@ -110,7 +110,13 @@ export function RequirementComparison({ items }: { items: CompatibilityItem[] })
                       ? '!'
                       : '—'}
                 </span>
-                <span>{itemEvidence(item)}</span>
+                <details>
+                  <summary>
+                    {es.redesign.outcomes[outcome as keyof typeof es.redesign.outcomes] ??
+                      es.redesign.outcomes.UNKNOWN}
+                  </summary>
+                  <p>{itemEvidence(item)}</p>
+                </details>
                 {action && (
                   <Link to={`${action.to}&returnTo=${returnTo}`} state={location.state}>
                     {item.type === 'REQUIREMENT' ? es.redesign.reviewLevel : action.label}

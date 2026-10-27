@@ -3,11 +3,11 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   align-items: end;
-  padding: var(--space-5);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-lg);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: var(--color-surface);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .search-form__field {

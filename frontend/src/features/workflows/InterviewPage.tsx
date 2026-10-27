@@ -53,7 +53,7 @@ function Interview({ id }: { id: string }) {
         mode: 'INTERVIEW',
         basis: 'VACANCY',
         topic: null,
-        questionCount: view.questions.length,
+        questionCount: created?.id === view.sessionId ? created.questionCount : null,
         voice: true,
         versions: created?.id === view.sessionId ? created.versions : undefined,
         status: view.status,

@@ -213,3 +213,16 @@
     grid-column: auto;
   }
 }
+
+.compat-panel__explanation {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.compat-panel__explanation summary,
+.comparison-row__status summary {
+  cursor: pointer;
+  min-height: var(--touch-target-min);
+  align-content: center;
+}

@@ -362,3 +362,17 @@
     padding-top: var(--space-1);
   }
 }
+
+.vacancy-detail__header > .vacancy-detail__apply {
+  grid-row: auto;
+  grid-column: auto;
+}
+@media (min-width: 61.25rem) {
+  .vacancy-detail__header > .vacancy-detail__heading {
+    grid-area: 1 / 1;
+  }
+  .vacancy-detail__header > .vacancy-detail__apply {
+    grid-area: 1 / 2;
+    align-self: start;
+  }
+}
