@@ -271,11 +271,14 @@ function GithubDecisions({ items, saved }: { items: GithubSuggestion[]; saved: (
               <label>
                 {t.level}
                 <select
-                  value={decisions[item.slug].level}
+                  value={decisions[item.slug]?.level ?? 1}
                   onChange={(e) =>
                     setDecisions({
                       ...decisions,
-                      [item.slug]: { ...decisions[item.slug], level: Number(e.target.value) },
+                      [item.slug]: {
+                        decision: decisions[item.slug]?.decision ?? 'ACCEPT',
+                        level: Number(e.target.value),
+                      },
                     })
                   }
                 >

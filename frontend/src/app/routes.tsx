@@ -1,3 +1,5 @@
+import { PageFailure } from './PageFailure'
+import { ApplicationReviewPage } from '../features/workflows/ApplicationReviewPage'
 import { PracticePage, PracticeSessionPage } from '../features/workflows/PracticePage'
 import { GithubPage } from '../features/workflows/GithubPage'
 import { ExamPage } from '../features/workflows/ExamPage'
@@ -28,6 +30,11 @@ export const routes: RouteObject[] = [
   {
     element: <Layout />,
     children: [
+      {
+        path: '/oportunidades/:id/postular',
+        element: <ApplicationReviewPage />,
+        handle: { title: es.workflows.applyTitle },
+      },
       { path: '/practicar', element: <PracticePage />, handle: { title: es.workflows.practice } },
       {
         path: '/practicar/:id',
@@ -135,3 +142,6 @@ export const routes: RouteObject[] = [
     ],
   },
 ]
+
+for (const parent of routes)
+  for (const child of parent.children ?? []) child.errorElement = <PageFailure />

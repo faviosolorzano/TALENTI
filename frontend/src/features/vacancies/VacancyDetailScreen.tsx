@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { DemoNotice } from '../../components/DemoNotice'
 import { fetchVacancy, type Requirement, type VacancyDetail } from '../../api/vacancies'
@@ -82,6 +82,8 @@ function RequirementList({
 
 function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back: string }) {
   const session = useSession()
+  const location = useLocation()
+  const [tab, setTab] = useState(location.hash.startsWith('#requisito-') ? 'fit' : 'description')
   const open = vacancy.status === 'OPEN'
   const { required, desirable } = vacancy.requirements
   const returnTo = encodeURIComponent(`/oportunidades/${vacancy.id}`)
@@ -95,7 +97,7 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
       <Link
         className="vacancy-detail__back"
         to={back}
-        state={{ restoreVacancy: vacancy.id, ...useLocation().state }}
+        state={{ restoreVacancy: vacancy.id, ...location.state }}
       >
         <span aria-hidden="true">←</span>
         {es.vacancyDetail.back}
@@ -143,30 +145,45 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
           )}
         </section>
 
-        <div className="vacancy-detail__main">
+        <nav className="vacancy-detail__tabs" aria-label={es.redesign.vacancySections}>
+          <button
+            type="button"
+            aria-current={tab === 'description' ? 'page' : undefined}
+            onClick={() => setTab('description')}
+          >
+            {es.redesign.descriptionTab}
+          </button>
+          <button
+            type="button"
+            aria-current={tab === 'fit' ? 'page' : undefined}
+            onClick={() => setTab('fit')}
+          >
+            {es.redesign.fitTab}
+          </button>
+        </nav>
+        <div className="vacancy-detail__main" hidden={tab !== 'fit'}>
           {open && session.isStudent && <VacancyCompatibilityPanel vacancyId={vacancy.id} />}
+          <section aria-labelledby="detail-requirements">
+            <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
+            {required.length > 0 && (
+              <>
+                <h3>{es.vacancyDetail.required}</h3>
+                <RequirementList items={required} kind="required" />
+              </>
+            )}
+            {desirable.length > 0 && (
+              <>
+                <h3>{es.vacancyDetail.desirable}</h3>
+                <RequirementList items={desirable} kind="desirable" />
+              </>
+            )}
+          </section>
+        </div>
+        <div className="vacancy-detail__main" hidden={tab !== 'description'}>
           <section aria-labelledby="detail-about">
             <h2 id="detail-about">{es.vacancyDetail.about}</h2>
             <p className="vacancy-detail__description">{vacancy.description}</p>
           </section>
-
-          {!session.isStudent && (
-            <section aria-labelledby="detail-requirements">
-              <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
-              {required.length > 0 && (
-                <>
-                  <h3>{es.vacancyDetail.required}</h3>
-                  <RequirementList items={required} kind="required" />
-                </>
-              )}
-              {desirable.length > 0 && (
-                <>
-                  <h3>{es.vacancyDetail.desirable}</h3>
-                  <RequirementList items={desirable} kind="desirable" />
-                </>
-              )}
-            </section>
-          )}
 
           <section aria-labelledby="detail-company">
             <h2 id="detail-company">{es.vacancyDetail.company}</h2>
@@ -176,7 +193,7 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
           </section>
         </div>
 
-        <div className="vacancy-detail__side">
+        <div className="vacancy-detail__side" hidden={tab !== 'description'}>
           <section aria-labelledby="detail-conditions" className="vacancy-detail__panel">
             <h2 id="detail-conditions">{es.vacancyDetail.conditions}</h2>
             <dl className="vacancy-detail__conditions">

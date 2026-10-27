@@ -1,3 +1,4 @@
+import { AudioQueue } from './audioQueue'
 import { useWorkflowAction } from './useWorkflowAction'
 import { t } from './workflowLabels'
 import { useEffect, useRef, useState } from 'react'
@@ -221,8 +222,10 @@ export function PracticeSessionPage() {
   )
 }
 function PracticeSession({ id }: { id: string }) {
-  const resource = useApiResource('practice-session:' + id, (signal) =>
-    api<DoraSession>('/practice/sessions/' + id, { signal }),
+  const resource = useApiResource(
+    'practice-session:' + id,
+    (signal) => api<DoraSession>('/practice/sessions/' + id, { signal }),
+    { keepPrevious: true },
   )
   return (
     <WorkflowFrame title={t.session} back="/practicar">
@@ -255,13 +258,21 @@ export function DoraConversation({
   const [replySource, setReplySource] = useState('')
   const [recording, setRecording] = useState(false)
   const [playing, setPlaying] = useState(false)
+  const [audioBlocked, setAudioBlocked] = useState(false)
+  const playbackRef = useRef<AudioQueue | null>(null)
+  useEffect(() => {
+    const queue = new AudioQueue((playing, blocked) => {
+      setPlaying(playing)
+      setAudioBlocked(blocked)
+    })
+    playbackRef.current = queue
+    return () => queue.stop()
+  }, [])
   const [confirmFinish, setConfirmFinish] = useState(false)
   const [degraded, setDegraded] = useState(false)
   const controller = useRef<AbortController | null>(null)
   const recorder = useRef<MediaRecorder | null>(null)
   const media = useRef<MediaStream | null>(null)
-  const audio = useRef<HTMLAudioElement | null>(null)
-  const urls = useRef<string[]>([])
   const chunks = useRef<Blob[]>([])
   const recordTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingTurn = useRef<{ id: string; position: number; value: string } | null>(null)
@@ -277,8 +288,7 @@ export function DoraConversation({
         recorder.current.stop()
       }
       media.current?.getTracks().forEach((track) => track.stop())
-      audio.current?.pause()
-      urls.current.forEach((url) => URL.revokeObjectURL(url))
+      playbackRef.current?.stop()
     },
     [],
   )
@@ -296,17 +306,9 @@ export function DoraConversation({
     const blob = new Blob([Uint8Array.from(atob(data), (letter) => letter.charCodeAt(0))], {
       type: mime,
     })
-    const url = URL.createObjectURL(blob)
-    urls.current.push(url)
-    const player = new Audio(url)
-    audio.current = player
-    player.onended = () => setPlaying(false)
-    setPlaying(true)
-    void player.play().catch(() => {
-      setPlaying(false)
-      action.setError(t.listen)
-    })
+    playbackRef.current?.enqueue(blob)
   }
+
   async function stream(path: string, body: { json?: unknown; form?: FormData }) {
     controller.current?.abort()
     controller.current = new AbortController()
@@ -372,6 +374,7 @@ export function DoraConversation({
         120000,
       )
     } catch {
+      media.current?.getTracks().forEach((track) => track.stop())
       action.setError(t.noMicrophone)
     }
   }
@@ -379,6 +382,11 @@ export function DoraConversation({
     <>
       <p className="workflow__notice">{interview ? t.interviewIntro : t.practiceIntro}</p>
       <ActionError message={action.error} />
+      {audioBlocked && (
+        <Button variant="quiet" onClick={() => playbackRef.current?.resume()}>
+          {t.playAudio}
+        </Button>
+      )}
       {(degraded || session.degraded?.length > 0) && <p role="status">{t.degraded}</p>}
       <div className="workflow__orb">
         <DoraOrb
@@ -395,7 +403,7 @@ export function DoraConversation({
           {action.busy ? t.working : t.start}
         </Button>
       )}
-      {question && !ended && session.status !== 'CREATED' && (
+      {question && session.nextPosition !== null && !ended && session.status !== 'CREATED' && (
         <section className="workflow__row">
           <h2>
             {t.question} {position}/{session.questionCount}
@@ -412,14 +420,8 @@ export function DoraConversation({
                     `/dora/sessions/${session.id}/questions/${position}/audio`,
                     { rawResponse: true },
                   )
-                  const url = URL.createObjectURL(await response.blob())
-                  urls.current.push(url)
-                  audio.current?.pause()
-                  const player = new Audio(url)
-                  audio.current = player
-                  setPlaying(true)
-                  player.onended = () => setPlaying(false)
-                  await player.play()
+                  playbackRef.current?.stop()
+                  playbackRef.current?.enqueue(await response.blob())
                 })
               }
             >
@@ -481,6 +483,9 @@ export function DoraConversation({
             </section>
           ))}
       </section>
+      {!ended && session.nextPosition === null && session.status !== 'CREATED' && (
+        <p role="status">{t.allAnswered}</p>
+      )}
       {ended ? (
         <p role="status">{t.closedSession}</p>
       ) : (

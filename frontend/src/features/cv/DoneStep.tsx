@@ -8,7 +8,14 @@ import { sectionOfItem, sectionPath } from '../profile/sections'
 import './StatusSteps.css'
 
 /** After saving: the percentage the SERVER calculated, and where to go next. */
-export function DoneStep({ profile }: { profile: Profile; savedCount: number }) {
+export function DoneStep({
+  profile,
+  returnTo,
+}: {
+  profile: Profile
+  savedCount: number
+  returnTo?: string | null
+}) {
   const t = es.cv.done
   const titleRef = useRef<HTMLHeadingElement>(null)
   useEffect(() => titleRef.current?.focus({ preventScroll: false }), [])
@@ -22,7 +29,7 @@ export function DoneStep({ profile }: { profile: Profile; savedCount: number }) 
       <p>{t.saved}</p>
       <ProgressHeadline percent={percent} />
       <div className="status-step__buttons">
-        <Button to={sessionPaths.profile}>{t.viewProfile}</Button>
+        <Button to={returnTo ?? sessionPaths.profile}>{t.viewProfile}</Button>
         <Button to={keepGoing} variant="quiet">
           {t.keepGoing}
         </Button>

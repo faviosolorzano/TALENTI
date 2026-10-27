@@ -57,7 +57,13 @@ export function Loading() {
 export function Source({ value }: { value: string }) {
   return (
     <small className="workflow__source">
-      {value === 'AI' ? t.ai : value === 'BANK' ? t.bank : t.rules}
+      {value === 'AI'
+        ? t.ai
+        : value === 'BANK'
+          ? t.bank
+          : value === 'TEMPLATE'
+            ? t.template
+            : t.rules}
     </small>
   )
 }

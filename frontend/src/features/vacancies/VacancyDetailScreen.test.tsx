@@ -37,31 +37,13 @@ describe('Page /oportunidades/:id (004-21)', () => {
     await waitFor(() => expect(document.title).toBe(`Practicante Backend Java · ${es.app.name}`))
   })
 
-  it('has a disabled "Ver perfil de la empresa" button described by "Próximamente" (004-34)', async () => {
+  it('does not offer company-profile controls unsupported by the service', async () => {
     mockBackend()
-    const { router } = renderApp(`/oportunidades/${FIRST}`)
-    await title()
-
-    const button = screen.getByRole('button', { name: es.vacancyDetail.companyProfile })
-    expect(button).toHaveAttribute('aria-disabled', 'true')
-    expect(button).toHaveAccessibleDescription(es.vacancyDetail.companyProfileSoon)
+    renderApp('/oportunidades/' + FIRST)
+    await screen.findByRole('heading', { level: 1, name: 'Practicante Backend Java' })
     expect(
-      within(button.parentElement as HTMLElement).getByText(es.vacancyDetail.companyProfileSoon),
-    ).toBeVisible()
-    // It is not a link: no address and nothing broken to follow.
-    expect(button.tagName).toBe('BUTTON')
-    expect(button).not.toHaveAttribute('href')
-    expect(
-      screen.queryByRole('link', { name: es.vacancyDetail.companyProfile }),
+      screen.queryByRole('button', { name: es.vacancyDetail.companyProfile }),
     ).not.toBeInTheDocument()
-
-    const path = router.state.location.pathname
-    await userEvent.click(button)
-    button.focus()
-    await userEvent.keyboard('{Enter}')
-    await userEvent.keyboard(' ')
-    expect(router.state.location.pathname).toBe(path)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('separates "Obligatorios" and "Deseables", each with a badge and the minimum level in words', async () => {
@@ -69,6 +51,7 @@ describe('Page /oportunidades/:id (004-21)', () => {
     renderApp(`/oportunidades/${FIRST}`)
     await title()
 
+    await userEvent.click(screen.getByRole('button', { name: es.redesign.fitTab }))
     const requirements = screen.getByRole('region', { name: es.vacancyDetail.requirements })
     const required = within(requirements).getByRole('heading', {
       level: 3,
@@ -114,25 +97,12 @@ describe('Page /oportunidades/:id (004-21)', () => {
     expect(conditions).toHaveTextContent(/Publicada/)
   })
 
-  it('shows the stages only as information, with the final decision belonging to the company', async () => {
+  it('does not invent hiring stages in the vacancy', async () => {
     mockBackend()
     renderApp(`/oportunidades/${FIRST}`)
     await title()
-    const process = screen.getByRole('region', { name: es.vacancyDetail.process })
-    const stages = within(process).getAllByRole('listitem')
-
-    expect(stages.map((stage) => stage.querySelector('span')?.textContent)).toEqual([
-      'Enviada',
-      'Examen técnico',
-      'Entrevista',
-      'Revisión de la empresa',
-    ])
-    expect(within(process).getAllByText(es.applications.stages.soon)).toHaveLength(3)
-    expect(process).toHaveTextContent('La decisión final es de la empresa')
-    expect(within(process).queryByRole('button')).not.toBeInTheDocument()
-    expect(within(process).queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: es.vacancyDetail.process })).not.toBeInTheDocument()
   })
-
   it('on a closed vacancy says it is no longer open and offers no "Postular"', async () => {
     mockBackend({ closed: [FIRST] })
     renderApp(`/oportunidades/${FIRST}`)
@@ -170,9 +140,8 @@ describe('"Postular" and the session (004-22)', () => {
       renderApp(`/oportunidades/${FIRST}`)
       await title()
 
-      const button = await screen.findByRole('button', { name: es.vacancyDetail.apply })
-      expect(button).toBeEnabled()
-      expect(screen.queryByRole('link', { name: es.vacancyDetail.apply })).not.toBeInTheDocument()
+      const button = await screen.findByRole('link', { name: es.vacancyDetail.apply })
+      expect(button).toHaveAttribute('href', `/oportunidades/${FIRST}/postular`)
       expect(screen.queryByText(es.vacancyDetail.applyLoginNotice)).not.toBeInTheDocument()
     } finally {
       vi.mocked(useSession).mockReturnValue(visitorSession)

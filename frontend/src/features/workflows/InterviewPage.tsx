@@ -32,8 +32,10 @@ export function InterviewPage() {
   )
 }
 function Interview({ id }: { id: string }) {
-  const resource = useApiResource('interview:' + id, (signal) =>
-    api<InterviewView | undefined>('/applications/' + id + '/interview', { signal }),
+  const resource = useApiResource(
+    'interview:' + id,
+    (signal) => api<InterviewView | undefined>('/applications/' + id + '/interview', { signal }),
+    { keepPrevious: true },
   )
   const options = useApiResource('interview-notice', (signal) =>
     api<PracticeOptions>('/practice/options', { signal }),

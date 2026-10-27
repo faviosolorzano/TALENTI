@@ -198,6 +198,9 @@ export async function streamDora(
         break
       }
     }
+  } catch (error) {
+    await reader.cancel().catch(() => {})
+    throw error
   } finally {
     reader.releaseLock()
   }

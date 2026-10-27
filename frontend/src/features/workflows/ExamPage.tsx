@@ -264,6 +264,15 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
               attemptId={attempt.id}
               answer={attempt.answers.find((a) => a.questionId === q.id)}
               onDirty={setDirty}
+              onSaved={(answer) =>
+                setAttempt((current) => ({
+                  ...current,
+                  answers: [
+                    ...current.answers.filter((item) => item.questionId !== answer.questionId),
+                    answer,
+                  ],
+                }))
+              }
               saveCurrentRef={saveCurrentRef}
               number={active + 1}
             />
@@ -331,6 +340,7 @@ function ExamEditor({
   attemptId,
   answer,
   onDirty,
+  onSaved,
   saveCurrentRef,
   number,
 }: {
@@ -338,6 +348,7 @@ function ExamEditor({
   attemptId: string
   answer?: ExamAnswer
   onDirty: (v: boolean) => void
+  onSaved: (answer: ExamAnswer) => void
   saveCurrentRef: React.RefObject<() => Promise<void>>
   number: number
 }) {
@@ -368,6 +379,15 @@ function ExamEditor({
           },
         },
       )
+      onSaved({
+        questionId: q.id,
+        choiceId: q.type === 'CHOICE' ? value : null,
+        text: q.type === 'OPEN' ? value : null,
+        code: q.type === 'CODE' ? value : null,
+        revision: result.revision,
+        runCount: answer?.runCount ?? 0,
+        updatedAt: new Date().toISOString(),
+      })
       revision.current = result.revision
       setSaved(value)
       onDirty(false)

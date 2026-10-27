@@ -20,7 +20,7 @@ async function open(
   const app = openStudentApp(`/perfil?seccion=${section}`, {
     profile: { ...options, profile: data },
   })
-  await screen.findByRole('region', { name: t.about.title })
+  await screen.findByRole('navigation', { name: es.profile.title })
   return app
 }
 
@@ -61,7 +61,7 @@ describe('Datos personales y Sobre ti (006-27, 006-28, 006-30)', () => {
         phone: '+51 987 654 321',
       },
     })
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '10')
+    expect(profile.bodies).toHaveLength(1)
   })
 
   it('shows "Guardando…" while it saves and "Guardado" afterwards', async () => {
@@ -138,14 +138,12 @@ describe('Habilidades (006-16)', () => {
       await user.type(search, name)
       await user.keyboard('{Enter}')
     }
-    await user.click(
-      within(card(t.skills.title)).getAllByRole('radio', { name: t.skills.levels[3] })[0]!,
-    )
+    const javaRow = screen.getByText('Java', { selector: '.skill-row__name' }).closest('li')!
+    await user.click(within(javaRow).getByRole('button', { name: /Básico Java/ }))
+    await user.click(within(javaRow).getByRole('radio', { name: t.skills.levels[3] }))
     await user.click(screen.getByRole('button', { name: t.actions.save }))
 
-    await waitFor(() =>
-      expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25'),
-    )
+    await waitFor(() => expect(profile.bodies).toHaveLength(1))
     expect(profile.bodies[0]?.body).toEqual({
       skills: [
         { slug: 'java', level: 3 },

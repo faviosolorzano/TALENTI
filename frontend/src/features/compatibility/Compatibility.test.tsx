@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { es } from '../../i18n/es'
 import { VACANCY_IDS } from '../../test/fakeBackend'
@@ -11,13 +11,17 @@ afterEach(clearCsrfCookie)
 const t = es.compatibility
 const FIRST = VACANCY_IDS[0] as string
 const detailPath = `/oportunidades/${FIRST}`
-const panel = () => screen.findByRole('region', { name: t.title })
+const panel = async () => {
+  const tab = await screen.findByRole('button', { name: es.redesign.fitTab })
+  fireEvent.click(tab)
+  return screen.findByRole('region', { name: t.title })
+}
 
 describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
   it('007-18: shows what the server sent: ring, verdict, no "Basado en" at 100 %', async () => {
     openStudentApp(detailPath)
     const region = await panel()
-    expect(await within(region).findByText(es.ring.announce(81))).toBeInTheDocument()
+    expect(await within(region).findByText('81 %')).toBeInTheDocument()
     expect(within(region).getByText(t.verdict.HIGH)).toBeInTheDocument()
     expect(within(region).queryByText(/Basado en/)).not.toBeInTheDocument()
     expect(within(region).queryByText(t.capped(69))).not.toBeInTheDocument()
@@ -28,7 +32,7 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
       compatibility: { details: { [FIRST]: sampleDetail(FIRST, { percent: 37, level: 'HIGH' }) } },
     })
     const region = await panel()
-    expect(await within(region).findByText(es.ring.announce(37))).toBeInTheDocument()
+    expect(await within(region).findByText('37 %')).toBeInTheDocument()
     expect(within(region).getByText(t.verdict.HIGH)).toBeInTheDocument()
   })
 
@@ -50,47 +54,28 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
     expect(within(region).getByText(t.basis(59))).toBeInTheDocument()
   })
 
-  it('007-19: three lists with evidence in words, subgroups, and a link to the right profile section', async () => {
+  it('007-19: compares evidence in rows with contextual links and never editable requested levels', async () => {
     openStudentApp(detailPath)
     const region = await panel()
-    await within(region).findByRole('heading', { name: t.lists.matches })
-    for (const title of [t.lists.matches, t.lists.gaps, t.lists.missing]) {
-      expect(within(region).getByRole('heading', { level: 3, name: title })).toBeInTheDocument()
-    }
     expect(
-      within(region).getByText(`pide nivel intermedio · tú: básico · declarado`),
+      await within(region).findByText('pide nivel intermedio · tú: básico · declarado'),
     ).toBeInTheDocument()
-    expect(within(region).getByText('pide nivel básico · no está en tu perfil')).toBeInTheDocument()
-    expect(
-      within(region).getAllByRole('heading', { level: 4, name: t.lists.required }).length,
-    ).toBe(2)
-    expect(
-      within(region).getAllByRole('heading', { level: 4, name: t.lists.desirable }).length,
-    ).toBe(2)
-
-    expect(
-      within(region).getByRole('link', { name: new RegExp(`${t.action.PARTIAL}.*SQL`) }),
-    ).toHaveAttribute('href', '/perfil?seccion=habilidades')
-    expect(
-      within(region).getByRole('link', { name: new RegExp(`${t.action.MISSING}.*Docker`) }),
-    ).toHaveAttribute('href', '/perfil?seccion=habilidades')
-    expect(
-      within(region).getByRole('link', {
-        name: new RegExp(`${t.action.COMPLETE}.*${t.condition.factor.AVAILABILITY}`),
-      }),
-    ).toHaveAttribute('href', '/perfil?seccion=disponibilidad')
-    // A match has nothing to fix.
-    expect(within(region).queryByRole('link', { name: /Java/ })).not.toBeInTheDocument()
+    const sql = within(region).getByText('SQL', { selector: 'strong' }).closest('li')!
+    expect(within(sql).getByText(es.redesign.ownLevel)).toBeInTheDocument()
+    expect(within(sql).getByText(es.redesign.requiredLevel)).toBeInTheDocument()
+    expect(within(sql).getByRole('link')).toHaveAttribute(
+      'href',
+      expect.stringContaining('/perfil?seccion=habilidades&returnTo='),
+    )
+    expect(within(sql).queryByRole('radio')).not.toBeInTheDocument()
   })
-
-  it('007-19: an empty list is not drawn', async () => {
+  it('007-19: matches remain read-only without a correction action', async () => {
     openStudentApp(detailPath, {
       compatibility: { details: { [FIRST]: sampleDetail(FIRST, { gaps: [], missingInfo: [] }) } },
     })
     const region = await panel()
-    await within(region).findByRole('heading', { name: t.lists.matches })
-    expect(within(region).queryByRole('heading', { name: t.lists.gaps })).not.toBeInTheDocument()
-    expect(within(region).queryByRole('heading', { name: t.lists.missing })).not.toBeInTheDocument()
+    await within(region).findByText('81 %')
+    expect(within(region).queryByRole('link')).not.toBeInTheDocument()
   })
 
   it('007-20: the template explanation says "calculada con reglas" and has NO AI label', async () => {
@@ -151,11 +136,11 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
     const region = await panel()
     expect(await within(region).findByText(t.insufficient.title)).toBeInTheDocument()
     expect(within(region).getByText(t.insufficient.NO_SKILLS)).toBeInTheDocument()
-    expect(within(region).getByText(es.ring.announceNone)).toBeInTheDocument()
+    expect(within(region).getByText(t.insufficient.title)).toBeInTheDocument()
     expect(within(region).queryByText(/\d+ %/)).not.toBeInTheDocument()
     expect(within(region).getByRole('link', { name: t.insufficient.action })).toHaveAttribute(
       'href',
-      '/perfil?seccion=habilidades',
+      expect.stringContaining('/perfil?seccion=habilidades&returnTo='),
     )
   })
 
@@ -182,9 +167,11 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
     expect(await within(region).findByText(t.insufficient.LOW_INFORMATION)).toBeInTheDocument()
     expect(within(region).getByRole('link', { name: t.insufficient.action })).toHaveAttribute(
       'href',
-      '/perfil?seccion=disponibilidad',
+      expect.stringContaining('/perfil?seccion=disponibilidad&returnTo='),
     )
-    expect(within(region).getByRole('heading', { name: t.lists.missing })).toBeInTheDocument()
+    expect(
+      within(region).getByText(t.condition.factor.MODALITY, { selector: 'strong' }),
+    ).toBeInTheDocument()
   })
 
   it('007-21: a vacancy without requirements only informs, with no action', async () => {
@@ -245,6 +232,6 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
 
     compatibility.setFailing({})
     await user.click(within(alert).getByRole('button', { name: es.common.retry }))
-    expect(await within(region).findByText(es.ring.announce(81))).toBeInTheDocument()
+    expect(await within(region).findByText('81 %')).toBeInTheDocument()
   })
 })

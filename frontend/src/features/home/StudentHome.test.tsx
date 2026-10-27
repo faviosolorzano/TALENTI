@@ -22,7 +22,7 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
       t.profile.title,
       t.vacancies.forYouTitle,
       t.applications.title,
-      t.practice.title,
+      es.workflows.practice,
     ]) {
       expect(screen.getByRole('region', { name: title })).toBeInTheDocument()
     }
@@ -116,14 +116,14 @@ describe('Home of the student (005-01, 005-06, 005-09 to 005-14)', () => {
     expect(await within(block).findByRole('progressbar')).toBeInTheDocument()
   })
 
-  it('005-13: DORA says "Próximamente", carries the AI label and the privacy note; Postulaciones is real (008-21)', async () => {
+  it('DORA opens the real private practice route', async () => {
     openStudentApp('/')
-    const dora = await screen.findByRole('region', { name: t.practice.title })
-    expect(within(dora).getByText(es.ai.label)).toBeInTheDocument()
-    expect(within(dora).getByText(t.practice.privacy)).toBeInTheDocument()
-    expect(within(dora).queryByRole('button')).not.toBeInTheDocument()
-    const applications = screen.getByRole('region', { name: t.applications.title })
-    expect(within(applications).queryByText(t.soon)).not.toBeInTheDocument()
+    const dora = await screen.findByRole('region', { name: es.workflows.practice })
+    expect(within(dora).getByRole('link', { name: es.workflows.start })).toHaveAttribute(
+      'href',
+      '/practicar',
+    )
+    expect(within(dora).getByText(es.workflows.practiceIntro)).toBeInTheDocument()
   })
 })
 

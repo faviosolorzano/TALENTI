@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { fetchApplications, isActiveStatus } from '../../api/applications'
 import { Button } from '../../components/Button'
 import { useApiResource } from '../../hooks/useApiResource'
@@ -8,7 +7,6 @@ import { sessionPaths } from '../../session/sessionPaths'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
 import { formatDate } from '../vacancies/format'
 import '../vacancies/Skeletons.css'
-import { ApplyDialog, type ApplyOutcome } from './ApplyDialog'
 import { statusLabel } from './status'
 import './ApplyCard.css'
 
@@ -25,27 +23,12 @@ interface ApplyCardProps {
  * "Postular", "Postulaste el…" with the link to it, or "Postular de nuevo" after a withdrawal.
  * The server decides every state; this card only asks for the latest application to this vacancy.
  */
-export function ApplyCard({ vacancyId, vacancyTitle, companyName }: ApplyCardProps) {
-  const [version, setVersion] = useState(0)
+export function ApplyCard({ vacancyId }: ApplyCardProps) {
+  const location = useLocation()
   const latest = useApiResource(
-    `apply-card-${vacancyId}-${version}`,
+    `apply-card-${vacancyId}`,
     async (signal) => (await fetchApplications({ vacancyId, size: 1 }, signal)).items[0] ?? null,
-    { keepPrevious: true },
   )
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const messageRef = useRef<HTMLParagraphElement>(null)
-
-  function onDone(outcome: ApplyOutcome) {
-    setDialogOpen(false)
-    setMessage(
-      outcome.kind === 'sent' ? t.sent : outcome.kind === 'exists' ? t.alreadyApplied : t.closed,
-    )
-    setVersion((value) => value + 1)
-    // The button that opened the dialog is gone: the announcement takes the focus.
-    setTimeout(() => messageRef.current?.focus(), 0)
-  }
-
   if (latest.state.status === 'loading') {
     return (
       <div aria-busy="true">
@@ -65,9 +48,6 @@ export function ApplyCard({ vacancyId, vacancyTitle, companyName }: ApplyCardPro
 
   return (
     <div className="apply-card">
-      <p ref={messageRef} tabIndex={-1} role="status" className="apply-card__message">
-        {message}
-      </p>
       {active ? (
         <>
           <p className="apply-card__title">{t.applied(formatDate(application.submittedAt))}</p>
@@ -85,19 +65,10 @@ export function ApplyCard({ vacancyId, vacancyTitle, companyName }: ApplyCardPro
               {t.withdrawn(formatDate(application.withdrawnAt ?? application.submittedAt))}
             </p>
           )}
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button to={`/oportunidades/${vacancyId}/postular`} state={location.state}>
             {application ? t.applyAgain : es.vacancyDetail.apply}
           </Button>
         </>
-      )}
-      {dialogOpen && (
-        <ApplyDialog
-          vacancyId={vacancyId}
-          vacancyTitle={vacancyTitle}
-          companyName={companyName}
-          onClose={() => setDialogOpen(false)}
-          onDone={onDone}
-        />
       )}
     </div>
   )

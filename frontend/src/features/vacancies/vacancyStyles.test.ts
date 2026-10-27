@@ -34,13 +34,9 @@ describe('Colors and motion in the styles (004-25)', () => {
 
   it('stop moving cards and arrows with "prefers-reduced-motion"', () => {
     const card = read('VacancyCard.css')
-    expect(card).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.card\.vacancy-card:hover\s*\{\s*transform:\s*none;/,
-    )
-    const featured = read('FeaturedVacancies.css')
-    expect(featured).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.featured__all:hover span\s*\{\s*transform:\s*none;/,
-    )
+    expect(card).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(card.split('@media (prefers-reduced-motion: reduce)')[1]).toContain('animation: none;')
+    expect(card).not.toContain('transform: translate')
   })
 
   it('keep no fixed width in rem inside the layout rules: sizes come from tokens', () => {

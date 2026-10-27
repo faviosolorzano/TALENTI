@@ -87,11 +87,13 @@ describe('Page /oportunidades: search and filters (004-17)', () => {
     expect(searchOf(router)).toBe('?pagina=2')
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Remoto (4)' }))
+    await userEvent.click(screen.getByRole('button', { name: es.redesign.applyFilters }))
     await waitFor(() => expect(searchOf(router)).toBe('?modalidad=remoto'))
     expect(api.requested()).toContain('/vacancies?modality=REMOTE')
     expect(await countHeading('4 vacantes')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('checkbox', { name: /^Git \(\d+\)$/ }))
+    await userEvent.click(screen.getByRole('button', { name: es.redesign.applyFilters }))
     await waitFor(() => expect(searchOf(router)).toBe('?modalidad=remoto&tecnologia=git'))
   })
 
@@ -190,6 +192,7 @@ describe('Page /oportunidades: state in the URL (004-18)', () => {
     await countHeading('12 vacantes')
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Remoto (4)' }))
+    await userEvent.click(screen.getByRole('button', { name: es.redesign.applyFilters }))
     await countHeading('4 vacantes')
     expect(screen.getByRole('checkbox', { name: /^Remoto/ })).toBeChecked()
 

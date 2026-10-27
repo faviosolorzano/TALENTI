@@ -26,6 +26,9 @@ export const es = {
     menu: 'Menú',
   },
   redesign: {
+    vacancySections: 'Secciones de la vacante',
+    descriptionTab: 'La vacante',
+    fitTab: 'Tu encaje',
     uploadStep: 'Subir',
     reviewStep: 'Revisar',
     saveStep: 'Guardar',
@@ -98,6 +101,8 @@ export const es = {
     question: 'Pregunta',
     answer: 'Tu respuesta',
     send: 'Enviar respuesta',
+    template: 'Respuesta de respaldo',
+    playAudio: 'Reproducir audio',
     listen: 'Escuchar pregunta',
     record: 'Responder con micrófono',
     stopRecording: 'Detener y enviar',
@@ -114,6 +119,10 @@ export const es = {
     delete: 'Eliminar',
     finishBody:
       'Puedes terminar ahora. Las preguntas sin responder quedarán registradas como incompletas.',
+    allAnswered:
+      'Respondiste las preguntas. Termina la sesión cuando hayas revisado tus respuestas.',
+    simulated:
+      'Entorno de prueba: respuestas y voz simuladas, sin consumo de proveedores externos.',
     closedSession: 'Esta sesión ha terminado.',
     degraded: 'DORA funciona en modo de respaldo. Puedes continuar por texto.',
     noBasis: 'Añade habilidades a tu perfil o elige una vacante para comenzar.',
@@ -191,6 +200,11 @@ export const es = {
       'Si cambias de pestaña o sales de pantalla completa, Talenti registra el evento. El aviso del servidor explica sus consecuencias.',
     fullscreen: 'Entrar en pantalla completa',
     noScore: 'La vista del estudiante no muestra notas ni resultados internos de la empresa.',
+    fullName: 'Nombre',
+    contact: 'Correo de contacto',
+    academic: 'Formación',
+    skills: 'Habilidades',
+    notProvided: 'Sin completar',
     applyTitle: 'Revisar postulación',
     applyConfirm: 'Confirmar postulación',
     applied: 'Postulación registrada',

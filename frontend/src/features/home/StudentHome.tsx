@@ -55,11 +55,11 @@ export function StudentHome() {
         <VacanciesBlock />
         <div className="home__side">
           <ApplicationsBlock />
-          <section className="home-practice-link">
-            <h2>{es.home.practice.title}</h2>
-            <p>{es.home.practice.privacy}</p>
+          <section className="home-practice-link" aria-labelledby="home-practice-title">
+            <h2 id="home-practice-title">{es.workflows.practice}</h2>
+            <p>{es.workflows.practiceIntro}</p>
             <Button variant="quiet" to="/practicar">
-              {es.redesign.practice}
+              {es.workflows.start}
             </Button>
           </section>
         </div>

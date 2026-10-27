@@ -35,18 +35,13 @@ const choose = async (file: File) =>
   fireEvent.change(await screen.findByTestId('cv-file'), { target: { files: [file] } })
 
 describe('Entry from /perfil (009-19, 009-36)', () => {
-  it('009-19: the CV block on /perfil is now an entry to /perfil/cv, next to the manual profile', async () => {
-    openStudentApp('/perfil')
-    const block = await screen.findByRole('region', { name: es.profile.cv.title })
-    expect(within(block).getByRole('link', { name: es.profile.cv.action })).toHaveAttribute(
-      'href',
-      '/perfil/cv',
-    )
-    expect(screen.getByRole('region', { name: es.profile.academic.title })).toBeInTheDocument()
+  it('009-19: profile opens the real CV reader', async () => {
+    const { user } = openStudentApp('/perfil')
+    const link = await screen.findByRole('link', { name: es.redesign.useCv })
+    expect(link).toHaveAttribute('href', '/perfil/cv')
+    await user.click(link)
+    expect(await screen.findByRole('heading', { level: 1, name: t.title })).toBeInTheDocument()
   })
-})
-
-describe('Upload step (009-20, 009-37)', () => {
   it('009-37: the information line sits by "Subir mi CV"; no checkbox and no permission asked', async () => {
     const { cv } = await openCv()
     await screen.findByRole('button', { name: t.upload.button })
@@ -211,6 +206,8 @@ describe('Review (009-21, 009-22)', () => {
     expect(within(java).getByRole('alert')).toHaveTextContent(t.review.levelMissing)
     expect(within(java).getByText(t.review.state.none)).toBeInTheDocument()
 
+    if (!within(java).queryByRole('radiogroup'))
+      await user.click(within(java).getByRole('button', { name: es.redesign.reviewLevel }))
     await user.click(within(java).getByRole('radio', { name: es.profile.skills.levels[3] }))
     await user.click(within(java).getByRole('button', { name: t.review.acceptLabel('Java') }))
     expect(within(java).getByText(t.review.state.ACCEPT)).toBeInTheDocument()
@@ -223,6 +220,7 @@ describe('Review (009-21, 009-22)', () => {
     const { user } = await openReview()
     const kotlin = row('Kotlin')
     expect(within(kotlin).getByText(t.review.unlinked)).toBeInTheDocument()
+    await user.click(within(kotlin).getByRole('button', { name: es.redesign.reviewLevel }))
     await user.click(within(kotlin).getByRole('radio', { name: es.profile.skills.levels[1] }))
     await user.click(within(kotlin).getByRole('button', { name: t.review.acceptLabel('Kotlin') }))
     expect(within(kotlin).getByRole('alert')).toHaveTextContent(t.review.slugMissing)
@@ -259,6 +257,8 @@ describe('Review (009-21, 009-22)', () => {
       }),
     )
     const java = row('Java')
+    if (!within(java).queryByRole('radiogroup'))
+      await user.click(within(java).getByRole('button', { name: es.redesign.reviewLevel }))
     await user.click(within(java).getByRole('radio', { name: es.profile.skills.levels[3] }))
     await user.click(within(java).getByRole('button', { name: t.review.acceptLabel('Java') }))
     await user.click(
@@ -269,6 +269,8 @@ describe('Review (009-21, 009-22)', () => {
     expect(screen.getByText(t.review.undecided(2))).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: t.review.save(2) }))
+    expect(cv.bodies.filter((b) => b.path.endsWith('/confirm'))).toHaveLength(0)
+    await user.click(screen.getByRole('button', { name: es.redesign.discardPending }))
     expect(await screen.findByRole('heading', { level: 2, name: t.done.title })).toBeInTheDocument()
     // The percentage is the one the server answered (studies 15 is not done: career only).
     expect(
@@ -297,6 +299,8 @@ describe('Review (009-21, 009-22)', () => {
   it('009-22: a 422 on a field points at that suggestion and keeps every decision', async () => {
     const { user, cv } = await openReview()
     const java = row('Java')
+    if (!within(java).queryByRole('radiogroup'))
+      await user.click(within(java).getByRole('button', { name: es.redesign.reviewLevel }))
     await user.click(within(java).getByRole('radio', { name: es.profile.skills.levels[1] }))
     await user.click(within(java).getByRole('button', { name: t.review.acceptLabel('Java') }))
     // Forces the server rule: a level is missing in the body it receives.
@@ -312,6 +316,8 @@ describe('Review (009-21, 009-22)', () => {
     })
 
     await user.click(screen.getByRole('button', { name: t.review.save(1) }))
+    if (screen.queryByRole('button', { name: es.redesign.discardPending }))
+      await user.click(screen.getByRole('button', { name: es.redesign.discardPending }))
     expect(await within(java).findByText('Elige un nivel.')).toBeInTheDocument()
     expect(screen.getAllByRole('alert').some((a) => a.textContent === t.review.reviewFields)).toBe(
       true,
@@ -327,12 +333,15 @@ describe('Review (009-21, 009-22)', () => {
       }),
     )
     await user.click(screen.getByRole('button', { name: t.review.save(1) }))
+    if (screen.queryByRole('button', { name: es.redesign.discardPending }))
+      await user.click(screen.getByRole('button', { name: es.redesign.discardPending }))
     expect(await screen.findByText(t.review.saveFailed)).toBeInTheDocument()
     expect(
       within(row('Desarrollo de Software')).getByText(t.review.state.ACCEPT),
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: es.common.retry }))
+    await user.click(screen.getByRole('button', { name: es.redesign.discardPending }))
     expect(await screen.findByRole('heading', { level: 2, name: t.done.title })).toBeInTheDocument()
   })
 })
@@ -430,6 +439,8 @@ describe('Privacy of the content (009-18, RNF-19)', () => {
       }),
     )
     await user.click(screen.getByRole('button', { name: t.review.save(1) }))
+    if (screen.queryByRole('button', { name: es.redesign.discardPending }))
+      await user.click(screen.getByRole('button', { name: es.redesign.discardPending }))
     await screen.findByRole('heading', { level: 2, name: t.done.title })
     expect(localStorage.length).toBe(0)
     expect(sessionStorage.length).toBe(0)

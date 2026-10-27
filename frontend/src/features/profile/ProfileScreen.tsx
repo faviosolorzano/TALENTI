@@ -26,7 +26,6 @@ import {
 import './ProfileScreen.css'
 
 /** How long "Guardado" stays next to the title of a card. */
-const SAVED_VISIBLE_MS = 4000
 
 const TITLES: Record<SectionKey, string> = {
   about: es.profile.about.title,
@@ -79,19 +78,14 @@ function ProfileView({ initial }: { initial: Profile }) {
   const fromAddress = sectionFromParam(params.get('seccion'))
 
   const [profile, setProfile] = useState(initial)
-  const [selected, setSelected] = useState<SectionKey>(fromAddress ?? 'skills')
+  const [selected, setSelected] = useState<SectionKey>(fromAddress ?? 'about')
+  const [promptHidden, setPromptHidden] = useState(false)
   const [pendingSection, setPendingSection] = useState<SectionKey | 'cancel' | null>(null)
   const [openKey, setOpenKey] = useState<SectionKey | null>(fromAddress)
   const [bringKey, setBringKey] = useState<SectionKey | null>(fromAddress)
   // Cards with unsaved changes stay open when the person opens another one.
   const [dirty, setDirty] = useState<ReadonlySet<SectionKey>>(new Set())
   const [savedKey, setSavedKey] = useState<SectionKey | null>(null)
-
-  useEffect(() => {
-    if (savedKey === null) return
-    const timer = setTimeout(() => setSavedKey(null), SAVED_VISIBLE_MS)
-    return () => clearTimeout(timer)
-  }, [savedKey])
 
   const reportDirty = useCallback((section: SectionKey, value: boolean) => {
     setDirty((current) => {
@@ -133,6 +127,7 @@ function ProfileView({ initial }: { initial: Profile }) {
   const isOpen = (section: SectionKey) => openKey === section
 
   function openSection(section: SectionKey, bring = false) {
+    setPromptHidden(false)
     if (dirty.size && section !== selected) {
       setPendingSection(section)
       return
@@ -203,7 +198,9 @@ function ProfileView({ initial }: { initial: Profile }) {
       <AboutForm
         profile={profile}
         onSaved={(next) => saved('about', next)}
-        onCancel={() => (dirty.size ? setPendingSection('cancel') : closeSection('about'))}
+        onCancel={() =>
+          dirty.size ? (setPromptHidden(false), setPendingSection('cancel')) : closeSection('about')
+        }
         onDirtyChange={dirtyReporters.about}
       />,
     ),
@@ -213,7 +210,11 @@ function ProfileView({ initial }: { initial: Profile }) {
       <AcademicForm
         profile={profile}
         onSaved={(next) => saved('academic', next)}
-        onCancel={() => (dirty.size ? setPendingSection('cancel') : closeSection('academic'))}
+        onCancel={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('academic')
+        }
         onDirtyChange={dirtyReporters.academic}
       />,
     ),
@@ -223,7 +224,11 @@ function ProfileView({ initial }: { initial: Profile }) {
       <SkillsForm
         profile={profile}
         onSaved={(next) => saved('skills', next)}
-        onCancel={() => (dirty.size ? setPendingSection('cancel') : closeSection('skills'))}
+        onCancel={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('skills')
+        }
         onDirtyChange={dirtyReporters.skills}
       />,
     ),
@@ -233,7 +238,11 @@ function ProfileView({ initial }: { initial: Profile }) {
       <AvailabilityForm
         profile={profile}
         onSaved={(next) => saved('availability', next)}
-        onCancel={() => (dirty.size ? setPendingSection('cancel') : closeSection('availability'))}
+        onCancel={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('availability')
+        }
         onDirtyChange={dirtyReporters.availability}
       />,
     ),
@@ -243,7 +252,11 @@ function ProfileView({ initial }: { initial: Profile }) {
       <ProjectsEditor
         profile={profile}
         onChanged={(next) => saved('projects', next, true)}
-        onClose={() => (dirty.size ? setPendingSection('cancel') : closeSection('projects'))}
+        onClose={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('projects')
+        }
         onDirtyChange={dirtyReporters.projects}
       />,
     ),
@@ -291,7 +304,7 @@ function ProfileView({ initial }: { initial: Profile }) {
         )}
         {cards[selected]}
       </div>
-      {(pendingSection || blocker.state === 'blocked') && (
+      {!promptHidden && (pendingSection || blocker.state === 'blocked') && (
         <Dialog
           title={es.redesign.leaveTitle}
           onClose={() => {
@@ -302,9 +315,12 @@ function ProfileView({ initial }: { initial: Profile }) {
           <p>{es.redesign.leaveBody}</p>
           <div className="profile__tools">
             <Button
-              onClick={() =>
-                editorRef.current?.querySelector<HTMLFormElement>('form')?.requestSubmit()
-              }
+              onClick={() => {
+                setPromptHidden(true)
+                requestAnimationFrame(() =>
+                  editorRef.current?.querySelector<HTMLFormElement>('form')?.requestSubmit(),
+                )
+              }}
             >
               {es.redesign.saveLeave}
             </Button>
