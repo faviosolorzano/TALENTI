@@ -98,7 +98,7 @@
   --color-skeleton-shine: var(--color-neutral-50);
 
   /* ---- Typography ---- */
-  /* Families are self-hosted (@fontsource-variable, imported in main.tsx). The fallbacks keep
+  /* Hanken is self-hosted (fonts.css, imported in main.tsx). The fallbacks keep
      the layout readable while the font loads or if it fails. */
   --font-family-base: 'Hanken Grotesk', system-ui, 'Segoe UI', sans-serif;
   --font-family-heading: 'Hanken Grotesk', system-ui, 'Segoe UI', sans-serif;
@@ -193,6 +193,7 @@
 
   /* ---- Layout ---- */
   --content-max-width: 72.5rem; /* 1160 px */
+  --shell-max-width: 87.5rem; /* 1320 px of content plus desktop gutters */
   --page-gutter: 1.25rem; /* 20 px on phones */
   --control-height: 3rem;
   --header-login-width: 7rem;

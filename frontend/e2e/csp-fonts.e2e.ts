@@ -40,7 +40,7 @@ test.describe('Same-origin loading and fonts with the real CSP (003-03)', () => 
     expect(consoleErrors).toEqual([])
   })
 
-  test('Bricolage Grotesque (h1 to h4) and Figtree (text) are loaded from files of the package', async ({
+  test('Hanken Grotesk (headings and text) are loaded from files of the package', async ({
     page,
     baseURL,
   }) => {
@@ -60,17 +60,15 @@ test.describe('Same-origin loading and fonts with the real CSP (003-03)', () => 
         .filter((face) => face.status === 'loaded')
         .map((face) => face.family.replace(/['"]/g, '')),
     )
-    expect(loaded).toContain('Bricolage Grotesque Variable')
-    expect(loaded).toContain('Figtree Variable')
+    expect(loaded).toContain('Hanken Grotesk')
+    expect(loaded).toContain('Hanken Grotesk')
 
-    expect(
-      await page.evaluate(() =>
-        document.fonts.check('700 40px "Bricolage Grotesque Variable"', 'Tu'),
-      ),
-    ).toBe(true)
-    expect(
-      await page.evaluate(() => document.fonts.check('400 17px "Figtree Variable"', 'Tu')),
-    ).toBe(true)
+    expect(await page.evaluate(() => document.fonts.check('700 40px "Hanken Grotesk"', 'Tu'))).toBe(
+      true,
+    )
+    expect(await page.evaluate(() => document.fonts.check('400 17px "Hanken Grotesk"', 'Tu'))).toBe(
+      true,
+    )
 
     // The headings and the body really use them.
     const families = await page.evaluate(() => {
@@ -85,9 +83,9 @@ test.describe('Same-origin loading and fonts with the real CSP (003-03)', () => 
       }
     })
     for (const heading of [families.h1, families.h2, families.h3, families.h4]) {
-      expect(heading).toContain('Bricolage Grotesque Variable')
+      expect(heading).toContain('Hanken Grotesk')
     }
-    expect(families.body).toContain('Figtree Variable')
+    expect(families.body).toContain('Hanken Grotesk')
 
     // Real files from the same origin with the right type (not data: URLs).
     expect(fontResponses.length).toBeGreaterThan(0)

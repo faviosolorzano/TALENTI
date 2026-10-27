@@ -6,6 +6,7 @@
   background: var(--color-surface);
 }
 .header__bar {
+  max-width: var(--shell-max-width);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
