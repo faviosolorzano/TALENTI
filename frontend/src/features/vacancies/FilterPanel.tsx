@@ -16,6 +16,7 @@ interface FilterPanelProps {
   skill: string[]
   onToggleModality: (value: Modality) => void
   onToggleSkill: (slug: string) => void
+  onApply?: (modalities: Modality[], skills: string[]) => void
   onClear: () => void
 }
 
@@ -33,11 +34,23 @@ export function FilterPanel({
   onToggleModality,
   onToggleSkill,
   onClear,
+  onApply,
 }: FilterPanelProps) {
   const panelId = useId()
   const [open, setOpen] = useState(false)
   const [showAllSkills, setShowAllSkills] = useState(false)
   const toggleRef = useRef<HTMLButtonElement>(null)
+  const [draftModalities, setDraftModalities] = useState(modality)
+  const [draftSkills, setDraftSkills] = useState(skill)
+  const [seen, setSeen] = useState(JSON.stringify([modality, skill]))
+  const current = JSON.stringify([modality, skill])
+  if (seen !== current) {
+    setSeen(current)
+    setDraftModalities(modality)
+    setDraftSkills(skill)
+  }
+  const chosenModalities = onApply ? draftModalities : modality
+  const chosenSkills = onApply ? draftSkills : skill
   const activeCount = modality.length + skill.length
 
   useEffect(() => {
@@ -61,7 +74,7 @@ export function FilterPanel({
   const visibleSkills = showAllSkills
     ? skillOptions
     : skillOptions.filter(
-        (option, index) => index < SKILLS_COLLAPSED || skill.includes(option.slug),
+        (option, index) => index < SKILLS_COLLAPSED || chosenSkills.includes(option.slug),
       )
   const canExpand = skillOptions.length > visibleSkills.length || showAllSkills
 
@@ -87,7 +100,16 @@ export function FilterPanel({
         <div className="filters__head">
           <h2 className="filters__title">{es.opportunities.filters.title}</h2>
           {activeCount > 0 && (
-            <Button variant="quiet" size="sm" onClick={onClear}>
+            <Button
+              variant="quiet"
+              size="sm"
+              onClick={() => {
+                if (onApply) {
+                  setDraftModalities([])
+                  setDraftSkills([])
+                } else onClear()
+              }}
+            >
               {es.opportunities.filters.clear}
             </Button>
           )}
@@ -114,7 +136,7 @@ export function FilterPanel({
               <legend className="filters__legend">{es.opportunities.filters.modality}</legend>
               {MODALITIES.map((value) => {
                 const option = options.modalities.find((item) => item.value === value)
-                const checked = modality.includes(value)
+                const checked = chosenModalities.includes(value)
                 // A modality without open vacancies stays out, unless it is already chosen.
                 if (!option && !checked) return null
                 return (
@@ -122,7 +144,15 @@ export function FilterPanel({
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={() => onToggleModality(value)}
+                      onChange={() =>
+                        onApply
+                          ? setDraftModalities((values) =>
+                              values.includes(value)
+                                ? values.filter((item) => item !== value)
+                                : [...values, value],
+                            )
+                          : onToggleModality(value)
+                      }
                     />
                     <span>
                       {es.opportunities.filters.option(
@@ -142,9 +172,20 @@ export function FilterPanel({
                   <label key={option.slug} className="filters__option">
                     <input
                       type="checkbox"
-                      checked={skill.includes(option.slug)}
-                      disabled={!skill.includes(option.slug) && skill.length >= MAX_FILTER_VALUES}
-                      onChange={() => onToggleSkill(option.slug)}
+                      checked={chosenSkills.includes(option.slug)}
+                      disabled={
+                        !chosenSkills.includes(option.slug) &&
+                        chosenSkills.length >= MAX_FILTER_VALUES
+                      }
+                      onChange={() =>
+                        onApply
+                          ? setDraftSkills((values) =>
+                              values.includes(option.slug)
+                                ? values.filter((item) => item !== option.slug)
+                                : [...values, option.slug],
+                            )
+                          : onToggleSkill(option.slug)
+                      }
                     />
                     <span>{es.opportunities.filters.option(option.name, option.count)}</span>
                   </label>
@@ -164,6 +205,28 @@ export function FilterPanel({
               </fieldset>
             )}
           </>
+        )}
+        {options && onApply && (
+          <div className="filters__head">
+            <Button
+              onClick={() => {
+                onApply(draftModalities, draftSkills)
+                setOpen(false)
+                toggleRef.current?.focus()
+              }}
+            >
+              {es.redesign.applyFilters}
+            </Button>
+            <Button
+              variant="quiet"
+              onClick={() => {
+                setOpen(false)
+                toggleRef.current?.focus()
+              }}
+            >
+              {es.redesign.close}
+            </Button>
+          </div>
         )}
       </div>
     </div>

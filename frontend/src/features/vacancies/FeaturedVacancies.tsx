@@ -22,8 +22,6 @@ export function FeaturedVacancies() {
   )
   const filters = useApiResource('vacancy-filters', (signal) => fetchFilters(signal))
 
-  if (featured.state.status === 'success' && featured.state.data.length === 0) return null
-
   const count = filters.state.status === 'success' ? filters.state.data.openCount : null
 
   return (
@@ -52,6 +50,9 @@ export function FeaturedVacancies() {
         )}
         {featured.state.status === 'error' && (
           <ErrorNotice message={es.landingVacancies.featuredError} onRetry={featured.retry} />
+        )}
+        {featured.state.status === 'success' && featured.state.data.length === 0 && (
+          <p>{es.home.vacancies.empty}</p>
         )}
         {featured.state.status === 'success' && (
           <div className="featured__grid">

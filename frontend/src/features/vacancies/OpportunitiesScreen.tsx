@@ -38,7 +38,7 @@ import {
 import './OpportunitiesScreen.css'
 
 /** Cards drawn as skeletons while the first page loads (the API's default page size). */
-const SKELETON_COUNT = 9
+const SKELETON_COUNT = 4
 
 /** The text of the title "No encontramos vacantes para «…»" is cut when it is long. */
 const MAX_SHOWN_QUERY = 40
@@ -162,6 +162,7 @@ function AllVacancies() {
             onRetryFilters={filters.retry}
             modality={state.modality}
             skill={state.skill}
+            onApply={(modality, skill) => go({ ...state, modality, skill, page: 1 })}
             onToggleModality={toggleModality}
             onToggleSkill={toggleSkill}
             onClear={() => go({ ...state, modality: [], skill: [], page: 1 })}
@@ -202,6 +203,7 @@ function AllVacancies() {
             </div>
           </div>
 
+          {results.refreshing && <p role="status">{es.redesign.updating}</p>}
           {loading && (
             <VacancyListSkeleton count={SKELETON_COUNT} className="opportunities__list" />
           )}
