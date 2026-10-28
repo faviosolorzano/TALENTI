@@ -78,6 +78,7 @@ export const es = {
     speakShort: 'Hablar',
     sendVoiceShort: 'Enviar',
     writeShort: 'Escribir',
+    hideTextShort: 'Ocultar',
     listenShort: 'Escuchar',
     endShort: 'Terminar',
     cameraStop: 'Apagar cámara',

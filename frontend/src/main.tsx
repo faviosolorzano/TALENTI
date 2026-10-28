@@ -4,6 +4,7 @@ import { App } from './app/App'
 import './design/fonts.css'
 import './design/tokens.css'
 import './design/global.css'
+import './design/softUi.css'
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Root element #root not found')

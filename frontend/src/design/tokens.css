@@ -19,6 +19,25 @@
  */
 
 :root {
+  /* D-59: shared soft surfaces; text and control outlines remain opaque. */
+  --color-soft-canvas: #f4f7fc;
+  --color-soft-surface: #f9fbff;
+  --color-glass-surface: color-mix(in srgb, var(--color-brand-white) 88%, transparent);
+  --color-glass-line: color-mix(in srgb, var(--color-brand-blue) 12%, var(--color-brand-white));
+  --shadow-soft-raised:
+    8px 8px 22px color-mix(in srgb, var(--color-brand-navy) 9%, transparent),
+    -6px -6px 18px var(--color-brand-white), inset 0 1px 0 var(--color-brand-white);
+  --shadow-soft-inset:
+    inset 3px 3px 7px color-mix(in srgb, var(--color-brand-navy) 7%, transparent),
+    inset -3px -3px 7px var(--color-brand-white);
+  --shadow-soft-blue:
+    0 8px 20px color-mix(in srgb, var(--color-brand-blue) 24%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-brand-white) 32%, transparent);
+  --shadow-glass:
+    0 16px 44px color-mix(in srgb, var(--color-brand-navy) 10%, transparent),
+    inset 0 1px 0 var(--color-brand-white);
+  --glass-blur: 1rem;
+  --dora-dock-width: 26rem;
   /* ---- Brand ---- */
   --font-size-hero: clamp(2.625rem, 6.65vw, 6rem);
   --font-size-hero-support: clamp(1.375rem, 2.5vw, 2.25rem);

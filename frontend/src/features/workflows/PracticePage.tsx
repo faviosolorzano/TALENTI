@@ -465,7 +465,13 @@ export function DoraConversation({
               <CallIcon kind="transcript" />
               <span>{c.transcriptButton}</span>
             </Button>
-            <Button variant="quiet" aria-label={c.help} onClick={() => setHelpOpen(true)}>
+            <Button
+              className="dora-call__help-button"
+              variant="quiet"
+              title={c.help}
+              aria-label={c.help}
+              onClick={() => setHelpOpen(true)}
+            >
               <CallIcon kind="help" />
               <span>{c.helpButton}</span>
             </Button>
@@ -544,7 +550,10 @@ export function DoraConversation({
                     })
                   }
                 >
-                  <CallIcon kind="sound" />
+                  <span className="dora-call__disc">
+                    <CallIcon kind="sound" />
+                  </span>
+                  <span className="dora-call__control-label">{c.listenShort}</span>
                 </Button>
               )}
               {session.voice && (
@@ -556,7 +565,12 @@ export function DoraConversation({
                   aria-label={recording ? t.stopRecording : t.record}
                   onClick={() => (recording ? recorder.current?.stop() : void startRecording())}
                 >
-                  <CallIcon kind="mic" />
+                  <span className="dora-call__disc">
+                    <CallIcon kind="mic" />
+                  </span>
+                  <span className="dora-call__control-label">
+                    {recording ? c.sendVoiceShort : c.speakShort}
+                  </span>
                 </Button>
               )}
               {
@@ -570,7 +584,12 @@ export function DoraConversation({
                   aria-controls="dora-text-answer"
                   onClick={() => setWriteMode(!writeMode)}
                 >
-                  <CallIcon kind="keyboard" />
+                  <span className="dora-call__disc">
+                    <CallIcon kind="keyboard" />
+                  </span>
+                  <span className="dora-call__control-label">
+                    {writeMode ? c.hideTextShort : c.writeShort}
+                  </span>
                 </Button>
               }
             </div>

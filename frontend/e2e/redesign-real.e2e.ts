@@ -192,6 +192,34 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   await page.setViewportSize({ width: 360, height: 800 })
   await reflow(page)
   await shot(page, 'dora-conversacion-movil')
+  for (const width of [320, 360, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 })
+    await reflow(page)
+    const controls = page.locator('.dora-call__controls')
+    for (const label of [es.doraCall.listenShort, es.doraCall.speakShort, es.doraCall.writeShort])
+      await expect(controls.getByText(label, { exact: true })).toBeVisible()
+    await expect(
+      page.locator('.dora-call__toolbar').getByText(es.doraCall.transcriptButton, { exact: true }),
+    ).toBeVisible()
+    await expect(
+      page.locator('.dora-call__toolbar').getByText(es.doraCall.endShort, { exact: true }),
+    ).toBeVisible()
+    const boxes = await Promise.all(
+      [t.listen, t.record, es.doraCall.write].map((name) =>
+        controls.getByRole('button', { name, exact: true }).boundingBox(),
+      ),
+    )
+    for (const box of boxes) {
+      expect(box).not.toBeNull()
+      expect(box!.width).toBeGreaterThanOrEqual(44)
+      expect(box!.height).toBeGreaterThanOrEqual(44)
+      expect(box!.x).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width)
+    }
+    expect(boxes[0]!.x + boxes[0]!.width).toBeLessThanOrEqual(boxes[1]!.x)
+    expect(boxes[1]!.x + boxes[1]!.width).toBeLessThanOrEqual(boxes[2]!.x)
+  }
+  await page.setViewportSize({ width: 360, height: 800 })
   const conversationAccess = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .analyze()

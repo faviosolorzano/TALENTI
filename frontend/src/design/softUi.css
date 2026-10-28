@@ -1,0 +1,334 @@
+/* D-59: shared appearance layer; layout and service states stay in feature styles. */
+body {
+  background:
+    radial-gradient(
+      ellipse at 10% 0%,
+      color-mix(in srgb, var(--color-action) 5%, transparent),
+      transparent 42%
+    ),
+    radial-gradient(ellipse at 90% 20%, var(--color-surface), transparent 50%),
+    var(--color-soft-canvas);
+}
+.hero {
+  background: transparent;
+}
+.header {
+  background: var(--color-surface);
+  box-shadow: 0 var(--space-1) var(--space-6)
+    color-mix(in srgb, var(--color-brand-navy) 4%, transparent);
+}
+.header__menu,
+.header__account-panel {
+  background: var(--color-surface);
+}
+.btn--primary {
+  background: linear-gradient(155deg, var(--color-action), var(--color-action-hover));
+  box-shadow: var(--shadow-soft-blue);
+}
+.btn--primary:hover {
+  background: var(--color-action-hover);
+  box-shadow: var(--shadow-soft-blue);
+}
+.btn--quiet {
+  background: var(--color-soft-surface);
+  box-shadow: var(--shadow-soft-raised);
+}
+.btn--quiet:hover {
+  background: var(--color-surface);
+}
+.btn:active:not(:disabled, [aria-disabled='true']) {
+  box-shadow: var(--shadow-soft-inset);
+}
+.btn--quiet.btn--on-dark {
+  background: transparent;
+  box-shadow: none;
+}
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  box-shadow: none;
+}
+.dialog {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+}
+.dialog__scrim {
+  background: color-mix(in srgb, var(--color-brand-navy) 32%, transparent);
+}
+.auth__form {
+  background: var(--color-surface);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+}
+.search-form {
+  background: var(--color-surface);
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft-raised);
+}
+.field__input,
+.password-field__input,
+.textarea-field__input,
+.search-form input,
+.search-form select,
+.workflow select,
+.workflow__editor {
+  background: var(--color-soft-surface);
+  box-shadow: var(--shadow-soft-inset);
+}
+.search-form input,
+.search-form select {
+  border-color: var(--color-control);
+}
+.field__input:focus-visible,
+.password-field__input:focus-visible,
+.workflow__editor:focus-visible {
+  background: var(--color-surface);
+}
+.featured__grid {
+  padding-inline: var(--space-5);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-glass);
+}
+.vacancy-card:last-child {
+  border-bottom: 0;
+}
+.vacancy-card:hover {
+  background: var(--color-bg-tint);
+}
+.section-form__actions {
+  background: var(--color-surface);
+}
+.profile-tabs {
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .header,
+  .header__menu[data-open='true'],
+  .header__account-panel,
+  .dialog,
+  .search-form,
+  .section-form__actions,
+  .auth__form {
+    background: var(--color-glass-surface);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+  .dialog__scrim {
+    -webkit-backdrop-filter: blur(var(--space-1));
+    backdrop-filter: blur(var(--space-1));
+  }
+}
+/* Conversation dock: all labels share a baseline and each whole control is tappable. */
+.dora-call__controls {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  gap: var(--space-3);
+  width: min(var(--dora-dock-width), 100%);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-glass);
+}
+.dora-call__controls .btn {
+  position: relative;
+  display: grid;
+  grid-template-rows: var(--dora-mic-size) auto;
+  gap: var(--space-2);
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  height: auto;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  box-shadow: none;
+}
+.dora-call__disc {
+  display: grid;
+  place-items: center;
+  width: var(--dora-control-size);
+  height: var(--dora-control-size);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-full);
+  background: var(--color-soft-surface);
+  box-shadow: var(--shadow-soft-raised);
+}
+.dora-call__controls .dora-call__mic {
+  width: 100%;
+  height: auto;
+  background: transparent;
+  color: var(--color-text);
+  box-shadow: none;
+}
+.dora-call__mic .dora-call__disc {
+  width: var(--dora-mic-size);
+  height: var(--dora-mic-size);
+  color: var(--color-surface);
+  background: linear-gradient(
+    145deg,
+    var(--color-dora-cyan),
+    var(--color-action) 46%,
+    var(--color-dora-deep)
+  );
+  box-shadow: var(--shadow-soft-blue);
+}
+.dora-call__controls .dora-call__mic[aria-pressed='true'] {
+  box-shadow: none;
+}
+.dora-call__mic[aria-pressed='true'] .dora-call__disc {
+  box-shadow:
+    0 0 0 var(--space-2) color-mix(in srgb, var(--color-action) 15%, transparent),
+    var(--shadow-soft-blue);
+}
+.dora-call__control-label {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+.dora-call__controls .dora-call__keyboard[aria-expanded='true']:not(:focus-visible) {
+  outline: none;
+}
+.dora-call__keyboard[aria-expanded='true'] .dora-call__disc {
+  border-color: var(--color-action);
+  box-shadow: var(--shadow-soft-inset);
+}
+.dora-call__toolbar .btn {
+  box-shadow: var(--shadow-soft-raised);
+}
+.dora-call__write {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-glass);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dora-call__controls,
+  .dora-call__toolbar .btn {
+    background: var(--color-glass-surface);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+  .dora-call__controls .btn {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (max-width: 47.5rem) {
+  .auth__form {
+    padding: var(--space-5);
+  }
+  .search-form {
+    padding: var(--space-4);
+  }
+  .dora-call__heading {
+    align-items: start;
+    gap: var(--space-4);
+  }
+  .dora-call__toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--control-height) auto;
+    gap: var(--space-2);
+    width: 100%;
+  }
+  .dora-call__toolbar .btn {
+    padding-inline: var(--space-2);
+    font-size: var(--font-size-sm);
+    gap: var(--space-1);
+  }
+  .dora-call__toolbar span {
+    display: inline;
+  }
+  .dora-call__toolbar .dora-call__help-button span {
+    display: none;
+  }
+  .dora-call__toolbar svg {
+    width: var(--space-4);
+    height: var(--space-4);
+  }
+  .dora-call__controls {
+    padding: var(--space-3);
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+  .dora-call__controls .btn {
+    padding: 0;
+  }
+  .dora-call__control-label {
+    font-size: var(--font-size-sm);
+  }
+  .featured__grid {
+    padding-inline: var(--space-3);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .header,
+  .header__menu,
+  .header__account-panel,
+  .dialog,
+  .search-form,
+  .auth__form,
+  .section-form__actions,
+  .dora-call__controls,
+  .dora-call__toolbar .btn {
+    background: var(--color-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .btn,
+  .dora-call__disc,
+  .dialog,
+  .auth__form,
+  .search-form {
+    border: var(--border-width-strong) solid ButtonText;
+    box-shadow: none;
+  }
+}
+
+@media (min-width: 53.75rem) {
+  .header .header__menu {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+.profile-tabs {
+  background: var(--color-soft-surface);
+  box-shadow: var(--shadow-soft-inset);
+}
+.profile-tabs button {
+  background: transparent;
+  border-radius: var(--radius-xs);
+}
+.profile-tabs button[aria-current] {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft-raised);
+}
+.profile .section-card {
+  background: transparent;
+}
+.opportunities__results {
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-glass);
+}
+@media (max-width: 47.5rem) {
+  .opportunities__results {
+    padding: var(--space-3);
+  }
+}
