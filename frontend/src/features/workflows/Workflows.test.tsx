@@ -315,12 +315,12 @@ it('switching practice sessions hides the old question while loading and clears 
     await app.router.navigate('/practicar/segunda')
   })
   await screen.findByRole('dialog')
-  await app.user.click(screen.getByRole('button', { name: t.cancel, exact: true }))
+  await app.user.click(screen.getByRole('button', { name: t.cancel }))
   expect(screen.getByRole('textbox', { name: t.answer })).toHaveValue('Mi borrador anterior')
   await act(async () => {
     await app.router.navigate('/practicar/segunda')
   })
-  await app.user.click(screen.getByRole('button', { name: t.leaveWithoutSaving, exact: true }))
+  await app.user.click(screen.getByRole('button', { name: t.leaveWithoutSaving }))
   try {
     expect(screen.queryByText('Pregunta anterior')).not.toBeInTheDocument()
   } finally {
