@@ -143,6 +143,15 @@ export const es = {
       'Las tecnologías observadas son evidencia de uso; tú declaras tu nivel antes de guardarlo.',
     levels: ['Básico', 'Intermedio', 'Avanzado'],
     github: 'Conectar GitHub',
+    verifyGithub: 'Verifica tu cuenta de GitHub para continuar.',
+    removedRepos: 'Repositorios que ya no están disponibles',
+    notUpdatedYet: 'Todavía no se ha actualizado',
+    saveSelectionFirst:
+      'Guarda o cancela la selección de repositorios antes de revisar las sugerencias.',
+    unmatched: 'Tecnologías sin asociación al catálogo',
+    evidenceLanguage: 'Lenguaje del repositorio',
+    evidenceTopic: 'Etiqueta del repositorio',
+    evidenceOther: 'Referencia del repositorio',
     githubIntro:
       'Conecta tu cuenta para elegir repositorios públicos. Las sugerencias no verifican tu nivel de dominio.',
     connect: 'Conectar con GitHub',

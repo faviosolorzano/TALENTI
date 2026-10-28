@@ -37,46 +37,55 @@ function GithubConnection() {
           <ActionError message={t.error} />
           <Button onClick={resource.retry}>{t.retry}</Button>
         </>
-      ) : resource.state.data ? (
+      ) : resource.state.data?.status === 'VERIFIED' ? (
         <GithubConnected link={resource.state.data} unlinked={resource.retry} />
       ) : (
-        <Button
-          disabled={action.busy}
-          onClick={() =>
-            void action.perform(async () => {
-              const result = await api<{ authorizeUrl: string }>('/github/oauth/start', {
-                method: 'POST',
+        <>
+          {resource.state.data && <p>{t.verifyGithub}</p>}
+          <Button
+            disabled={action.busy}
+            onClick={() =>
+              void action.perform(async () => {
+                const result = await api<{ authorizeUrl: string }>('/github/oauth/start', {
+                  method: 'POST',
+                })
+                const url = new URL(result.authorizeUrl)
+                if (
+                  url.protocol !== 'https:' ||
+                  url.username !== '' ||
+                  url.password !== '' ||
+                  url.port !== '' ||
+                  url.hostname !== 'github.com' ||
+                  url.pathname !== '/login/oauth/authorize'
+                )
+                  throw Error('invalid-authorize-url')
+                window.location.assign(url.href)
               })
-              const url = new URL(result.authorizeUrl)
-              if (
-                url.protocol !== 'https:' ||
-                url.hostname !== 'github.com' ||
-                url.pathname !== '/login/oauth/authorize'
-              )
-                throw Error('invalid-authorize-url')
-              window.location.assign(url.href)
-            })
-          }
-        >
-          {action.busy ? t.working : t.connect}
-        </Button>
+            }
+          >
+            {action.busy ? t.working : t.connect}
+          </Button>
+        </>
       )}
     </WorkflowFrame>
   )
 }
 function GithubConnected({ link, unlinked }: { link: GithubLink; unlinked: () => void }) {
   const repos = useApiResource('github-repositories', (signal) =>
-    api<{ items: GithubRepo[]; fetchedAt: string; stale: boolean }>('/github/repositories', {
+    api<{ items: GithubRepo[]; fetchedAt: string | null; stale: boolean }>('/github/repositories', {
       signal,
     }),
   )
   const suggestions = useApiResource('github-suggestions', (signal) =>
-    api<{ suggestions: GithubSuggestion[]; unmatched: string[]; source: string }>(
-      '/github/suggestions',
-      { signal },
-    ),
+    api<{
+      suggestions: GithubSuggestion[]
+      unmatched: { name: string; evidence: GithubSuggestion['evidence'] }[]
+      source: string
+    }>('/github/suggestions', { signal }),
   )
   const action = useWorkflowAction()
+  const [childBusy, setChildBusy] = useState(false)
+  const [removed, setRemoved] = useState<{ id: string; name: string }[]>([])
   const [dirty, setDirty] = useState({ repos: false, suggestions: false })
   const blocker = useBlocker(dirty.repos || dirty.suggestions)
   useEffect(() => {
@@ -100,10 +109,14 @@ function GithubConnected({ link, unlinked }: { link: GithubLink; unlinked: () =>
       <div className="workflow__actions">
         <Button
           variant="quiet"
-          disabled={action.busy || dirty.repos || dirty.suggestions}
+          disabled={action.busy || childBusy || dirty.repos || dirty.suggestions}
           onClick={() =>
             void action.perform(async () => {
-              await api('/github/refresh', { method: 'POST' })
+              const result = await api<{ removed: { id: string; name: string }[] }>(
+                '/github/refresh',
+                { method: 'POST' },
+              )
+              setRemoved(result.removed)
               repos.retry()
               suggestions.retry()
               setMessage(t.updated)
@@ -112,15 +125,35 @@ function GithubConnected({ link, unlinked }: { link: GithubLink; unlinked: () =>
         >
           {t.refresh}
         </Button>
-        <Button variant="quiet" onClick={() => setDisconnect(true)}>
+        <Button
+          disabled={action.busy || childBusy}
+          variant="quiet"
+          onClick={() => setDisconnect(true)}
+        >
           {t.disconnect}
         </Button>
       </div>
+      {removed.length > 0 && (
+        <section>
+          <h2>{t.removedRepos}</h2>
+          <ul>
+            {removed.map((item) => (
+              <li key={item.id}>{item.name}</li>
+            ))}
+          </ul>
+        </section>
+      )}
       {(dirty.repos || dirty.suggestions) && <p role="status">{t.unsaved}</p>}
       {blocker.state === 'blocked' && (
-        <Dialog title={t.unsaved} onClose={() => blocker.reset()}>
-          <Button onClick={() => blocker.proceed()}>{t.leaveWithoutSaving}</Button>
-          <Button variant="quiet" onClick={() => blocker.reset()}>
+        <Dialog busy={action.busy || childBusy} title={t.unsaved} onClose={() => blocker.reset()}>
+          <Button disabled={action.busy || childBusy} onClick={() => blocker.proceed()}>
+            {t.leaveWithoutSaving}
+          </Button>
+          <Button
+            disabled={action.busy || childBusy}
+            variant="quiet"
+            onClick={() => blocker.reset()}
+          >
             {t.cancel}
           </Button>
         </Dialog>
@@ -133,12 +166,17 @@ function GithubConnected({ link, unlinked }: { link: GithubLink; unlinked: () =>
       ) : (
         <>
           <p>
-            {t.updatedAt}: {new Date(repos.state.data.fetchedAt).toLocaleString('es-PE')}
+            {t.updatedAt}:{' '}
+            {repos.state.data.fetchedAt
+              ? new Date(repos.state.data.fetchedAt).toLocaleString('es-PE')
+              : t.notUpdatedYet}
             {repos.state.data.stale ? ' · ' + t.stale : ''}
           </p>
           <RepositorySelection
             key={JSON.stringify(repos.state.data.items)}
             items={repos.state.data.items}
+            blocked={action.busy || childBusy || dirty.suggestions}
+            onBusy={setChildBusy}
             onDirty={(value) => setDirty((current) => ({ ...current, repos: value }))}
             saved={() => {
               repos.retry()
@@ -149,6 +187,7 @@ function GithubConnected({ link, unlinked }: { link: GithubLink; unlinked: () =>
         </>
       )}
       <h2>{t.suggestions}</h2>
+      {dirty.repos && <p>{t.saveSelectionFirst}</p>}
       {suggestions.state.status === 'loading' ? (
         <Loading />
       ) : suggestions.state.status === 'error' ? (
@@ -157,12 +196,25 @@ function GithubConnected({ link, unlinked }: { link: GithubLink; unlinked: () =>
         <GithubDecisions
           key={JSON.stringify(suggestions.state.data)}
           items={suggestions.state.data.suggestions}
+          blocked={action.busy || childBusy || dirty.repos}
+          onBusy={setChildBusy}
           onDirty={(value) => setDirty((current) => ({ ...current, suggestions: value }))}
           saved={() => {
             suggestions.retry()
             setMessage(t.saved)
           }}
         />
+      )}
+      {suggestions.state.status === 'success' && suggestions.state.data.unmatched.length > 0 && (
+        <section>
+          <h3>{t.unmatched}</h3>
+          {suggestions.state.data.unmatched.map((item) => (
+            <div className="workflow__row" key={item.name}>
+              <strong>{item.name}</strong>
+              <Evidence items={item.evidence} />
+            </div>
+          ))}
+        </section>
       )}
       {disconnect && (
         <Dialog title={t.disconnect} onClose={() => setDisconnect(false)} busy={action.busy}>
@@ -188,6 +240,8 @@ function GithubConnected({ link, unlinked }: { link: GithubLink; unlinked: () =>
   )
 }
 function RepositorySelection({
+  blocked,
+  onBusy,
   items,
   saved,
   onDirty,
@@ -195,10 +249,16 @@ function RepositorySelection({
   items: GithubRepo[]
   saved: () => void
   onDirty: (value: boolean) => void
+  blocked: boolean
+  onBusy: (value: boolean) => void
 }) {
   const original = items.filter((r) => r.selected).map((r) => r.id)
   const [selected, setSelected] = useState(original)
   const action = useWorkflowAction()
+  useEffect(() => {
+    onBusy(action.busy)
+    return () => onBusy(false)
+  }, [action.busy, onBusy])
   const dirty = JSON.stringify([...selected].sort()) !== JSON.stringify([...original].sort())
   return (
     <>
@@ -213,15 +273,16 @@ function RepositorySelection({
               <input
                 type="checkbox"
                 checked={selected.includes(repo.id)}
-                disabled={!selected.includes(repo.id) && selected.length >= 6}
-                onChange={(e) => (
-                  onDirty(true),
-                  setSelected(
-                    e.target.checked
-                      ? [...selected, repo.id]
-                      : selected.filter((id) => id !== repo.id),
-                  )
-                )}
+                disabled={
+                  blocked || action.busy || (!selected.includes(repo.id) && selected.length >= 6)
+                }
+                onChange={(e) => {
+                  const next = e.target.checked
+                    ? [...selected, repo.id]
+                    : selected.filter((id) => id !== repo.id)
+                  setSelected(next)
+                  onDirty(JSON.stringify([...next].sort()) !== JSON.stringify([...original].sort()))
+                }}
               />
               <strong>{repo.name}</strong>
             </label>
@@ -243,7 +304,7 @@ function RepositorySelection({
       </ul>
       <ActionError message={action.error} />
       <Button
-        disabled={action.busy || !dirty}
+        disabled={blocked || action.busy || !dirty}
         onClick={() =>
           void action.perform(async () => {
             await api('/github/repositories/selection', {
@@ -257,10 +318,24 @@ function RepositorySelection({
       >
         {t.saveRepos}
       </Button>
+      {dirty && (
+        <Button
+          variant="quiet"
+          disabled={blocked || action.busy}
+          onClick={() => {
+            setSelected(original)
+            onDirty(false)
+          }}
+        >
+          {t.cancel}
+        </Button>
+      )}
     </>
   )
 }
 function GithubDecisions({
+  blocked,
+  onBusy,
   items,
   saved,
   onDirty,
@@ -268,11 +343,22 @@ function GithubDecisions({
   items: GithubSuggestion[]
   saved: () => void
   onDirty: (value: boolean) => void
+  blocked: boolean
+  onBusy: (value: boolean) => void
 }) {
   const [decisions, setDecisions] = useState<
     Record<string, { decision: string; level: number | null }>
   >({})
   const action = useWorkflowAction()
+  useEffect(() => {
+    onBusy(action.busy)
+    return () => onBusy(false)
+  }, [action.busy, onBusy])
+  function change(slug: string, value: { decision: string; level: number | null }) {
+    const next = { ...decisions, [slug]: value }
+    setDecisions(next)
+    onDirty(Object.values(next).some((item) => Boolean(item.decision)))
+  }
   return !items.length ? (
     <p>{t.noSuggestions}</p>
   ) : (
@@ -282,29 +368,19 @@ function GithubDecisions({
         <div className="workflow__row" key={item.slug}>
           <h3>{item.name}</h3>
           <small>{t.observed}</small>
-          <ul>
-            {item.evidence.map((e, i) => (
-              <li key={i}>
-                {e.repo} · {e.source}
-                {e.share != null ? ' · ' + e.share + '%' : ''}
-              </li>
-            ))}
-          </ul>
+          <Evidence items={item.evidence} />
           <div className="workflow__actions">
             <label>
               {t.confirm}
               <select
                 value={decisions[item.slug]?.decision ?? ''}
-                onChange={(e) => (
-                  onDirty(true),
-                  setDecisions({
-                    ...decisions,
-                    [item.slug]: {
-                      decision: e.target.value,
-                      level: decisions[item.slug]?.level ?? item.currentLevel ?? null,
-                    },
+                disabled={blocked || action.busy}
+                onChange={(e) =>
+                  change(item.slug, {
+                    decision: e.target.value,
+                    level: decisions[item.slug]?.level ?? item.currentLevel ?? null,
                   })
-                )}
+                }
               >
                 <option value="">{t.pending}</option>
                 <option value="ACCEPT">{t.accept}</option>
@@ -316,16 +392,13 @@ function GithubDecisions({
                 {t.level}
                 <select
                   value={decisions[item.slug]?.level ?? ''}
-                  onChange={(e) => (
-                    onDirty(true),
-                    setDecisions({
-                      ...decisions,
-                      [item.slug]: {
-                        decision: decisions[item.slug]?.decision ?? 'ACCEPT',
-                        level: e.target.value ? Number(e.target.value) : null,
-                      },
+                  disabled={blocked || action.busy}
+                  onChange={(e) =>
+                    change(item.slug, {
+                      decision: decisions[item.slug]?.decision ?? 'ACCEPT',
+                      level: e.target.value ? Number(e.target.value) : null,
                     })
-                  )}
+                  }
                 >
                   <option value="">{t.chooseLevel}</option>
                   {[1, 2, 3].map((level) => (
@@ -342,6 +415,7 @@ function GithubDecisions({
       <ActionError message={action.error} />
       <Button
         disabled={
+          blocked ||
           action.busy ||
           !Object.values(decisions).some((d) => d.decision) ||
           Object.values(decisions).some((d) => d.decision === 'ACCEPT' && d.level === null)
@@ -367,6 +441,36 @@ function GithubDecisions({
       >
         {t.applySuggestions}
       </Button>
+      {Object.values(decisions).some((d) => d.decision) && (
+        <Button
+          disabled={blocked || action.busy}
+          variant="quiet"
+          onClick={() => {
+            setDecisions({})
+            onDirty(false)
+          }}
+        >
+          {t.cancel}
+        </Button>
+      )}
     </>
+  )
+}
+
+function Evidence({ items }: { items: GithubSuggestion['evidence'] }) {
+  return (
+    <ul>
+      {items.map((item, i) => (
+        <li key={i}>
+          {item.repo} ·{' '}
+          {item.source === 'LANGUAGE'
+            ? t.evidenceLanguage
+            : item.source === 'TOPIC'
+              ? t.evidenceTopic
+              : t.evidenceOther}
+          {item.share != null ? ' · ' + item.share + '%' : ''}
+        </li>
+      ))}
+    </ul>
   )
 }
