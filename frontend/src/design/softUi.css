@@ -71,8 +71,6 @@ body {
   box-shadow: var(--shadow-soft-raised);
 }
 .field__input,
-.password-field__input,
-.textarea-field__input,
 .search-form input,
 .search-form select,
 .workflow select,
@@ -331,4 +329,17 @@ body {
   .opportunities__results {
     padding: var(--space-3);
   }
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.auth-form__submit {
+  width: 100%;
+}
+.auth-form > .auth__alt:last-child {
+  padding-top: var(--space-2);
+  text-align: center;
 }
