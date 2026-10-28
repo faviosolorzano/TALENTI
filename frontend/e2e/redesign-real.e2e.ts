@@ -105,6 +105,12 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   await page.getByRole('button', { name: es.identity.register.submit, exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
   await page.goto('/perfil/cv')
+  await expect(page.locator('input[type=file]')).toBeAttached()
+  await shot(page, 'cv-subir-escritorio')
+  await page.setViewportSize({ width: 360, height: 800 })
+  await reflow(page)
+  await shot(page, 'cv-subir-movil')
+  await page.setViewportSize({ width: 1440, height: 1000 })
   const pdf = buildPdf([
     'Ana Prueba Ejemplo',
     'Estudiante de desarrollo de software',
@@ -143,6 +149,12 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   const vacancyPath = await vacancyLink.getAttribute('href')
   expect(vacancyPath).toBeTruthy()
   await vacancyLink.click()
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await shot(page, 'vacante-descripcion-escritorio')
+  await page.setViewportSize({ width: 360, height: 800 })
+  await reflow(page)
+  await shot(page, 'vacante-descripcion-movil')
+  await page.setViewportSize({ width: 1440, height: 1000 })
   await page.getByRole('button', { name: es.redesign.fitTab, exact: true }).click()
   await expect(page.locator('.comparison-row').first()).toBeVisible()
   await shot(page, 'encaje-escritorio')
@@ -266,6 +278,10 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   for (const [route, name] of [
     ['/', 'inicio-estudiante'],
     ['/perfil?seccion=habilidades', 'perfil-habilidades'],
+    ['/perfil?seccion=sobre-ti', 'perfil-personal'],
+    ['/perfil?seccion=academico', 'perfil-academico'],
+    ['/perfil?seccion=disponibilidad', 'perfil-disponibilidad'],
+    ['/perfil?seccion=proyectos', 'perfil-proyectos'],
     ['/postulaciones', 'postulaciones'],
     [applicationPath, 'postulacion'],
     ['/perfil/cv', 'cv'],
@@ -287,6 +303,7 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
       await page.setViewportSize({ width: width!, height: height! })
       await reflow(page)
       if (width === 360) await shot(page, name + '-movil')
+      if (width === 1440) await shot(page, name + '-escritorio')
     }
   }
   expect(errors).toEqual([])
