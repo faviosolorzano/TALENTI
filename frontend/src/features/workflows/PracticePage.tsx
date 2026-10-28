@@ -2,7 +2,7 @@ import { AudioQueue } from './audioQueue'
 import { useWorkflowAction } from './useWorkflowAction'
 import { t } from './workflowLabels'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../../api/client'
 import {
   workflowApi as api,
@@ -217,7 +217,7 @@ export function PracticeSessionPage() {
   const { id = '' } = useParams()
   return (
     <StudentWorkflow>
-      <PracticeSession id={id} />
+      <PracticeSession key={id} id={id} />
     </StudentWorkflow>
   )
 }
@@ -262,6 +262,17 @@ export function DoraConversation({
   const [micStarting, setMicStarting] = useState(false)
   const micPending = useRef(false)
   const mounted = useRef(true)
+  const hasDraft = Boolean(text.trim()) || recording
+  const blocker = useBlocker(hasDraft)
+  useEffect(() => {
+    if (!hasDraft) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [hasDraft])
   const [playing, setPlaying] = useState(false)
   const [audioBlocked, setAudioBlocked] = useState(false)
   const playbackRef = useRef<AudioQueue | null>(null)
@@ -367,6 +378,7 @@ export function DoraConversation({
         input.getTracks().forEach((track) => track.stop())
         return
       }
+      playbackRef.current?.stop()
       media.current = input
       const recording = new MediaRecorder(input)
       recorder.current = recording
@@ -414,6 +426,16 @@ export function DoraConversation({
   }
   return (
     <>
+      {blocker.state === 'blocked' && (
+        <Dialog busy={action.busy} title={t.unsaved} onClose={() => blocker.reset()}>
+          <Button disabled={action.busy} onClick={() => blocker.proceed()}>
+            {t.leaveWithoutSaving}
+          </Button>
+          <Button disabled={action.busy} variant="quiet" onClick={() => blocker.reset()}>
+            {t.cancel}
+          </Button>
+        </Dialog>
+      )}
       <p className="workflow__notice">{interview ? t.interviewIntro : t.practiceIntro}</p>
       {session.versions?.llmAdapter.includes('simulated') && <p role="status">{t.simulated}</p>}
       <ActionError message={action.error} />
@@ -449,7 +471,7 @@ export function DoraConversation({
           {session.voice && (
             <Button
               variant="quiet"
-              disabled={action.busy}
+              disabled={action.busy || recording || micStarting}
               onClick={() =>
                 void action.perform(async () => {
                   const response = await api<Response>(

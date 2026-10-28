@@ -282,3 +282,53 @@ it('an expired session during a private read returns to sign-in with the exact d
   await screen.findByRole('heading', { name: es.identity.login.title })
   expect(app.router.state.location.search).toContain(encodeURIComponent('/perfil/github'))
 })
+
+it('switching practice sessions hides the old question while loading and clears its draft', async () => {
+  let deliver!: (response: Response) => void
+  const pending = new Promise<Response>((resolve) => {
+    deliver = resolve
+  })
+  const session = (id: string, text: string) => ({
+    id,
+    mode: 'PRACTICE',
+    basis: 'PROFILE',
+    topic: null,
+    questionCount: 1,
+    voice: false,
+    status: 'IN_PROGRESS',
+    nextPosition: 1,
+    answered: 0,
+    degraded: [],
+    createdAt: '2026-10-28T15:00:00Z',
+    questions: [{ position: 1, text, source: 'BANK', generatedBy: 'BANK', answer: null }],
+  })
+  const app = mount('/practicar/primera', (path) =>
+    path === '/practice/sessions/primera'
+      ? json(session('primera', 'Pregunta anterior'))
+      : path === '/practice/sessions/segunda'
+        ? pending
+        : undefined,
+  )
+  await screen.findByText('Pregunta anterior')
+  await app.user.type(screen.getByRole('textbox', { name: t.answer }), 'Mi borrador anterior')
+  await act(async () => {
+    await app.router.navigate('/practicar/segunda')
+  })
+  await screen.findByRole('dialog')
+  await app.user.click(screen.getByRole('button', { name: t.cancel, exact: true }))
+  expect(screen.getByRole('textbox', { name: t.answer })).toHaveValue('Mi borrador anterior')
+  await act(async () => {
+    await app.router.navigate('/practicar/segunda')
+  })
+  await app.user.click(screen.getByRole('button', { name: t.leaveWithoutSaving, exact: true }))
+  try {
+    expect(screen.queryByText('Pregunta anterior')).not.toBeInTheDocument()
+  } finally {
+    await act(async () => {
+      deliver(json(session('segunda', 'Pregunta nueva')))
+      await pending
+    })
+  }
+  await screen.findByText('Pregunta nueva')
+  expect(screen.getByRole('textbox', { name: t.answer })).toHaveValue('')
+})

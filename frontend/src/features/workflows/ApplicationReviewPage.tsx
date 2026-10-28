@@ -18,7 +18,7 @@ export function ApplicationReviewPage() {
   const { id = '' } = useParams()
   return (
     <StudentWorkflow>
-      <Review id={id} />
+      <Review key={id} id={id} />
     </StudentWorkflow>
   )
 }

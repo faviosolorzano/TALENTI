@@ -22,7 +22,7 @@ export function ExamPage() {
   const { id = '' } = useParams()
   return (
     <StudentWorkflow>
-      <ExamLoader id={id} />
+      <ExamLoader key={id} id={id} />
     </StudentWorkflow>
   )
 }

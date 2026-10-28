@@ -28,7 +28,7 @@ export function InterviewPage() {
   const { id = '' } = useParams()
   return (
     <StudentWorkflow>
-      <Interview id={id} />
+      <Interview key={id} id={id} />
     </StudentWorkflow>
   )
 }
