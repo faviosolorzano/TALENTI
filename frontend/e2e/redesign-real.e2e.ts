@@ -328,6 +328,19 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   }
   await expect(page.getByText(t.closedSession, { exact: true })).toBeVisible()
   await expect(page.getByRole('main')).not.toContainText(t.feedback)
+  await page.getByRole('button', { name: es.doraCall.transcript, exact: true }).click()
+  const interviewTranscript = page.getByRole('dialog', {
+    name: es.doraCall.transcriptButton,
+    exact: true,
+  })
+  await expect(interviewTranscript.locator('.workflow__transcript').first()).toBeVisible()
+  await expect(interviewTranscript).not.toContainText(t.feedback)
+  await shot(page, 'entrevista-transcripcion-escritorio')
+  await page.setViewportSize({ width: 360, height: 800 })
+  await reflow(page)
+  await shot(page, 'entrevista-transcripcion-movil')
+  await page.getByRole('button', { name: es.doraCall.closeTranscript, exact: true }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   for (const [route, name] of [
     ['/', 'inicio-estudiante'],
     ['/perfil?seccion=habilidades', 'perfil-habilidades'],
