@@ -192,6 +192,14 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   await page.setViewportSize({ width: 360, height: 800 })
   await reflow(page)
   await shot(page, 'dora-conversacion-movil')
+  const conversationAccess = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze()
+  expect(
+    conversationAccess.violations.filter(
+      (item) => item.impact === 'serious' || item.impact === 'critical',
+    ),
+  ).toEqual([])
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.getByRole('button', { name: t.record, exact: true }).click()
   await page.waitForTimeout(1000)
