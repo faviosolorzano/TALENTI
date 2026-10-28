@@ -300,3 +300,17 @@ describe('One card at a time', () => {
     expect(screen.queryByLabelText(t.availability.hours)).not.toBeInTheDocument()
   })
 })
+
+it('protects inputs and section navigation until the current profile save finishes', async () => {
+  const { user } = await openProfile({}, '/perfil?seccion=academico', { writeDelayMs: 400 })
+  await user.type(screen.getByLabelText(t.academic.career), 'Desarrollo de Software')
+  await user.click(screen.getByRole('button', { name: t.actions.save }))
+  expect(await screen.findByRole('button', { name: t.actions.saving })).toBeDisabled()
+  expect(screen.getByLabelText(t.academic.career)).toBeDisabled()
+  expect(screen.getByRole('button', { name: t.skills.title })).toBeDisabled()
+  expect(screen.getByRole('link', { name: es.redesign.useCv })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+  await screen.findByText('Desarrollo de Software')
+})

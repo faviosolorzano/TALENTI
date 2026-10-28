@@ -7,7 +7,10 @@ import type { ExamAttempt } from '../../api/workflows'
 const t = es.workflows
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
-function mount(path: string, handler: (path: string, init?: RequestInit) => Response | undefined) {
+function mount(
+  path: string,
+  handler: (path: string, init?: RequestInit) => Response | Promise<Response> | undefined,
+) {
   const app = openStudentApp(path)
   const fallback = globalThis.fetch
   vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
@@ -170,7 +173,7 @@ it('persists supplied initial code when the server answer row exists with null c
         revision: 0,
         code: 'SELECT MIN(n) FROM numbers',
       })
-      return json({ revision: 1 })
+      return json({ revision: 1, savedAt: '2026-10-28T15:00:00Z' })
     }
     if (path.endsWith('/answers/code1/run')) {
       calls.push('run')
@@ -181,4 +184,28 @@ it('persists supplied initial code when the server answer row exists with null c
   await user.click(await screen.findByRole('button', { name: t.run }))
   expect(await screen.findByText('1. ' + t.failed)).toBeInTheDocument()
   expect(calls).toEqual(['save', 'run'])
+})
+
+it('locks the current exam input while saving, so a newer edit cannot be discarded by a late response', async () => {
+  let release: ((response: Response) => void) | undefined
+  const pending = new Promise<Response>((resolve) => {
+    release = resolve
+  })
+  const data = fixture()
+  const { user } = mount('/postulaciones/app-test/examen', (path) =>
+    path === '/applications/app-test/exam'
+      ? json(data)
+      : path.endsWith('/answers/q1')
+        ? pending
+        : undefined,
+  )
+  await user.click(await screen.findByRole('radio', { name: 'Primera opción' }))
+  await user.click(screen.getByRole('button', { name: t.save }))
+  try {
+    expect(screen.getByRole('radio', { name: 'Segunda opción' })).toBeDisabled()
+  } finally {
+    release!(json({ revision: 1, savedAt: '2026-10-28T15:00:00Z' }))
+  }
+  await screen.findByText(t.answerSaved)
+  expect(screen.getByRole('radio', { name: 'Primera opción' })).toBeChecked()
 })

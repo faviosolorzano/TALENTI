@@ -1,3 +1,4 @@
+import { ProfileSavingContext } from './profileSavingContext'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Navigate, useSearchParams, useBlocker, useLocation, useNavigate } from 'react-router'
 import { Dialog } from '../../components/Dialog'
@@ -83,6 +84,7 @@ function ProfileView({ initial }: { initial: Profile }) {
   const fromAddress = sectionFromParam(params.get('seccion'))
 
   const [profile, setProfile] = useState(initial)
+  const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState<SectionKey>(fromAddress ?? 'about')
   const [promptHidden, setPromptHidden] = useState(false)
   const [pendingSection, setPendingSection] = useState<SectionKey | 'cancel' | null>(null)
@@ -268,95 +270,109 @@ function ProfileView({ initial }: { initial: Profile }) {
   }
 
   return (
-    <div className="container profile">
-      <div className="profile__head">
-        {returnTo && (
-          <Button variant="quiet" size="sm" to={returnTo} state={location.state}>
-            {es.redesign.backVacancy}
-          </Button>
-        )}
-        <h1 className="profile__title">{openKey ? TITLES[selected] : es.profile.title}</h1>
-        <p className="profile__lead">{es.redesign.profileChoice}</p>
-        <div className="profile__tools">
-          <Button
-            to={returnTo ? `/perfil/cv?returnTo=${encodeURIComponent(returnTo)}` : '/perfil/cv'}
-          >
-            {es.redesign.useCv}
-          </Button>
-          <Button variant="quiet" to="/perfil/github">
-            {es.redesign.github}
-          </Button>
-        </div>
-      </div>
-      <nav className="profile-tabs" aria-label={es.profile.title}>
-        {SECTION_ORDER.map((section) => (
-          <button
-            key={section}
-            type="button"
-            aria-current={section === selected ? 'page' : undefined}
-            onClick={() => openSection(section, true)}
-          >
-            {TITLES[section]}
-          </button>
-        ))}
-      </nav>
-      <div className="profile__sections" ref={editorRef}>
-        {savedKey && <p role="status">{es.profile.actions.saved}</p>}
-        {dirty.size > 0 && (
-          <p className="profile__dirty" role="status">
-            {es.redesign.unsaved}
-          </p>
-        )}
-        {cards[selected]}
-      </div>
-      {!promptHidden && (pendingSection || blocker.state === 'blocked') && (
-        <Dialog
-          title={es.redesign.leaveTitle}
-          onClose={() => {
-            setPendingSection(null)
-            if (blocker.state === 'blocked') blocker.reset()
-          }}
-        >
-          <p>{es.redesign.leaveBody}</p>
+    <ProfileSavingContext value={setSaving}>
+      <div className="container profile">
+        <div className="profile__head">
+          {returnTo && (
+            <Button
+              disabled={saving}
+              variant="quiet"
+              size="sm"
+              to={returnTo}
+              state={location.state}
+            >
+              {es.redesign.backVacancy}
+            </Button>
+          )}
+          <h1 className="profile__title">{openKey ? TITLES[selected] : es.profile.title}</h1>
+          <p className="profile__lead">{es.redesign.profileChoice}</p>
           <div className="profile__tools">
             <Button
-              onClick={() => {
-                setPromptHidden(true)
-                requestAnimationFrame(() =>
-                  editorRef.current?.querySelector<HTMLFormElement>('form')?.requestSubmit(),
-                )
-              }}
+              disabled={saving}
+              to={returnTo ? `/perfil/cv?returnTo=${encodeURIComponent(returnTo)}` : '/perfil/cv'}
             >
-              {es.redesign.saveLeave}
+              {es.redesign.useCv}
             </Button>
-            <Button
-              variant="quiet"
-              onClick={() => {
-                const target = pendingSection
-                setPendingSection(null)
-                setDirty(new Set())
-                if (blocker.state === 'blocked') blocker.proceed()
-                else if (target === 'cancel') setOpenKey(null)
-                else if (target) {
-                  setSelected(target)
-                  setOpenKey(target)
-                }
-              }}
-            >
-              {es.redesign.discard}
-            </Button>
-            <Button
-              variant="quiet"
-              onClick={() => {
-                setPendingSection(null)
-                if (blocker.state === 'blocked') blocker.reset()
-              }}
-            >
-              {es.redesign.stay}
+            <Button disabled={saving} variant="quiet" to="/perfil/github">
+              {es.redesign.github}
             </Button>
           </div>
-        </Dialog>
-      )}
-    </div>
+        </div>
+        <nav className="profile-tabs" aria-label={es.profile.title}>
+          {SECTION_ORDER.map((section) => (
+            <button
+              key={section}
+              type="button"
+              disabled={saving}
+              aria-current={section === selected ? 'page' : undefined}
+              onClick={() => openSection(section, true)}
+            >
+              {TITLES[section]}
+            </button>
+          ))}
+        </nav>
+        <div className="profile__sections" ref={editorRef}>
+          {savedKey && <p role="status">{es.profile.actions.saved}</p>}
+          {dirty.size > 0 && (
+            <p className="profile__dirty" role="status">
+              {es.redesign.unsaved}
+            </p>
+          )}
+          {cards[selected]}
+        </div>
+        {!promptHidden && (pendingSection || blocker.state === 'blocked') && (
+          <Dialog
+            busy={saving}
+            title={es.redesign.leaveTitle}
+            onClose={() => {
+              setPendingSection(null)
+              if (blocker.state === 'blocked') blocker.reset()
+            }}
+          >
+            <p>{es.redesign.leaveBody}</p>
+            <div className="profile__tools">
+              <Button
+                disabled={saving}
+                onClick={() => {
+                  setPromptHidden(true)
+                  requestAnimationFrame(() =>
+                    editorRef.current?.querySelector<HTMLFormElement>('form')?.requestSubmit(),
+                  )
+                }}
+              >
+                {es.redesign.saveLeave}
+              </Button>
+              <Button
+                disabled={saving}
+                variant="quiet"
+                onClick={() => {
+                  const target = pendingSection
+                  setPendingSection(null)
+                  setDirty(new Set())
+                  if (blocker.state === 'blocked') blocker.proceed()
+                  else if (target === 'cancel') setOpenKey(null)
+                  else if (target) {
+                    setSelected(target)
+                    setOpenKey(target)
+                  }
+                }}
+              >
+                {es.redesign.discard}
+              </Button>
+              <Button
+                disabled={saving}
+                variant="quiet"
+                onClick={() => {
+                  setPendingSection(null)
+                  if (blocker.state === 'blocked') blocker.reset()
+                }}
+              >
+                {es.redesign.stay}
+              </Button>
+            </div>
+          </Dialog>
+        )}
+      </div>
+    </ProfileSavingContext>
   )
 }

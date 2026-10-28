@@ -1,6 +1,7 @@
+import { ProfileSavingContext } from './profileSavingContext'
 import { useSearchParams } from 'react-router'
 import { safeReturnTo } from '../../session/returnTo'
-import { useEffect, useRef, type FormEvent, type ReactNode } from 'react'
+import { useContext, useEffect, useRef, type FormEvent, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
 import { Notice } from '../../components/Notice'
 import { es } from '../../i18n/es'
@@ -38,6 +39,11 @@ export function SectionForm({
     : saveLabel
   const formRef = useRef<HTMLFormElement>(null)
   const saving = state.status === 'saving'
+  const reportSaving = useContext(ProfileSavingContext)
+  useEffect(() => {
+    reportSaving?.(saving)
+    return () => reportSaving?.(false)
+  }, [saving, reportSaving])
 
   // After a 422: focus the first field marked as invalid (the DOM order is the reading order).
   useEffect(() => {
@@ -65,7 +71,9 @@ export function SectionForm({
         </Notice>
       )}
 
-      <div className="section-form__fields">{children}</div>
+      <fieldset className="section-form__fields" disabled={saving} aria-label={es.profile.title}>
+        {children}
+      </fieldset>
 
       {state.status === 'failed' && <ErrorNotice message={state.message} onRetry={onSubmit} />}
 

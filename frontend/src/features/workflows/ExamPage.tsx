@@ -93,11 +93,13 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
   const baseline = useRef({ seconds: initial.remainingSeconds, at: 0 })
   const saveCurrentRef = useRef<() => Promise<void>>(async () => {})
   const mounted = useRef(true)
+  const responseVersion = useRef(0)
   const running = attempt.status === 'IN_PROGRESS'
   const closed = attempt.status !== 'NOT_STARTED' && !running
   const blocker = useBlocker(dirty)
   const q = attempt.questions[active]
   function update(next: ExamAttempt) {
+    responseVersion.current++
     baseline.current = { seconds: next.remainingSeconds, at: Date.now() }
     setSeconds(next.remainingSeconds)
     setAttempt(next)
@@ -133,9 +135,10 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
     const timer = setInterval(() => {
       controller?.abort()
       controller = new AbortController()
+      const version = responseVersion.current
       void api<ExamAttempt>('/exam-attempts/' + attempt.id, { signal: controller.signal })
         .then((next) => {
-          if (mounted.current) update(next)
+          if (mounted.current && version === responseVersion.current) update(next)
         })
         .catch(() => {})
     }, 15000)
@@ -315,7 +318,8 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
               attemptId={attempt.id}
               answer={attempt.answers.find((a) => a.questionId === q.id)}
               onDirty={setDirty}
-              onSaved={(answer) =>
+              onSaved={(answer) => {
+                responseVersion.current++
                 setAttempt((current) => ({
                   ...current,
                   answers: [
@@ -323,7 +327,7 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
                     answer,
                   ],
                 }))
-              }
+              }}
               saveCurrentRef={saveCurrentRef}
               number={active + 1}
             />
@@ -414,13 +418,16 @@ function ExamEditor({
   const [run, setRun] = useState<ExamRun | null>(null)
   const action = useWorkflowAction()
   const [message, setMessage] = useState('')
+  const [saving, setSaving] = useState(false)
+  const busy = action.busy || saving
   const lock = useRef<Promise<void> | null>(null)
   const dirty = value !== saved
   async function save() {
     if (lock.current) return lock.current
     if (!dirty && answer && (q.type !== 'CODE' || answer.code !== null)) return
+    setSaving(true)
     const operation = (async () => {
-      const result = await api<{ revision: number }>(
+      const result = await api<{ revision: number; savedAt: string }>(
         '/exam-attempts/' + attemptId + '/answers/' + q.id,
         {
           method: 'PUT',
@@ -437,7 +444,7 @@ function ExamEditor({
         code: q.type === 'CODE' ? value : null,
         revision: result.revision,
         runCount: answer?.runCount ?? 0,
-        updatedAt: new Date().toISOString(),
+        updatedAt: result.savedAt,
       })
       revision.current = result.revision
       setSaved(value)
@@ -449,6 +456,7 @@ function ExamEditor({
       await operation
     } finally {
       lock.current = null
+      setSaving(false)
     }
   }
   useEffect(() => {
@@ -490,6 +498,7 @@ function ExamEditor({
             <label key={option.id} className="workflow__choice">
               <input
                 type="radio"
+                disabled={busy}
                 name={q.id}
                 value={option.id}
                 checked={value === option.id}
@@ -510,6 +519,7 @@ function ExamEditor({
             className={'workflow__editor' + (q.type === 'CODE' ? ' workflow__code' : '')}
             maxLength={q.type === 'OPEN' ? 4000 : 60000}
             value={value}
+            disabled={busy}
             spellCheck={q.type !== 'CODE'}
             onChange={(e) => {
               setValue(e.target.value)
@@ -521,8 +531,8 @@ function ExamEditor({
       )}
       <p role="status">{dirty ? t.unsaved : message}</p>
       <ActionError message={action.error} />
-      <Button disabled={action.busy} onClick={() => void action.perform(save)}>
-        {action.busy ? t.working : t.save}
+      <Button disabled={busy} onClick={() => void action.perform(save)}>
+        {busy ? t.working : t.save}
       </Button>
       {q.type === 'CODE' && (
         <>
@@ -562,7 +572,7 @@ function ExamEditor({
           ))}
           <Button
             variant="quiet"
-            disabled={action.busy || !value.trim()}
+            disabled={busy || !value.trim()}
             onClick={() =>
               void action.perform(async () => {
                 await save()
