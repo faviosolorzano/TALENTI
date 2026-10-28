@@ -4,7 +4,7 @@ import type { DoraMode } from '../dora/modes'
 export function ConversationOrb({ mode }: { mode: DoraMode }) {
   const id = 'dora-light-' + useId().replace(/:/g, '')
   const shape =
-    'M160 38 C197 24 218 55 241 75 C275 95 291 119 276 154 C294 189 266 217 241 231 C219 265 191 282 157 263 C121 278 93 251 77 227 C43 209 29 181 46 149 C28 117 53 88 80 75 C101 41 128 24 160 38Z'
+    'M160 38 C205 27 224 66 244 102 C270 135 278 172 253 201 C224 240 211 268 171 266 C133 273 94 257 71 229 C41 204 43 170 51 138 C55 104 69 71 106 59 C128 50 139 40 160 38Z'
   const bars = [8, 16, 28, 48, 78, 104, 72, 44, 24, 12]
   return (
     <div className="conversation-orb" data-mode={mode} aria-hidden="true">
@@ -14,10 +14,10 @@ export function ConversationOrb({ mode }: { mode: DoraMode }) {
             <stop stopColor="var(--color-dora-cyan)" stopOpacity=".35" />
             <stop offset="1" stopColor="var(--color-dora-cyan)" stopOpacity="0" />
           </radialGradient>
-          <radialGradient id={id + '-core'} cx=".38" cy=".14" r=".9">
+          <radialGradient id={id + '-core'} cx=".3" cy=".08" r="1.05">
             <stop stopColor="var(--color-dora-ice)" />
-            <stop offset=".24" stopColor="var(--color-dora-cyan)" />
-            <stop offset=".57" stopColor="var(--color-action)" />
+            <stop offset=".18" stopColor="var(--color-dora-cyan)" />
+            <stop offset=".52" stopColor="var(--color-action)" />
             <stop offset="1" stopColor="var(--color-dora-deep)" />
           </radialGradient>
           <linearGradient
@@ -33,7 +33,14 @@ export function ConversationOrb({ mode }: { mode: DoraMode }) {
             <stop offset=".72" stopColor="var(--color-dora-violet)" />
             <stop offset="1" stopColor="var(--color-dora-cyan)" />
           </linearGradient>
-          <linearGradient id={id + '-wave'}>
+          <linearGradient
+            id={id + '-wave'}
+            gradientUnits="userSpaceOnUse"
+            x1="0"
+            y1="0"
+            x2="640"
+            y2="0"
+          >
             <stop stopColor="var(--color-dora-violet)" />
             <stop offset=".5" stopColor="var(--color-dora-cyan)" />
             <stop offset="1" stopColor="var(--color-action)" />
@@ -96,7 +103,7 @@ export function ConversationOrb({ mode }: { mode: DoraMode }) {
           <path
             d="M78 125C105 65 180 40 235 93"
             stroke="var(--color-dora-ice)"
-            strokeWidth="9"
+            strokeWidth="4"
             strokeLinecap="round"
             opacity=".75"
             filter={'url(#' + id + '-soft)'}
