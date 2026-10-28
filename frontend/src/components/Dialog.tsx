@@ -7,8 +7,12 @@ const FOCUSABLE =
 
 /** The app root: while a dialog is open the page behind it can be neither reached nor read. */
 const APP_ROOT_ID = 'root'
+const dialogStack: HTMLElement[] = []
+let pageOverflow = ''
 
 interface DialogProps {
+  /** Keep content mounted while closed, to preserve an editor draft. */
+  open?: boolean
   title: string
   /** Esc and the scrim ask to close. Ignored while `busy`. */
   onClose: () => void
@@ -20,7 +24,7 @@ interface DialogProps {
  * Accessible modal dialog: `role="dialog"` with `aria-modal`, focus enters the title and stays
  * inside, Esc cancels and focus goes back to the element that opened it.
  */
-export function Dialog({ title, onClose, busy = false, children }: DialogProps) {
+export function Dialog({ title, onClose, busy = false, children, open = true }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const titleId = useId()
@@ -32,23 +36,32 @@ export function Dialog({ title, onClose, busy = false, children }: DialogProps) 
   })
 
   useEffect(() => {
+    if (!open) return
     const opener = document.activeElement as HTMLElement | null
     titleRef.current?.focus()
     const root = document.getElementById(APP_ROOT_ID)
+    const dialog = dialogRef.current!
+    if (!dialogStack.length) pageOverflow = document.body.style.overflow
+    dialogStack.push(dialog)
     root?.setAttribute('inert', '')
-    const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (dialogStack.at(-1) !== dialog) return
       if (event.key === 'Escape' && !busyRef.current) onCloseRef.current()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.removeEventListener('keydown', onKeyDown)
-      root?.removeAttribute('inert')
-      document.body.style.overflow = previousOverflow
-      if (opener && document.contains(opener)) opener.focus()
+      const wasTop = dialogStack.at(-1) === dialog
+      const index = dialogStack.indexOf(dialog)
+      if (index !== -1) dialogStack.splice(index, 1)
+      if (!dialogStack.length) {
+        root?.removeAttribute('inert')
+        document.body.style.overflow = pageOverflow
+      }
+      if (wasTop && opener && document.contains(opener)) opener.focus()
     }
-  }, [])
+  }, [open])
 
   const keepFocusInside = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return
@@ -69,7 +82,7 @@ export function Dialog({ title, onClose, busy = false, children }: DialogProps) 
   }
 
   return createPortal(
-    <div className="dialog__scrim">
+    <div className="dialog__scrim" hidden={!open}>
       <div
         ref={dialogRef}
         className="dialog"

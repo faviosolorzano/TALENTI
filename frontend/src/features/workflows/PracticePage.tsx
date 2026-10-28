@@ -1,3 +1,4 @@
+import { ConversationOrb, CallIcon } from './ConversationOrb'
 import { DeviceCheck } from './DeviceCheck'
 import { es } from '../../i18n/es'
 import './doraCall.css'
@@ -18,7 +19,6 @@ import {
 import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
-import { DoraOrb } from '../dora/DoraOrb'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError, Source } from './shared'
 
 const c = es.doraCall
@@ -268,6 +268,8 @@ export function DoraConversation({
   const action = useWorkflowAction()
   const [text, setText] = useState('')
   const [writeMode, setWriteMode] = useState(!session.voice)
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [reply, setReply] = useState('')
   const [replySource, setReplySource] = useState('')
   const [recording, setRecording] = useState(false)
@@ -450,31 +452,48 @@ export function DoraConversation({
       )}
       <section className="dora-call" aria-label={interview ? t.interview : t.session}>
         <div className="dora-call__heading">
-          <span>{interview ? c.interviewPrivacy : c.practicePrivacy}</span>
-          {session.versions?.llmAdapter.includes('simulated') && <small>{t.simulated}</small>}
+          <div>
+            <span>{interview ? c.interviewPrivacy : c.practicePrivacy}</span>
+            {session.versions?.llmAdapter.includes('simulated') && <small>{t.simulated}</small>}
+          </div>
+          <div className="dora-call__toolbar">
+            <Button
+              variant="quiet"
+              aria-label={c.transcript}
+              onClick={() => setTranscriptOpen(true)}
+            >
+              <CallIcon kind="transcript" />
+              <span>{c.transcriptButton}</span>
+            </Button>
+            <Button variant="quiet" aria-label={c.help} onClick={() => setHelpOpen(true)}>
+              <CallIcon kind="help" />
+              <span>{c.helpButton}</span>
+            </Button>
+            {!ended && (
+              <Button
+                variant="quiet"
+                disabled={action.busy || recording || micStarting}
+                aria-label={t.finish}
+                onClick={() => setConfirmFinish(true)}
+              >
+                <CallIcon kind="close" />
+                <span>{c.endShort}</span>
+              </Button>
+            )}
+          </div>
         </div>
         <ActionError message={action.error} />
         {(degraded || session.degraded?.length > 0) && <p role="status">{t.degraded}</p>}
         <div className="dora-call__actors">
-          <div className="dora-call__assistant">
-            <DoraOrb
-              mode={
-                recording ? 'listening' : playing ? 'speaking' : action.busy ? 'thinking' : 'idle'
-              }
-            />
-            <strong>{c.assistant}</strong>
-            <small>{c.assistantNote}</small>
-          </div>
-          <div className="dora-call__you">
-            <span className="dora-call__avatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 22v-2a8 8 0 0 1 16 0v2" />
-              </svg>
-            </span>
-            <span>{c.you}</span>
-          </div>
+          <ConversationOrb
+            mode={
+              recording ? 'listening' : playing ? 'speaking' : action.busy ? 'thinking' : 'idle'
+            }
+          />
         </div>
+        <span className="visually-hidden">
+          {c.assistant} · {c.assistantNote}
+        </span>
         <p className="dora-call__status" role="status">
           {ended
             ? t.closedSession
@@ -509,29 +528,10 @@ export function DoraConversation({
             <div className="dora-call__controls">
               {session.voice && (
                 <Button
-                  disabled={action.busy || micStarting}
-                  aria-label={recording ? t.stopRecording : t.record}
-                  onClick={() => (recording ? recorder.current?.stop() : void startRecording())}
-                >
-                  {recording ? c.sendVoiceShort : c.speakShort}
-                </Button>
-              )}
-              {session.voice && (
-                <Button
-                  variant="quiet"
-                  disabled={recording || micStarting}
-                  aria-label={writeMode ? c.hideText : c.write}
-                  aria-expanded={writeMode}
-                  aria-controls="dora-text-answer"
-                  onClick={() => setWriteMode(!writeMode)}
-                >
-                  {writeMode ? c.hideText : c.writeShort}
-                </Button>
-              )}
-              {session.voice && (
-                <Button
                   variant="quiet"
                   disabled={action.busy || recording || micStarting}
+                  className="dora-call__sound"
+                  title={t.listen}
                   aria-label={t.listen}
                   onClick={() =>
                     void action.perform(async () => {
@@ -544,9 +544,35 @@ export function DoraConversation({
                     })
                   }
                 >
-                  {c.listenShort}
+                  <CallIcon kind="sound" />
                 </Button>
               )}
+              {session.voice && (
+                <Button
+                  disabled={action.busy || micStarting}
+                  className="dora-call__mic"
+                  aria-pressed={recording}
+                  title={recording ? t.stopRecording : t.record}
+                  aria-label={recording ? t.stopRecording : t.record}
+                  onClick={() => (recording ? recorder.current?.stop() : void startRecording())}
+                >
+                  <CallIcon kind="mic" />
+                </Button>
+              )}
+              {
+                <Button
+                  variant="quiet"
+                  disabled={recording || micStarting}
+                  className="dora-call__keyboard"
+                  title={writeMode ? c.hideText : c.write}
+                  aria-label={writeMode ? c.hideText : c.write}
+                  aria-expanded={writeMode}
+                  aria-controls="dora-text-answer"
+                  onClick={() => setWriteMode(!writeMode)}
+                >
+                  <CallIcon kind="keyboard" />
+                </Button>
+              }
             </div>
             <form
               id="dora-text-answer"
@@ -584,45 +610,47 @@ export function DoraConversation({
         {!ended && session.nextPosition === null && session.status !== 'CREATED' && (
           <p role="status">{t.allAnswered}</p>
         )}
-        {!ended && (
-          <Button
-            variant="quiet"
-            disabled={action.busy || recording || micStarting}
-            aria-label={t.finish}
-            onClick={() => setConfirmFinish(true)}
-          >
-            {c.endShort}
-          </Button>
-        )}
       </section>
-      <details className="dora-call__transcript">
-        <summary>{c.transcript}</summary>
-        {reply && (
-          <section className="workflow__row" aria-live="polite">
-            <Source value={replySource} />
-            <p>{reply}</p>
-          </section>
-        )}
-        {!session.questions.some((item) => item.answer) && <p>{c.transcriptEmpty}</p>}
-        {session.questions
-          .filter((item) => item.answer)
-          .map((item) => (
-            <section className="workflow__row" key={item.position}>
-              <h3>
-                {t.question} {item.position}
-              </h3>
-              <p>{item.text}</p>
-              <Transcript answer={item.answer!} sessionId={session.id} refresh={refresh} />
+      <Dialog
+        open={transcriptOpen}
+        title={c.transcriptButton}
+        onClose={() => setTranscriptOpen(false)}
+      >
+        <Button variant="quiet" onClick={() => setTranscriptOpen(false)}>
+          {c.closeTranscript}
+        </Button>
+        {recording && <Button onClick={() => recorder.current?.stop()}>{t.stopRecording}</Button>}
+        <div className="dora-call__transcript">
+          {reply && (
+            <section className="workflow__row" aria-live="polite">
+              <Source value={replySource} />
+              <p>{reply}</p>
             </section>
-          ))}
-      </details>
-      <details className="dora-call__help">
-        <summary>{c.help}</summary>
-        <p>{interview ? c.interviewHelp : c.practiceHelp}</p>
-        <p>{c.voiceHint}</p>
-        <p>{t.voicePrivacy}</p>
-        <DeviceCheck disabled={recording || micStarting || action.busy || playing} />
-      </details>
+          )}
+          {!session.questions.some((item) => item.answer) && <p>{c.transcriptEmpty}</p>}
+          {session.questions
+            .filter((item) => item.answer)
+            .map((item) => (
+              <section className="workflow__row" key={item.position}>
+                <h3>
+                  {t.question} {item.position}
+                </h3>
+                <p>{item.text}</p>
+                <Transcript answer={item.answer!} sessionId={session.id} refresh={refresh} />
+              </section>
+            ))}
+        </div>
+      </Dialog>
+      {helpOpen && (
+        <Dialog title={c.help} onClose={() => setHelpOpen(false)}>
+          <Button variant="quiet" onClick={() => setHelpOpen(false)}>
+            {c.closeHelp}
+          </Button>
+          <p>{interview ? c.interviewHelp : c.practiceHelp}</p>
+          <p>{c.voiceHint}</p>
+          <p>{t.voicePrivacy}</p>
+        </Dialog>
+      )}
       {confirmFinish && (
         <Dialog title={t.finish} onClose={() => setConfirmFinish(false)}>
           <p>{t.finishBody}</p>

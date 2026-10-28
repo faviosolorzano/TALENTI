@@ -381,6 +381,19 @@ it('012-F04: voice conversation keeps history and text optional without losing a
   await app.user.click(screen.getByRole('button', { name: c.hideText }))
   await app.user.click(screen.getByRole('button', { name: c.write }))
   expect(screen.getByRole('textbox', { name: t.answer })).toHaveValue('Mi borrador')
-  await app.user.click(screen.getByText(c.transcript))
+  await app.user.click(screen.getByRole('button', { name: c.transcript }))
   expect(screen.getByText('Respuesta anterior privada')).toBeVisible()
+  await app.user.click(screen.getByRole('button', { name: t.correct }))
+  await app.user.clear(screen.getByRole('textbox', { name: t.transcript }))
+  await app.user.type(
+    screen.getByRole('textbox', { name: t.transcript }),
+    'Corrección todavía sin guardar',
+  )
+  await app.user.click(screen.getByRole('button', { name: c.closeTranscript }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.getByRole('button', { name: c.transcript })).toHaveFocus()
+  await app.user.click(screen.getByRole('button', { name: c.transcript }))
+  expect(screen.getByRole('textbox', { name: t.transcript })).toHaveValue(
+    'Corrección todavía sin guardar',
+  )
 })
