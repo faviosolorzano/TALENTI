@@ -60,6 +60,13 @@ test('E2/E7: approved public composition, real content and responsive layout', a
   await expect(page.locator('article').first()).toBeVisible()
   const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
   if (await reject.count()) await reject.click()
+  const columns = await page.evaluate(() =>
+    ['.hero__content', '.header__bar', '.featured .container'].map(
+      (selector) => document.querySelector(selector)!.getBoundingClientRect().width,
+    ),
+  )
+  expect(columns[0]).toBe(columns[2])
+  expect(columns[1]).toBe(columns[2])
   await shot(page, 'inicio-escritorio')
   for (const [width, height] of [
     [320, 900],

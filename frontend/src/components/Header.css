@@ -5,7 +5,7 @@
   border-bottom: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
 }
-.header__bar {
+.container.header__bar {
   max-width: var(--shell-max-width);
   display: flex;
   flex-wrap: wrap;

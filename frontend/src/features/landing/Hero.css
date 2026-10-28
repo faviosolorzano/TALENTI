@@ -2,7 +2,7 @@
   padding-top: var(--space-12);
   background: var(--color-surface);
 }
-.hero__content {
+.container.hero__content {
   max-width: var(--shell-max-width);
   text-align: center;
 }
