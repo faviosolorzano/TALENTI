@@ -6,7 +6,7 @@ import {
   type GithubRepo,
   type GithubSuggestion,
 } from '../../api/workflows'
-import { useApiResource } from '../../hooks/useApiResource'
+import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError } from './shared'

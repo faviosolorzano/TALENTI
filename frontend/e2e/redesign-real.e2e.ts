@@ -14,7 +14,14 @@ test.use({
 })
 async function shot(page: Page, name: string) {
   mkdirSync(output, { recursive: true })
-  await page.evaluate(() => document.fonts.ready)
+  if (!name.includes('carga')) await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0)
+  await page.evaluate(async () => {
+    await document.fonts.ready
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+  })
   await page.screenshot({ path: resolve(output, name + '.png'), fullPage: true })
 }
 async function reflow(page: Page) {
@@ -252,6 +259,7 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   ]) {
     await page.goto(route!)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0)
     for (const width of [360, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 })
       await reflow(page)

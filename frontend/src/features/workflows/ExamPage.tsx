@@ -12,7 +12,7 @@ import {
   type ExamRun,
   type SqlTable,
 } from '../../api/workflows'
-import { useApiResource } from '../../hooks/useApiResource'
+import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
 import notice from '../../content/exam-notice-v1.md?raw'

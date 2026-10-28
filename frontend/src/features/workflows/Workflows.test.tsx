@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { openStudentApp } from '../../test/studentApp'
 import { clearCsrfCookie } from '../../test/fakeIdentity'
@@ -208,4 +208,77 @@ it('locks the current exam input while saving, so a newer edit cannot be discard
   }
   await screen.findByText(t.answerSaved)
   expect(screen.getByRole('radio', { name: 'Primera opción' })).toBeChecked()
+})
+
+it('releases a microphone approved after leaving DORA and permits only one permission request', async () => {
+  let approve!: (stream: MediaStream) => void
+  const stop = vi.fn()
+  const permission = new Promise<MediaStream>((resolve) => {
+    approve = resolve
+  })
+  const getUserMedia = vi.fn(() => permission)
+  const previous = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices')
+  Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia } })
+  const app = mount('/practicar/mic-test', (path) =>
+    path === '/practice/sessions/mic-test'
+      ? json({
+          id: 'mic-test',
+          mode: 'PRACTICE',
+          basis: 'PROFILE',
+          topic: null,
+          questionCount: 1,
+          voice: true,
+          status: 'IN_PROGRESS',
+          nextPosition: 1,
+          answered: 0,
+          degraded: [],
+          createdAt: '2026-10-28T15:00:00Z',
+          questions: [
+            {
+              position: 1,
+              text: 'Explica tu proyecto',
+              source: 'BANK',
+              generatedBy: 'BANK',
+              answer: null,
+            },
+          ],
+        })
+      : undefined,
+  )
+  try {
+    const record = await screen.findByRole('button', { name: t.record })
+    await app.user.click(record)
+    await app.user.click(record)
+    expect(record).toBeDisabled()
+    expect(getUserMedia).toHaveBeenCalledTimes(1)
+    app.unmount()
+    await act(async () => {
+      approve({ getTracks: () => [{ stop }] } as unknown as MediaStream)
+      await permission
+    })
+    expect(stop).toHaveBeenCalledTimes(1)
+  } finally {
+    if (previous) Object.defineProperty(navigator, 'mediaDevices', previous)
+    else Reflect.deleteProperty(navigator, 'mediaDevices')
+  }
+})
+
+it('an expired session during a private read returns to sign-in with the exact destination', async () => {
+  let expired = false
+  const app = mount('/perfil/github', (path) => {
+    if (path !== '/github') return undefined
+    if (!expired) return new Response(null, { status: 204 })
+    return json({ code: 'session-expired' }, 401)
+  })
+  await screen.findByRole('button', { name: t.connect })
+  expired = true
+  app.identity.expireSession()
+  await act(async () => {
+    await app.router.navigate('/perfil')
+  })
+  await act(async () => {
+    await app.router.navigate('/perfil/github')
+  })
+  await screen.findByRole('heading', { name: es.identity.login.title })
+  expect(app.router.state.location.search).toContain(encodeURIComponent('/perfil/github'))
 })

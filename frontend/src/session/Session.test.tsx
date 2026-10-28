@@ -339,7 +339,7 @@ describe('"Postular" and the session (004-22)', () => {
     mockIdentityBackend()
     renderAppWithSession(`/oportunidades/${FIRST}`)
 
-    const link = await screen.findByRole('link', { name: es.vacancyDetail.apply })
+    const link = await screen.findByRole('link', { name: es.vacancyDetail.applyVisitor })
     expect(link).toHaveAttribute('href', `/ingresar?returnTo=%2Foportunidades%2F${FIRST}`)
     expect(screen.getByText(es.vacancyDetail.applyLoginNotice)).toBeInTheDocument()
   })
@@ -351,7 +351,7 @@ describe('"Postular" and the session (004-22)', () => {
     const { router } = renderAppWithSession(`/oportunidades/${FIRST}`)
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('link', { name: es.vacancyDetail.apply }))
+    await user.click(await screen.findByRole('link', { name: es.vacancyDetail.applyVisitor }))
     await loginTitle()
     await user.type(screen.getByLabelText(es.identity.form.emailLabel), EMAIL)
     await user.type(screen.getByLabelText(es.identity.form.passwordLabel), PASSWORD)

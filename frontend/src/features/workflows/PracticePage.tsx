@@ -12,7 +12,7 @@ import {
   type DoraSessionPage,
   type DoraAnswer,
 } from '../../api/workflows'
-import { useApiResource } from '../../hooks/useApiResource'
+import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
 import { DoraOrb } from '../dora/DoraOrb'
@@ -259,6 +259,9 @@ export function DoraConversation({
   const [reply, setReply] = useState('')
   const [replySource, setReplySource] = useState('')
   const [recording, setRecording] = useState(false)
+  const [micStarting, setMicStarting] = useState(false)
+  const micPending = useRef(false)
+  const mounted = useRef(true)
   const [playing, setPlaying] = useState(false)
   const [audioBlocked, setAudioBlocked] = useState(false)
   const playbackRef = useRef<AudioQueue | null>(null)
@@ -281,8 +284,10 @@ export function DoraConversation({
   const position = session.nextPosition ?? 1
   const question = session.questions.find((item) => item.position === position)
   const ended = ['COMPLETED', 'ABANDONED', 'FAILED'].includes(session.status)
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
       controller.current?.abort()
       if (recordTimer.current) clearTimeout(recordTimer.current)
       if (recorder.current?.state === 'recording') {
@@ -291,9 +296,8 @@ export function DoraConversation({
       }
       media.current?.getTracks().forEach((track) => track.stop())
       playbackRef.current?.stop()
-    },
-    [],
-  )
+    }
+  }, [])
   const feedbackPending =
     !interview && session.questions.some((item) => item.answer?.feedback?.status === 'PENDING')
   useEffect(() => {
@@ -353,8 +357,16 @@ export function DoraConversation({
     setText('')
   }
   async function startRecording() {
+    if (micPending.current || recorder.current?.state === 'recording') return
+    micPending.current = true
+    setMicStarting(true)
+    playbackRef.current?.stop()
     try {
       const input = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!mounted.current) {
+        input.getTracks().forEach((track) => track.stop())
+        return
+      }
       media.current = input
       const recording = new MediaRecorder(input)
       recorder.current = recording
@@ -373,7 +385,15 @@ export function DoraConversation({
           return
         }
         const form = new FormData()
-        form.append('audio', blob, 'respuesta.webm')
+        form.append(
+          'audio',
+          blob,
+          recording.mimeType.includes('mp4')
+            ? 'respuesta.mp4'
+            : recording.mimeType.includes('ogg')
+              ? 'respuesta.ogg'
+              : 'respuesta.webm',
+        )
         form.append('questionPosition', String(position))
         form.append('clientTurnId', crypto.randomUUID())
         void action.perform(() => stream('/dora/sessions/' + session.id + '/turns', { form }))
@@ -386,7 +406,10 @@ export function DoraConversation({
       )
     } catch {
       media.current?.getTracks().forEach((track) => track.stop())
-      action.setError(t.noMicrophone)
+      if (mounted.current) action.setError(t.noMicrophone)
+    } finally {
+      micPending.current = false
+      if (mounted.current) setMicStarting(false)
     }
   }
   return (
@@ -454,18 +477,21 @@ export function DoraConversation({
                 className="workflow__editor"
                 maxLength={6000}
                 value={text}
-                disabled={action.busy || recording}
+                disabled={action.busy || recording || micStarting}
                 onChange={(event) => setText(event.target.value)}
               />
             </label>
             <div className="workflow__actions">
-              <Button type="submit" disabled={action.busy || recording || !text.trim()}>
+              <Button
+                type="submit"
+                disabled={action.busy || recording || micStarting || !text.trim()}
+              >
                 {action.busy ? t.working : t.send}
               </Button>
               {session.voice && (
                 <Button
                   variant="quiet"
-                  disabled={action.busy}
+                  disabled={action.busy || micStarting}
                   onClick={() => (recording ? recorder.current?.stop() : void startRecording())}
                 >
                   {recording ? t.stopRecording : t.record}
@@ -504,7 +530,7 @@ export function DoraConversation({
       ) : (
         <Button
           variant="quiet"
-          disabled={action.busy || recording}
+          disabled={action.busy || recording || micStarting}
           onClick={() => setConfirmFinish(true)}
         >
           {t.finish}

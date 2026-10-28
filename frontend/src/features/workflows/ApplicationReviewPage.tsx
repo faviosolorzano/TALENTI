@@ -9,7 +9,7 @@ import {
   submitApplication,
   type ApplicationItem,
 } from '../../api/applications'
-import { useApiResource } from '../../hooks/useApiResource'
+import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError } from './shared'
 import { useWorkflowAction } from './useWorkflowAction'

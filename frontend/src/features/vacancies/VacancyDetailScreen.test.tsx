@@ -125,7 +125,7 @@ describe('"Postular" and the session (004-22)', () => {
     renderApp(`/oportunidades/${FIRST}`)
     await title()
 
-    const apply = screen.getByRole('link', { name: es.vacancyDetail.apply })
+    const apply = screen.getByRole('link', { name: es.vacancyDetail.applyVisitor })
     expect(apply).toHaveAttribute('href', `/ingresar?returnTo=%2Foportunidades%2F${FIRST}`)
     expect(screen.getByText(es.vacancyDetail.applyLoginNotice)).toBeInTheDocument()
     expect(screen.queryByText(/\d\s?%/)).not.toBeInTheDocument()

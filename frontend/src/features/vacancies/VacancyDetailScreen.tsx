@@ -156,7 +156,7 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
             ) : (
               <>
                 <Button state={location.state} to={`/ingresar?returnTo=${returnTo}`}>
-                  {es.vacancyDetail.apply}
+                  {es.vacancyDetail.applyVisitor}
                 </Button>
                 <p className="vacancy-detail__notice">{es.vacancyDetail.applyLoginNotice}</p>
               </>
