@@ -332,3 +332,55 @@ it('switching practice sessions hides the old question while loading and clears 
   await screen.findByText('Pregunta nueva')
   expect(screen.getByRole('textbox', { name: t.answer })).toHaveValue('')
 })
+
+it('012-F04: voice conversation keeps history and text optional without losing a hidden draft', async () => {
+  const c = es.doraCall
+  const app = mount('/practicar/visual', (path) =>
+    path === '/practice/sessions/visual'
+      ? json({
+          id: 'visual',
+          mode: 'PRACTICE',
+          basis: 'PROFILE',
+          topic: null,
+          questionCount: 2,
+          voice: true,
+          status: 'IN_PROGRESS',
+          nextPosition: 2,
+          answered: 1,
+          degraded: [],
+          createdAt: '2026-10-28T15:00:00Z',
+          questions: [
+            {
+              position: 1,
+              text: 'Pregunta anterior',
+              generatedBy: 'BANK',
+              source: 'BANK',
+              answer: {
+                turnId: 'turn-1',
+                transcriptFinal: 'Respuesta anterior privada',
+                transcriptRaw: 'Respuesta anterior privada',
+                feedback: null,
+              },
+            },
+            {
+              position: 2,
+              text: '¿Qué aprendiste?',
+              source: 'BANK',
+              generatedBy: 'BANK',
+              answer: null,
+            },
+          ],
+        })
+      : undefined,
+  )
+  await screen.findByText('¿Qué aprendiste?')
+  expect(screen.getByText('Respuesta anterior privada')).not.toBeVisible()
+  expect(screen.queryByRole('textbox', { name: t.answer })).toBeNull()
+  await app.user.click(screen.getByRole('button', { name: c.write }))
+  await app.user.type(screen.getByRole('textbox', { name: t.answer }), 'Mi borrador')
+  await app.user.click(screen.getByRole('button', { name: c.hideText }))
+  await app.user.click(screen.getByRole('button', { name: c.write }))
+  expect(screen.getByRole('textbox', { name: t.answer })).toHaveValue('Mi borrador')
+  await app.user.click(screen.getByText(c.transcript))
+  expect(screen.getByText('Respuesta anterior privada')).toBeVisible()
+})

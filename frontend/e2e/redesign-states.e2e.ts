@@ -202,3 +202,31 @@ test('012/013: GitHub connected composition uses explicit simulated contracts an
   await expect(page.getByText(t.saved, { exact: true })).toBeVisible()
   expect(selected).toEqual(['demo-repo'])
 })
+
+test('012-F02: denied devices remain optional and explain recovery without claiming success', async ({
+  page,
+}) => {
+  const c = es.doraCall
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+      configurable: true,
+      value: () => Promise.reject(new DOMException('Denied for UI test', 'NotAllowedError')),
+    })
+  })
+  await page.goto('/ingresar')
+  await page.getByLabel('Correo', { exact: true }).fill('demo@example.test')
+  await page.getByLabel('Contraseña', { exact: true }).fill('Demo-Talenti-2026')
+  await cookies(page)
+  await page.getByRole('button', { name: es.identity.login.submit, exact: true }).click()
+  await expect(page).toHaveURL(/\/$/)
+  await page.goto('/practicar')
+  await page.getByRole('button', { name: c.deviceCheck, exact: true }).click()
+  await page.getByRole('button', { name: c.cameraStart, exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveText(c.mediaDenied)
+  await expect(page.getByText(c.cameraOn, { exact: true })).toHaveCount(0)
+  await shot(page, 'dora-dispositivos-permiso-denegado')
+  await page.getByRole('button', { name: c.close, exact: true }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: c.deviceCheck, exact: true })).toBeFocused()
+  await expect(page.getByRole('checkbox', { name: es.workflows.voice, exact: true })).toBeVisible()
+})

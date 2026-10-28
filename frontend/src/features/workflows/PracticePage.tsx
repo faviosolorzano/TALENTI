@@ -1,3 +1,6 @@
+import { DeviceCheck } from './DeviceCheck'
+import { es } from '../../i18n/es'
+import './doraCall.css'
 import { AudioQueue } from './audioQueue'
 import { useWorkflowAction } from './useWorkflowAction'
 import { t } from './workflowLabels'
@@ -18,6 +21,8 @@ import { Dialog } from '../../components/Dialog'
 import { DoraOrb } from '../dora/DoraOrb'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError, Source } from './shared'
 
+const c = es.doraCall
+
 export function PracticePage() {
   return (
     <StudentWorkflow>
@@ -37,11 +42,12 @@ function PracticeSetup() {
   const [vacancy, setVacancy] = useState(params.get('vacante') ?? '')
   const [topic, setTopic] = useState('')
   const [count, setCount] = useState(3)
-  const [voice, setVoice] = useState(false)
+  const [voiceChoice, setVoice] = useState<boolean | null>(null)
   const navigate = useNavigate()
   const action = useWorkflowAction()
   const [deleting, setDeleting] = useState<string | null>(null)
   const data = options.state.status === 'success' ? options.state.data : null
+  const voice = voiceChoice ?? Boolean(data?.voiceAvailable)
   const selected = data?.bases.find((item) => item.basis === basis)
   const topics =
     basis === 'VACANCY'
@@ -49,7 +55,12 @@ function PracticeSetup() {
       : (data?.topics ?? [])
   return (
     <WorkflowFrame title={t.practice}>
-      <p className="workflow__notice">{t.practiceIntro}</p>
+      <section className="dora-prepare">
+        <h2>{c.prepare}</h2>
+        <p>{c.tips}</p>
+        <small>{c.practiceHelp}</small>
+        <DeviceCheck />
+      </section>
       <ActionError message={action.error} />
       {options.state.status === 'loading' ? (
         <Loading />
@@ -159,8 +170,8 @@ function PracticeSetup() {
           </form>
         )
       )}
-      <section>
-        <h2>{t.history}</h2>
+      <details className="dora-history">
+        <summary>{c.history}</summary>
         {history.state.status === 'loading' ? (
           <Loading />
         ) : history.state.status === 'error' ? (
@@ -184,7 +195,7 @@ function PracticeSetup() {
             ))}
           </ul>
         )}
-      </section>
+      </details>
       {deleting && (
         <Dialog title={t.deleteSession} onClose={() => setDeleting(null)}>
           <p>{t.deleteSessionBody}</p>
@@ -256,6 +267,7 @@ export function DoraConversation({
 }) {
   const action = useWorkflowAction()
   const [text, setText] = useState('')
+  const [writeMode, setWriteMode] = useState(!session.voice)
   const [reply, setReply] = useState('')
   const [replySource, setReplySource] = useState('')
   const [recording, setRecording] = useState(false)
@@ -436,102 +448,158 @@ export function DoraConversation({
           </Button>
         </Dialog>
       )}
-      <p className="workflow__notice">{interview ? t.interviewIntro : t.practiceIntro}</p>
-      {session.versions?.llmAdapter.includes('simulated') && <p role="status">{t.simulated}</p>}
-      <ActionError message={action.error} />
-      {audioBlocked && (
-        <Button variant="quiet" onClick={() => playbackRef.current?.resume()}>
-          {t.playAudio}
-        </Button>
-      )}
-      {(degraded || session.degraded?.length > 0) && <p role="status">{t.degraded}</p>}
-      <div className="workflow__orb">
-        <DoraOrb
-          mode={recording ? 'listening' : playing ? 'speaking' : action.busy ? 'thinking' : 'idle'}
-        />
-      </div>
-      {session.status === 'CREATED' && (
-        <Button
-          disabled={action.busy}
-          onClick={() =>
-            void action.perform(() => stream('/dora/sessions/' + session.id + '/start', {}))
-          }
-        >
-          {action.busy ? t.working : t.start}
-        </Button>
-      )}
-      {question && session.nextPosition !== null && !ended && session.status !== 'CREATED' && (
-        <section className="workflow__row">
-          <h2>
-            {t.question} {position}
-            {session.questionCount !== null ? '/' + session.questionCount : ''}
-          </h2>
-          <Source value={question.generatedBy} />
-          <p className="workflow__question">{question.text}</p>
-          {session.voice && (
-            <Button
-              variant="quiet"
-              disabled={action.busy || recording || micStarting}
-              onClick={() =>
-                void action.perform(async () => {
-                  const response = await api<Response>(
-                    `/dora/sessions/${session.id}/questions/${position}/audio`,
-                    { rawResponse: true },
-                  )
-                  playbackRef.current?.stop()
-                  playbackRef.current?.enqueue(await response.blob())
-                })
+      <section className="dora-call" aria-label={interview ? t.interview : t.session}>
+        <div className="dora-call__heading">
+          <span>{interview ? c.interviewPrivacy : c.practicePrivacy}</span>
+          {session.versions?.llmAdapter.includes('simulated') && <small>{t.simulated}</small>}
+        </div>
+        <ActionError message={action.error} />
+        {(degraded || session.degraded?.length > 0) && <p role="status">{t.degraded}</p>}
+        <div className="dora-call__actors">
+          <div className="dora-call__assistant">
+            <DoraOrb
+              mode={
+                recording ? 'listening' : playing ? 'speaking' : action.busy ? 'thinking' : 'idle'
               }
-            >
-              {t.listen}
-            </Button>
-          )}
-          <form
-            className="workflow__form"
-            onSubmit={(event) => {
-              event.preventDefault()
-              void action.perform(sendText)
-            }}
+            />
+            <strong>{c.assistant}</strong>
+            <small>{c.assistantNote}</small>
+          </div>
+          <div className="dora-call__you">
+            <span className="dora-call__avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 22v-2a8 8 0 0 1 16 0v2" />
+              </svg>
+            </span>
+            <span>{c.you}</span>
+          </div>
+        </div>
+        <p className="dora-call__status" role="status">
+          {ended
+            ? t.closedSession
+            : recording
+              ? c.listening
+              : playing
+                ? c.speaking
+                : action.busy
+                  ? c.thinking
+                  : question
+                    ? c.yourTurn
+                    : c.ready}
+        </p>
+        {session.status === 'CREATED' && (
+          <Button
+            disabled={action.busy}
+            onClick={() =>
+              void action.perform(() => stream('/dora/sessions/' + session.id + '/start', {}))
+            }
           >
-            <label>
-              {t.answer}
-              <textarea
-                className="workflow__editor"
-                maxLength={6000}
-                value={text}
-                disabled={action.busy || recording || micStarting}
-                onChange={(event) => setText(event.target.value)}
-              />
-            </label>
-            <div className="workflow__actions">
-              <Button
-                type="submit"
-                disabled={action.busy || recording || micStarting || !text.trim()}
-              >
-                {action.busy ? t.working : t.send}
-              </Button>
+            {action.busy ? t.working : t.start}
+          </Button>
+        )}
+        {question && session.nextPosition !== null && !ended && session.status !== 'CREATED' && (
+          <section className="dora-call__question">
+            <h2>
+              {t.question} {position}
+              {session.questionCount !== null ? '/' + session.questionCount : ''}
+            </h2>
+            <p className="workflow__question">{question.text}</p>
+            <Source value={question.generatedBy} />
+            <div className="dora-call__controls">
               {session.voice && (
                 <Button
-                  variant="quiet"
                   disabled={action.busy || micStarting}
                   onClick={() => (recording ? recorder.current?.stop() : void startRecording())}
                 >
                   {recording ? t.stopRecording : t.record}
                 </Button>
               )}
+              {session.voice && (
+                <Button
+                  variant="quiet"
+                  disabled={recording || micStarting}
+                  aria-expanded={writeMode}
+                  aria-controls="dora-text-answer"
+                  onClick={() => setWriteMode(!writeMode)}
+                >
+                  {writeMode ? c.hideText : c.write}
+                </Button>
+              )}
+              {session.voice && (
+                <Button
+                  variant="quiet"
+                  disabled={action.busy || recording || micStarting}
+                  onClick={() =>
+                    void action.perform(async () => {
+                      const response = await api<Response>(
+                        `/dora/sessions/${session.id}/questions/${position}/audio`,
+                        { rawResponse: true },
+                      )
+                      playbackRef.current?.stop()
+                      playbackRef.current?.enqueue(await response.blob())
+                    })
+                  }
+                >
+                  {t.listen}
+                </Button>
+              )}
             </div>
-          </form>
-          <small>{t.voicePrivacy}</small>
-        </section>
-      )}
-      {reply && (
-        <section className="workflow__row" aria-live="polite">
-          <Source value={replySource} />
-          <p>{reply}</p>
-        </section>
-      )}
-      <section>
-        <h2>{t.history}</h2>
+            <form
+              id="dora-text-answer"
+              hidden={!writeMode}
+              className="workflow__form dora-call__write"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void action.perform(sendText)
+              }}
+            >
+              <label>
+                {t.answer}
+                <textarea
+                  className="workflow__editor"
+                  maxLength={4000}
+                  value={text}
+                  disabled={action.busy || recording || micStarting}
+                  onChange={(event) => setText(event.target.value)}
+                />
+              </label>
+              <Button
+                type="submit"
+                disabled={action.busy || recording || micStarting || !text.trim()}
+              >
+                {action.busy ? t.working : t.send}
+              </Button>
+            </form>
+          </section>
+        )}
+        {audioBlocked && (
+          <Button variant="quiet" onClick={() => playbackRef.current?.resume()}>
+            {t.playAudio}
+          </Button>
+        )}
+        {!ended && session.nextPosition === null && session.status !== 'CREATED' && (
+          <p role="status">{t.allAnswered}</p>
+        )}
+        {!ended && (
+          <Button
+            variant="quiet"
+            disabled={action.busy || recording || micStarting}
+            onClick={() => setConfirmFinish(true)}
+          >
+            {t.finish}
+          </Button>
+        )}
+      </section>
+      <details className="dora-call__transcript">
+        <summary>{c.transcript}</summary>
+        {reply && (
+          <section className="workflow__row" aria-live="polite">
+            <Source value={replySource} />
+            <p>{reply}</p>
+          </section>
+        )}
+        {!session.questions.some((item) => item.answer) && <p>{c.transcriptEmpty}</p>}
         {session.questions
           .filter((item) => item.answer)
           .map((item) => (
@@ -543,21 +611,14 @@ export function DoraConversation({
               <Transcript answer={item.answer!} sessionId={session.id} refresh={refresh} />
             </section>
           ))}
-      </section>
-      {!ended && session.nextPosition === null && session.status !== 'CREATED' && (
-        <p role="status">{t.allAnswered}</p>
-      )}
-      {ended ? (
-        <p role="status">{t.closedSession}</p>
-      ) : (
-        <Button
-          variant="quiet"
-          disabled={action.busy || recording || micStarting}
-          onClick={() => setConfirmFinish(true)}
-        >
-          {t.finish}
-        </Button>
-      )}
+      </details>
+      <details className="dora-call__help">
+        <summary>{c.help}</summary>
+        <p>{interview ? c.interviewHelp : c.practiceHelp}</p>
+        <p>{c.voiceHint}</p>
+        <p>{t.voicePrivacy}</p>
+        <DeviceCheck />
+      </details>
       {confirmFinish && (
         <Dialog title={t.finish} onClose={() => setConfirmFinish(false)}>
           <p>{t.finishBody}</p>
@@ -623,7 +684,7 @@ function Transcript({
             {t.transcript}
             <textarea
               className="workflow__editor"
-              maxLength={6000}
+              maxLength={4000}
               value={text}
               onChange={(event) => setText(event.target.value)}
             />

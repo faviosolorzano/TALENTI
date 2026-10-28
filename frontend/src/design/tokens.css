@@ -231,6 +231,11 @@
   /* ---- Sizes of the signature pieces ---- */
   --ring-size: 8.25rem; /* 132 px on phones */
   --orb-max-size: 27.5rem; /* 440 px */
+  --dora-call-orb-size: 16rem;
+  --dora-call-orb-size-compact: 12rem;
+  --dora-person-size-compact: 3rem;
+  --dora-person-size: 4rem;
+  --device-preview-width: 24rem;
   --stage-min-height: 21.25rem; /* 340 px */
   --avatar-size: 3rem; /* 48 px */
   --avatar-size-sm: 2.5rem; /* 40 px */

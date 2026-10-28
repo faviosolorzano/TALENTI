@@ -1,3 +1,5 @@
+import { DeviceCheck } from './DeviceCheck'
+import { es } from '../../i18n/es'
 import { Markdown } from '../../components/Markdown'
 import { useState } from 'react'
 import { useParams } from 'react-router'
@@ -103,12 +105,19 @@ function Interview({ id }: { id: string }) {
           )}
           {(!session || view?.canRetry) && (
             <>
-              <p>{t.interviewIntro}</p>
+              <section className="dora-prepare">
+                <h2>{es.doraCall.prepare}</h2>
+                <p>{es.doraCall.tips}</p>
+                <small>{es.doraCall.interviewHelp}</small>
+                <DeviceCheck />
+              </section>
               {notice ? (
                 <>
-                  <div className="workflow__notice">
+                  <details className="dora-call__help">
+                    <summary>{t.acceptInterview}</summary>
                     <Markdown>{notice.text}</Markdown>
-                  </div>
+                    <p>{t.noScore}</p>
+                  </details>
                   <label className="workflow__choice">
                     <input
                       type="checkbox"
@@ -142,7 +151,6 @@ function Interview({ id }: { id: string }) {
               )}
             </>
           )}
-          <p>{t.noScore}</p>
         </>
       )}
     </WorkflowFrame>
