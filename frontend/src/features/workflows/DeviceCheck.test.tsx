@@ -140,3 +140,40 @@ it('012-F02: playing the speaker tone requires personal confirmation before succ
   await user.click(screen.getByRole('button', { name: c.close }))
   expect(contexts[0]!.close).toHaveBeenCalled()
 })
+
+it('012-F03: cancelling a permission and retrying cannot let the old stream replace the new one', async () => {
+  let first!: (value: MediaStream) => void
+  let second!: (value: MediaStream) => void
+  const media = vi
+    .fn()
+    .mockImplementationOnce(
+      () =>
+        new Promise<MediaStream>((resolve) => {
+          first = resolve
+        }),
+    )
+    .mockImplementationOnce(
+      () =>
+        new Promise<MediaStream>((resolve) => {
+          second = resolve
+        }),
+    )
+  devices(media)
+  const { user } = await open()
+  await user.click(screen.getByRole('button', { name: c.cameraStart }))
+  await user.click(screen.getByRole('button', { name: c.stop }))
+  await user.click(screen.getByRole('button', { name: c.cameraStart }))
+  const old = stream('old')
+  const latest = stream('latest')
+  await act(async () => {
+    second(latest.value)
+  })
+  await screen.findByText(c.cameraOn)
+  await act(async () => {
+    first(old.value)
+  })
+  expect(old.stop).toHaveBeenCalledTimes(1)
+  expect(latest.stop).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: c.close }))
+  expect(latest.stop).toHaveBeenCalledTimes(1)
+})

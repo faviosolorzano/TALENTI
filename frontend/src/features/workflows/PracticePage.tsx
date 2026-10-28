@@ -510,26 +510,29 @@ export function DoraConversation({
               {session.voice && (
                 <Button
                   disabled={action.busy || micStarting}
+                  aria-label={recording ? t.stopRecording : t.record}
                   onClick={() => (recording ? recorder.current?.stop() : void startRecording())}
                 >
-                  {recording ? t.stopRecording : t.record}
+                  {recording ? c.sendVoiceShort : c.speakShort}
                 </Button>
               )}
               {session.voice && (
                 <Button
                   variant="quiet"
                   disabled={recording || micStarting}
+                  aria-label={writeMode ? c.hideText : c.write}
                   aria-expanded={writeMode}
                   aria-controls="dora-text-answer"
                   onClick={() => setWriteMode(!writeMode)}
                 >
-                  {writeMode ? c.hideText : c.write}
+                  {writeMode ? c.hideText : c.writeShort}
                 </Button>
               )}
               {session.voice && (
                 <Button
                   variant="quiet"
                   disabled={action.busy || recording || micStarting}
+                  aria-label={t.listen}
                   onClick={() =>
                     void action.perform(async () => {
                       const response = await api<Response>(
@@ -541,7 +544,7 @@ export function DoraConversation({
                     })
                   }
                 >
-                  {t.listen}
+                  {c.listenShort}
                 </Button>
               )}
             </div>
@@ -585,9 +588,10 @@ export function DoraConversation({
           <Button
             variant="quiet"
             disabled={action.busy || recording || micStarting}
+            aria-label={t.finish}
             onClick={() => setConfirmFinish(true)}
           >
-            {t.finish}
+            {c.endShort}
           </Button>
         )}
       </section>
@@ -617,7 +621,7 @@ export function DoraConversation({
         <p>{interview ? c.interviewHelp : c.practiceHelp}</p>
         <p>{c.voiceHint}</p>
         <p>{t.voicePrivacy}</p>
-        <DeviceCheck />
+        <DeviceCheck disabled={recording || micStarting || action.busy || playing} />
       </details>
       {confirmFinish && (
         <Dialog title={t.finish} onClose={() => setConfirmFinish(false)}>

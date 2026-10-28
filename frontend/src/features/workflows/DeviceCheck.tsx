@@ -67,17 +67,19 @@ function useDevice(kind: 'camera' | 'microphone') {
   }
   return { stream, pending, error, start, stop }
 }
-export function DeviceCheck() {
+export function DeviceCheck({ disabled = false }: { disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button variant="quiet" onClick={() => setOpen(true)}>
+      <Button variant="quiet" disabled={disabled} onClick={() => setOpen(true)}>
         {c.deviceCheck}
       </Button>
       {open && (
         <Dialog title={c.deviceCheck} onClose={() => setOpen(false)}>
           <DeviceCheckBody />
-          <Button onClick={() => setOpen(false)}>{c.close}</Button>
+          <div className="device-check__done">
+            <Button onClick={() => setOpen(false)}>{c.close}</Button>
+          </div>
         </Dialog>
       )}
     </>
@@ -145,10 +147,14 @@ export function DeviceCheckBody() {
           {!camera.stream && <span>{c.cameraOff}</span>}
         </div>
         {camera.stream && <p role="status">{c.cameraOn}</p>}
-        <Button disabled={camera.pending} variant="quiet" onClick={() => void camera.start()}>
-          {camera.pending ? c.pending : c.cameraStart}
+        <Button
+          disabled={camera.pending}
+          variant="quiet"
+          onClick={() => (camera.stream ? camera.stop() : void camera.start())}
+        >
+          {camera.pending ? c.pending : camera.stream ? c.cameraStop : c.cameraStart}
         </Button>
-        {(camera.stream || camera.pending) && (
+        {camera.pending && (
           <Button variant="quiet" onClick={camera.stop}>
             {c.stop}
           </Button>
@@ -159,10 +165,14 @@ export function DeviceCheckBody() {
         <h3>{c.microphone}</h3>
         <p>{c.micPrompt}</p>
         <MicMeter key={mic.stream?.id ?? (mic.stream ? 'active' : 'off')} stream={mic.stream} />
-        <Button disabled={mic.pending} variant="quiet" onClick={() => void mic.start()}>
-          {mic.pending ? c.pending : c.micStart}
+        <Button
+          disabled={mic.pending}
+          variant="quiet"
+          onClick={() => (mic.stream ? mic.stop() : void mic.start())}
+        >
+          {mic.pending ? c.pending : mic.stream ? c.micStop : c.micStart}
         </Button>
-        {(mic.stream || mic.pending) && (
+        {mic.pending && (
           <Button variant="quiet" onClick={mic.stop}>
             {c.stop}
           </Button>
