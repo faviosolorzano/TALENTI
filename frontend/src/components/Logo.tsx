@@ -5,10 +5,10 @@ export function Logo() {
   return (
     <img
       className="logo"
-      src="/brand/talenti-wordmark-navy.svg"
+      src="/brand/logo-horizontal.svg"
       alt={es.app.logoAlt}
-      width={4398.6}
-      height={697}
+      width={2728}
+      height={960}
     />
   )
 }
