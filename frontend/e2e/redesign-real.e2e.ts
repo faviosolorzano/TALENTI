@@ -61,8 +61,16 @@ test('E2/E7: approved public composition, real content and responsive layout', a
   const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
   if (await reject.count()) await reject.click()
   await shot(page, 'inicio-escritorio')
-  for (const width of [320, 360, 768, 1280]) {
-    await page.setViewportSize({ width, height: 900 })
+  for (const [width, height] of [
+    [320, 900],
+    [360, 800],
+    [390, 844],
+    [667, 320],
+    [768, 1024],
+    [1024, 768],
+    [1440, 1000],
+  ]) {
+    await page.setViewportSize({ width: width!, height: height! })
     await reflow(page)
     if (width === 360) await shot(page, 'inicio-movil')
   }
@@ -260,8 +268,16 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
     await page.goto(route!)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0)
-    for (const width of [360, 768, 1280]) {
-      await page.setViewportSize({ width, height: 900 })
+    for (const [width, height] of [
+      [320, 900],
+      [360, 800],
+      [390, 844],
+      [667, 320],
+      [768, 1024],
+      [1024, 768],
+      [1440, 1000],
+    ]) {
+      await page.setViewportSize({ width: width!, height: height! })
       await reflow(page)
       if (width === 360) await shot(page, name + '-movil')
     }
