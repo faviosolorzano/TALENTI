@@ -107,6 +107,11 @@ export function parseThresholds(raw: unknown): ProctoringThresholds {
     }
     if (key.endsWith('Ms')) {
       const base = key.slice(0, -2)
+      // El backend llama `episodeEndMs` a lo que aquí es `clearHoldMs`.
+      if (key === 'clearHoldMs') {
+        const alias = durationMs(pick(source, 'episodeEndMs'), 'ms')
+        if (alias !== null) result.clearHoldMs = alias
+      }
       // `frame-budget` se expresa en milisegundos en la spec; las demás duraciones, en segundos.
       const value =
         durationMs(pick(source, key), 'ms') ??

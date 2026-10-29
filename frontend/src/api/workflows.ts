@@ -133,6 +133,10 @@ export interface ExamAttempt {
 }
 export interface ExamProctoring {
   required: boolean
+  /** El intento sin empezar aceptó un aviso anterior y debe aceptar el vigente (014-37). */
+  noticeOutdated?: boolean
+  /** Base de calibración guardada al empezar, si ya empezó. */
+  calibration?: { baseYawDeg: number; basePitchDeg: number } | null
   /** Umbrales de `talenti.exam.proctoring.thresholds`; se leen con `parseThresholds`. */
   thresholds?: unknown
   /** Intervalo de fotos, en segundos o ISO-8601. */

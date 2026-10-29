@@ -227,8 +227,8 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
       const result = await session.calibrate()
       if (!result.ok)
         session.useBase({
-          yawDeg: attempt.calibration?.baseYawDeg ?? 0,
-          pitchDeg: attempt.calibration?.basePitchDeg ?? 0,
+          yawDeg: (attempt.proctoring?.calibration ?? attempt.calibration)?.baseYawDeg ?? 0,
+          pitchDeg: (attempt.proctoring?.calibration ?? attempt.calibration)?.basePitchDeg ?? 0,
         })
     }
     if (mounted.current) session.beginMonitoring()
@@ -384,7 +384,8 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
         </p>
       )}
       {attempt.status === 'NOT_STARTED' ? (
-        proctored && attempt.noticeVersion !== NOTICE_VERSION ? (
+        proctored &&
+        (attempt.proctoring?.noticeOutdated || attempt.noticeVersion !== NOTICE_VERSION) ? (
           <>
             <p>{t.proctoring.newNotice}</p>
             <div className="workflow__notice">
