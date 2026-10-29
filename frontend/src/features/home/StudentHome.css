@@ -245,7 +245,8 @@
 .home__side {
   display: flex;
   flex-direction: column;
-  gap: var(--space-10);
+  align-items: stretch;
+  gap: var(--space-6);
 }
 .home__title {
   font-size: var(--font-size-task-title);
@@ -259,6 +260,12 @@
 }
 .home-profile__progress {
   display: none;
+}
+.home-profile {
+  display: block;
+}
+.home-profile__next {
+  justify-items: start;
 }
 .home-practice-link {
   display: grid;

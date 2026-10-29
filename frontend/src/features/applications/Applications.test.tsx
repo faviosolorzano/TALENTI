@@ -213,6 +213,15 @@ describe('Page /postulaciones/:id (008-19, 008-20)', () => {
     expect(screen.getAllByText(t.stages.unknown).length).toBeGreaterThan(0)
   })
 
+  it.each(['INTERVIEW_PENDING', 'INTERVIEW_DONE'] as const)(
+    'muestra el estado real %s de la entrevista',
+    async (status) => {
+      open({ existing: [{ vacancyId: FIRST, status }] })
+      await screen.findByRole('heading', { level: 1, name: TITLE })
+      expect(screen.getAllByText(t.stages[status]).length).toBeGreaterThan(0)
+    },
+  )
+
   it('008-20: withdrawing asks first, then the page becomes "Retirada" and announces it', async () => {
     const { user } = open()
     await user.click(await screen.findByRole('button', { name: t.detail.withdraw }))

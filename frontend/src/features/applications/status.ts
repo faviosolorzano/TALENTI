@@ -8,5 +8,7 @@ export function statusLabel(status: ApplicationStatus): string {
   if (status === 'WITHDRAWN') return names.WITHDRAWN
   if (status === 'EXAM_PENDING') return names.EXAM_PENDING
   if (status === 'EXAM_DONE') return names.EXAM_DONE
+  if (status === 'INTERVIEW_PENDING') return names.INTERVIEW_PENDING
+  if (status === 'INTERVIEW_DONE') return names.INTERVIEW_DONE
   return names.unknown
 }

@@ -396,6 +396,21 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
     ]) {
       await page.setViewportSize({ width: width!, height: height! })
       await reflow(page)
+      if (route === '/') {
+        const boxes = await page
+          .locator('.home__grid, .home__grid > .home-block, .home__side')
+          .evaluateAll((nodes) =>
+            nodes.map((node) => ({
+              left: node.getBoundingClientRect().left,
+              width: node.getBoundingClientRect().width,
+            })),
+          )
+        for (const box of boxes.slice(1)) {
+          expect(Math.abs(box.width - boxes[0]!.width)).toBeLessThanOrEqual(1)
+          expect(Math.abs(box.left - boxes[0]!.left)).toBeLessThanOrEqual(1)
+        }
+        await expect(page.locator('.home')).not.toContainText(es.applications.stages.unknown)
+      }
       if (width === 360) await shot(page, name + '-movil')
       if (width === 1440) await shot(page, name + '-escritorio')
     }

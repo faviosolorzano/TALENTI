@@ -742,6 +742,8 @@ export const es = {
       WITHDRAWN: 'Retirada',
       EXAM_PENDING: 'Examen pendiente',
       EXAM_DONE: 'Examen completado',
+      INTERVIEW_PENDING: 'Entrevista pendiente',
+      INTERVIEW_DONE: 'Entrevista completada',
       unknown: 'Estado no disponible',
       next: ['Examen técnico', 'Entrevista', 'Revisión de la empresa'] as readonly string[],
       soon: 'Próximamente',
