@@ -523,6 +523,7 @@ export const es = {
     welcomeBody: 'Empecemos por lo básico: tu perfil.',
     profile: {
       title: 'Tu perfil',
+      readyTitle: 'Continúa tu búsqueda',
       percent: (percent: number) => `Tu perfil está al ${percent} %`,
       barLabel: 'Avance de tu perfil',
       nextStep: 'Siguiente paso',
