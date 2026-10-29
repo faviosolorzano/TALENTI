@@ -1,6 +1,8 @@
 /* Seguridad del examen (spec 014, Enmienda 1). Todo valor viene de tokens. */
 .exam-secure {
   position: relative;
+  /* Deja sitio para la vista de la cámara fija en la esquina: nada del examen queda debajo al final. */
+  padding-block-end: calc(var(--exam-camera-height) + var(--space-8));
 }
 .exam-secure__prompt,
 .exam-secure .workflow__question,

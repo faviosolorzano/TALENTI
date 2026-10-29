@@ -250,7 +250,7 @@
   /* ---- Exam proctoring (spec 014, amendment 1) ---- */
   --exam-camera-width: 10rem; /* 160 px own camera view */
   --exam-camera-height: 7.5rem; /* 120 px */
-  --z-exam-camera: 40;
+  --z-exam-camera: 15; /* under the cookie banner (20) and the header (30) */
   --color-exam-watermark: var(--color-brand-navy);
   --opacity-exam-watermark: 0.07; /* low enough that the exam text keeps AA contrast */
   --exam-watermark-gap: var(--space-12);

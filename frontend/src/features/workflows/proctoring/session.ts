@@ -112,7 +112,7 @@ export class ProctoringSession {
   private readonly snapshotIntervalMs: number
   private ports: ProctoringPorts
   private readonly detectorFactory: DetectorFactory
-  private readonly onDeviceChange = () => void this.checkDevice()
+  private readonly onDeviceChange = () => this.checkDevice()
   private readonly onVisibility = () => {
     // Al volver de una pestaña suspendida el detector empieza de cero (E1.2); el hueco lo cubre SCREEN_LEFT.
     if (document.visibilityState === 'visible') this.resetPolicy()
@@ -229,17 +229,13 @@ export class ProctoringSession {
     this.muteTimer = null
   }
 
-  /** Si la cámara en uso ya no está entre los dispositivos, se considera perdida. */
-  private async checkDevice() {
+  /**
+   * Al cambiar los dispositivos, la cámara se da por perdida solo si su pista terminó. No se compara con la lista de
+   * `enumerateDevices`: Chrome cambia los identificadores tras dar permiso y eso cerraba una cámara sana.
+   */
+  private checkDevice() {
     const track = this.viewState.stream?.getVideoTracks?.()[0]
-    const id = track?.getSettings?.().deviceId
-    if (!id || !navigator.mediaDevices?.enumerateDevices) return
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices()
-      if (!devices.some((d) => d.kind === 'videoinput' && d.deviceId === id)) this.loseCamera()
-    } catch {
-      // Sin lista no se decide nada.
-    }
+    if (track?.readyState === 'ended') this.loseCamera()
   }
 
   /** Cámara perdida (014-41): se registra, se tapan las preguntas y nunca cierra el examen. */
