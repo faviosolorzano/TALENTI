@@ -12,6 +12,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *
  * @param perUserMonthly tope por persona y mes calendario por función ({@code cv-read}, {@code practice-session}...);
  *                       una función sin entrada no tiene tope personal
+ * @param perUserDaily   tope por persona y día calendario por función ({@code explanation}, 015-15); una función sin
+ *                       entrada no tiene tope diario
  * @param globalDaily    usos completados por día entre todas las personas
  * @param globalMonthly  usos completados por mes entre todas las personas
  * @param zone           zona que define el día y el mes calendario
@@ -24,10 +26,12 @@ public record AiLimitsProperties(
 		@DefaultValue("100") int globalDaily,
 		@DefaultValue("1500") int globalMonthly,
 		@DefaultValue("America/Lima") ZoneId zone,
-		@DefaultValue("5") BigDecimal monthlySpend) {
+		@DefaultValue("5") BigDecimal monthlySpend,
+		@DefaultValue Map<String, Integer> perUserDaily) {
 
 	public AiLimitsProperties {
 		perUserMonthly = Map.copyOf(perUserMonthly);
+		perUserDaily = perUserDaily == null ? Map.of() : Map.copyOf(perUserDaily);
 		if (globalDaily < 0 || globalMonthly < 0) {
 			throw new IllegalArgumentException("talenti.ai.limits: los topes globales no pueden ser negativos");
 		}

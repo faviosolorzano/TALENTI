@@ -139,6 +139,19 @@ talenti:
     failed-attempts-per-day: 20     # subidas fallidas (PDF ilegible) por persona en 24 horas
     expiry-interval: PT1H       # cada cuánto se borra lo vencido
   ai:
+    explanation:
+      # "DORA te explica" (spec 015, 015-16). APAGADA: con false se usa la plantilla y no sale nada hacia ningún servicio
+      # externo. Con true hacen falta OPENAI_API_KEY y el modelo (si falta algo, no arranca). simulated=true es SOLO para
+      # pruebas y recorridos locales: usa el adaptador simulado (sin red) como si la IA estuviera encendida.
+      enabled: ${TALENTI_AI_EXPLANATION_ENABLED:false}
+      simulated: ${TALENTI_AI_EXPLANATION_SIMULATED:false}
+      model: ${TALENTI_AI_EXPLANATION_MODEL:}       # a confirmar (propuesto gpt-4.1-mini, D-71)
+      timeout: 8s               # después, plantilla con TIMEOUT (015-10)
+      max-output-tokens: 700
+      prices:
+        # ESTIMADOS en dólares por millón de tokens (015-14, duda 6); A CONFIRMAR con la página de precios del proveedor.
+        input-per-million-tokens: ${TALENTI_AI_EXPLANATION_PRICE_INPUT:0.40}
+        output-per-million-tokens: ${TALENTI_AI_EXPLANATION_PRICE_OUTPUT:1.60}
     exam:
       enabled: ${TALENTI_AI_EXAM_ENABLED:false}
       model: ${TALENTI_AI_EXAM_MODEL:}
@@ -222,6 +235,8 @@ talenti:
       per-user-monthly:
         cv-read: 3              # lecturas mejoradas por persona y mes calendario (009-28)
         practice-session: ${PRACTICE_SESSIONS_PER_MONTH:20}   # sesiones de práctica con DORA por persona y mes (RN-13, duda 2)
+      per-user-daily:
+        explanation: ${TALENTI_AI_LIMITS_EXPLANATION_DAILY:10}   # explicaciones NUEVAS de DORA por persona y día (015-15)
       global-daily: 100         # usos completados por día entre todos, por función (009-29)
       global-monthly: 1500
       zone: America/Lima        # define el día y el mes calendario

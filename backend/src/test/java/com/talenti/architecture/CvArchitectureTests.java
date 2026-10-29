@@ -35,7 +35,7 @@ import com.tngtech.archunit.junit.ArchTest;
 /**
  * Límites del módulo cv (spec 009, principio 12) y del control de consumo de IA: cv solo usa la interfaz pública de los
  * demás módulos; nadie más usa cv; la IA se invoca desde un único punto; el consumo se mide solo por las interfaces
- * públicas de shared; matching no llama a la IA ni escribe el consumo (practice lo hace por esas interfaces).
+ * públicas de shared; matching solo mide la explicación a pedido de la spec 015 por esas interfaces.
  */
 @AnalyzeClasses(packages = "com.talenti", importOptions = ImportOption.DoNotIncludeTests.class)
 class CvArchitectureTests {
@@ -91,11 +91,18 @@ class CvArchitectureTests {
 	}
 
 	@ArchTest
-	static void matchingAndPracticeDoNotTouchAiUsage(JavaClasses classes) {
+	static void matchingExplanationUsesOnlyPublicAiUsageAndNeverCv(JavaClasses classes) {
 		noClasses().that().resideInAnyPackage("com.talenti.matching..", "com.talenti.application..").should()
-				.dependOnClassesThat().resideInAnyPackage("com.talenti.cv..", "com.talenti.shared.ai..")
+				.dependOnClassesThat().resideInAPackage("com.talenti.cv..")
 				.allowEmptyShould(true)
-				.as("matching y la compatibilidad no llaman al lector de CV ni escriben el consumo de IA (009-33)")
+				.as("matching y application nunca llaman al lector de CV (009-33, 015-18)")
+				.check(classes);
+		noClasses().that().resideInAPackage("com.talenti.application..").should()
+				.dependOnClassesThat().resideInAPackage("com.talenti.shared.ai..").check(classes);
+		noClasses().that().resideInAPackage("com.talenti.matching..").and()
+				.doNotHaveFullyQualifiedName("com.talenti.matching.service.DoraExplanationService").should()
+				.dependOnClassesThat().resideInAPackage("com.talenti.shared.ai..")
+				.as("solo la explicación a pedido mide consumo; los cálculos y listados siguen sin IA (015-02)")
 				.check(classes);
 		// practice (spec 012) sí mide su consumo, pero solo por las interfaces públicas de shared.ai (ver abajo).
 		noClasses().that().resideInAPackage("com.talenti.practice..").should().dependOnClassesThat()

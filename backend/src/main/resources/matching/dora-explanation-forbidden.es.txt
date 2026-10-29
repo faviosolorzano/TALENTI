@@ -1,0 +1,55 @@
+# Frases que la explicación de DORA nunca puede decir (spec 015-08). Una por línea; se comparan sin mayúsculas ni
+# tildes y como palabras completas. Subir "version" cada vez que cambie la lista (principio 11).
+version=1
+# Promesas o decisiones sobre la postulación (principio 1: la empresa decide)
+te contratarán
+te contratarian
+te van a contratar
+te contratan
+serás contratado
+serás contratada
+contratado
+contratada
+garantiza
+garantizo
+garantizado
+garantizada
+garantizamos
+garantía
+asegura el puesto
+aseguras el puesto
+seguro te eligen
+seguro te escogen
+te elegirán
+te van a elegir
+te seleccionarán
+seleccionado
+seleccionada
+aprobado
+aprobada
+descartado
+descartada
+rechazado
+rechazada
+el puesto es tuyo
+conseguirás el puesto
+obtendrás el puesto
+# Atributos personales (principio 3, T4): no se infieren ni se comentan
+edad
+años de edad
+joven
+género
+sexo
+mujer
+hombre
+origen
+nacionalidad
+raza
+etnia
+religión
+estado civil
+embarazo
+discapacidad
+orientación sexual
+apariencia
+acento

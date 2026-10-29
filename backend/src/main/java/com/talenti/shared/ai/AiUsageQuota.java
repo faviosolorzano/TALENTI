@@ -8,7 +8,10 @@ import java.util.UUID;
  */
 public interface AiUsageQuota {
 
-	/** Consulta sin anotar nada: primero el tope personal del mes y luego los globales (día y mes). */
+	/**
+	 * Consulta sin anotar nada: primero el tope personal del mes, luego el personal del día (si la función lo tiene,
+	 * 015-15) y luego los globales (día y mes).
+	 */
 	QuotaStatus check(UUID userId, AiFunction function);
 
 	/**
