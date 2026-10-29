@@ -278,3 +278,80 @@ test('012-59/60/61/65/66: real-time call in Chrome at 360, 768 and 1280 px, acce
     ),
   ).toBe(1)
 })
+
+test('012-46/67: browser events persist in the real isolated backend, including late transcripts', async ({
+  page,
+}) => {
+  test.skip(process.env.E2E_REAL_BACKEND !== '1', 'Needs the isolated simulated-provider backend.')
+  await page.addInitScript(fakeWebRtc)
+  await page.goto('/registro')
+  const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
+  if (await reject.count()) await reject.click()
+  await page.getByLabel('Correo', { exact: true }).fill(`realtime.${Date.now()}@example.test`)
+  await page.getByLabel('Contraseña', { exact: true }).fill('Prueba-visual-2026')
+  await page.getByRole('checkbox', { name: /Leí y acepto/ }).check()
+  await page.getByRole('button', { name: es.identity.register.submit, exact: true }).click()
+  await expect(page).toHaveURL(/\/$/)
+  const options = await (await page.request.get('/api/v1/practice/options')).json()
+  const vacancy = options.bases.find((basis: { basis: string }) => basis.basis === 'VACANCY')
+    .vacancies[0]
+  await page.request.get('/api/v1/auth/csrf')
+  const csrf = (await page.context().cookies()).find((cookie) => cookie.name === 'XSRF-TOKEN')!
+  const response = await page.request.post('/api/v1/practice/sessions', {
+    headers: { 'X-XSRF-TOKEN': decodeURIComponent(csrf.value) },
+    data: { basis: 'VACANCY', vacancyId: vacancy.id, questionCount: 2, voice: true },
+  })
+  expect(response.status()).toBe(201)
+  const session = await response.json()
+  // Only availability is adjusted to exercise the UI: the provider and WebRTC are simulated.
+  // Every session, call, event, answer, feedback and finish request reaches the actual backend.
+  await page.route('**/api/v1/practice/options', async (route) => {
+    const real = await route.fetch()
+    const body = await real.json()
+    body.dora = { provider: 'OPENAI', realtime: { available: true } }
+    await route.fulfill({ response: real, json: body })
+  })
+  await page.goto('/practicar/' + session.id)
+  await page.getByRole('button', { name: r.startCall }).click()
+  await expect(page.getByRole('status').filter({ hasText: r.statuses.listening })).toBeVisible()
+  await page.evaluate(async () => {
+    const emit = (window as unknown as { __dora: { emit: (e: object) => void } }).__dora.emit
+    const stage = (position: number) =>
+      emit({
+        type: 'response.function_call_arguments.done',
+        name: 'set_stage',
+        call_id: 'question-' + position,
+        arguments: JSON.stringify({ phase: 'QUESTION', position }),
+      })
+    stage(1)
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    emit({ type: 'input_audio_buffer.speech_started', item_id: 'late-answer' })
+    emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'late-answer' })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    stage(2)
+    emit({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'late-answer',
+      transcript: 'Uso Java y SQL en mi proyecto de inventario.',
+    })
+  })
+  await expect
+    .poll(async () => {
+      const detail = await (
+        await page.request.get('/api/v1/practice/sessions/' + session.id)
+      ).json()
+      return detail.questions[0].answer?.transcriptFinal
+    })
+    .toBe('Uso Java y SQL en mi proyecto de inventario.')
+  const detail = await (await page.request.get('/api/v1/practice/sessions/' + session.id)).json()
+  expect(detail.channel).toBe('REALTIME')
+  expect(detail.questions[1].answer).toBeNull()
+  await page.getByRole('button', { name: r.hangUp }).click()
+  await page.getByRole('dialog').getByRole('button', { name: r.hangUpShort }).click()
+  await expect(page.getByText(es.workflows.closedSession)).toBeVisible()
+  const finished = await (await page.request.get('/api/v1/practice/sessions/' + session.id)).json()
+  expect(finished.status).toBe('COMPLETED')
+  expect(finished.questions[0].answer.transcriptFinal).toBe(
+    'Uso Java y SQL en mi proyecto de inventario.',
+  )
+})
