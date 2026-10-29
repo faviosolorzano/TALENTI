@@ -18,7 +18,9 @@ public enum AiFunction {
 	/** Evaluación por rúbrica de una respuesta de entrevista (012-25). */
 	INTERVIEW_EVALUATION,
 	EXAM_GENERATION,
-	EXAM_GRADING;
+	EXAM_GRADING,
+	/** Una llamada de DORA en tiempo real (spec 012, enmienda 2): segundos medidos por el servidor y costo estimado. */
+	DORA_REALTIME;
 
 	/** La clave de esta función en {@code talenti.ai.limits.per-user-monthly}, por ejemplo {@code cv-read}. */
 	public String configKey() {

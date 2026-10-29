@@ -104,10 +104,24 @@ public class DoraService {
 
 	private final java.util.concurrent.ExecutorService executor;
 
+	private final com.talenti.practice.config.DoraRealtimeProperties realtime;
+
+	/** Sin la configuración del tiempo real (pruebas unitarias del modo por turnos): respuesta armada de 8 000. */
 	DoraService(PracticeRepository repository, ConversationPort conversation, LiveSessions live,
 			SessionLifecycle lifecycle, FeedbackService feedback, SessionViews views, UsageMeter usage,
 			ProfileFirstName names, DoraTexts texts, DoraProperties properties, Clock clock,
-			@org.springframework.beans.factory.annotation.Qualifier("doraExecutor") java.util.concurrent.ExecutorService executor) {
+			java.util.concurrent.ExecutorService executor) {
+		this(repository, conversation, live, lifecycle, feedback, views, usage, names, texts, properties, clock, executor,
+				null);
+	}
+
+	@org.springframework.beans.factory.annotation.Autowired
+	DoraService(PracticeRepository repository, ConversationPort conversation, LiveSessions live,
+			SessionLifecycle lifecycle, FeedbackService feedback, SessionViews views, UsageMeter usage,
+			ProfileFirstName names, DoraTexts texts, DoraProperties properties, Clock clock,
+			@org.springframework.beans.factory.annotation.Qualifier("doraExecutor") java.util.concurrent.ExecutorService executor,
+			com.talenti.practice.config.DoraRealtimeProperties realtime) {
+		this.realtime = realtime;
 		this.executor = executor;
 		this.repository = repository;
 		this.conversation = conversation;
@@ -130,6 +144,7 @@ public class DoraService {
 		if (!session.status().isOpen()) {
 			throw DoraErrors.conflict("session-closed");
 		}
+		rejectIfRealtimeOpen(session);
 		if (!live.tryLock(sessionId)) {
 			throw DoraErrors.conflict("turn-in-progress");
 		}
@@ -217,6 +232,7 @@ public class DoraService {
 		if (!session.status().isOpen()) {
 			throw DoraErrors.conflict("session-closed");
 		}
+		rejectIfRealtimeOpen(session);
 		if (!live.tryLock(sessionId)) {
 			throw DoraErrors.conflict("turn-in-progress");
 		}
@@ -232,6 +248,16 @@ public class DoraService {
 		catch (RuntimeException e) {
 			live.unlock(sessionId);
 			throw e;
+		}
+	}
+
+	/**
+	 * Mientras haya una llamada en tiempo real abierta no se conversa por turnos en la misma sesión: primero se cuelga
+	 * con {@code FALLBACK} (012-53). Solo consulta la base si la sesión usa el canal en tiempo real.
+	 */
+	private void rejectIfRealtimeOpen(SessionRow session) {
+		if ("REALTIME".equals(session.channel()) && repository.openCall(session.id()).isPresent()) {
+			throw DoraErrors.conflict("realtime-call-open");
 		}
 	}
 
@@ -602,8 +628,11 @@ public class DoraService {
 		if (value.isEmpty()) {
 			throw DoraErrors.invalid("transcript", "required");
 		}
-		if (value.length() > properties.maxTranscript()) {
-			throw DoraErrors.invalid("transcript", "max-length", properties.maxTranscript());
+		// Una respuesta armada en tiempo real (respuesta + repregunta) admite hasta max-answer (duda E2-11).
+		int max = repository.hasRealtimeCalls(sessionId) ? Math.max(properties.maxTranscript(), realtime == null ? 8000 : realtime.maxAnswer())
+				: properties.maxTranscript();
+		if (value.length() > max) {
+			throw DoraErrors.invalid("transcript", "max-length", max);
 		}
 		if (session.mode() == SessionMode.INTERVIEW && !session.status().isOpen()
 				&& session.status() != SessionStatus.COMPLETED) {

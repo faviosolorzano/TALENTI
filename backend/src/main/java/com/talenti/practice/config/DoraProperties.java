@@ -65,7 +65,7 @@ public record DoraProperties(
 			@DefaultValue("true") boolean enabled,
 			@DefaultValue("2") int maxAttempts,
 			@DefaultValue("5") int questionCount,
-			@DefaultValue("v1") String noticeVersion) {
+			@DefaultValue("v2") String noticeVersion) {
 	}
 
 }

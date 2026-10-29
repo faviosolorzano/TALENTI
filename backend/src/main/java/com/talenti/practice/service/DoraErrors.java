@@ -33,6 +33,31 @@ public final class DoraErrors {
 		return new ValidationFailedException(List.of(FieldViolation.of(field, rule, args)));
 	}
 
+	/** 012-54: el 409 {@code session-open} con el resumen de la sesión abierta de la MISMA persona. */
+	public static ApiException sessionOpen(com.talenti.practice.persistence.PracticeRepository.SessionRow open) {
+		if (open == null) {
+			return conflict("session-open");
+		}
+		Views.OpenSession summary = SessionViews.open(open);
+		Map<String, Object> value = new java.util.LinkedHashMap<>();
+		value.put("id", summary.id());
+		value.put("mode", summary.mode());
+		value.put("status", summary.status());
+		value.put("channel", summary.channel());
+		value.put("applicationId", summary.applicationId());
+		return new ApiException(HttpStatus.CONFLICT, "session-open", Map.of("openSession", value));
+	}
+
+	/** 012-42 y 012-49: el tiempo real no está disponible; el cliente sigue por turnos. */
+	public static ApiException realtimeUnavailable(String reason) {
+		Map<String, Object> value = new java.util.LinkedHashMap<>();
+		value.put("fallback", "TURN_BASED");
+		if (reason != null) {
+			value.put("reason", reason);
+		}
+		return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "realtime-unavailable", value);
+	}
+
 	/** 429 del cupo personal de práctica (012-29), con la fecha de renovación. */
 	public static ApiException quotaReached(Instant resetsAt, String blockedBy) {
 		return new ApiException(HttpStatus.TOO_MANY_REQUESTS, "ai-quota-reached",

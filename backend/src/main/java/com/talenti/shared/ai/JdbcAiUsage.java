@@ -81,16 +81,24 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 
 	@Override
 	public boolean monthlySpendReached() {
+		return monthSpentMicros() >= limits.monthlySpendMicros();
+	}
+
+	@Override
+	public long monthlySpendRemainingMicros() {
+		return Math.max(0, limits.monthlySpendMicros() - monthSpentMicros());
+	}
+
+	private long monthSpentMicros() {
 		ZonedDateTime now = clock.instant().atZone(limits.zone());
 		Instant monthStart = now.toLocalDate().withDayOfMonth(1).atStartOfDay(limits.zone()).toInstant();
 		Instant nextMonth = now.toLocalDate().withDayOfMonth(1).plusMonths(1).atStartOfDay(limits.zone()).toInstant();
-		Long spent = jdbc.sql("""
+		return jdbc.sql("""
 				SELECT coalesce(sum(estimated_cost_micros), 0) FROM ai_usage_event
 				WHERE estimated_cost_micros IS NOT NULL AND occurred_at >= :from AND occurred_at < :until""")
 				.param("from", OffsetDateTime.ofInstant(monthStart, ZoneOffset.UTC))
 				.param("until", OffsetDateTime.ofInstant(nextMonth, ZoneOffset.UTC))
 				.query(Long.class).single();
-		return spent >= limits.monthlySpendMicros();
 	}
 
 	/** Usos completados en la ventana; con {@code userId} nulo, de todas las personas. */

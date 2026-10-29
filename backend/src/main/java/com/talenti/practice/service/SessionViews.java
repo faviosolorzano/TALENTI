@@ -96,12 +96,31 @@ public class SessionViews {
 		}
 		return new Views.Session(s.id(), s.mode().name(), s.basis().name(), s.vacancyId(), s.applicationId(), s.topic(),
 				s.questionCount(), s.voiceEnabled(), s.status().name(), s.attempt(), s.degradedReasons(), s.createdAt(),
-				s.startedAt(), s.endedAt(), s.status().isOpen() ? next : null, latest.size(), items, versions(s));
+				s.startedAt(), s.endedAt(), s.status().isOpen() ? next : null, latest.size(), items, versions(s),
+				s.channel(), s.endsAt(), conversation(s.id()));
 	}
 
 	public static Views.Versions versions(SessionRow s) {
 		return new Views.Versions(s.llmAdapter(), s.llmModel(), s.sttModel(), s.ttsModel(), s.ttsVoice(),
-				s.promptVersion(), s.rubricVersion(), s.bankVersion());
+				s.promptVersion(), s.rubricVersion(), s.bankVersion(), s.realtimeModel(), s.realtimeVoice(),
+				s.transcriptionModel());
+	}
+
+	/** Lo dicho en tiempo real, en orden (las etapas no se muestran como intervenciones). */
+	public List<Views.Utterance> conversation(java.util.UUID sessionId) {
+		List<Views.Utterance> items = new ArrayList<>();
+		for (PracticeRepository.UtteranceRow row : repository.utterances(sessionId)) {
+			if (!"UTTERANCE".equals(row.kind())) {
+				continue;
+			}
+			items.add(new Views.Utterance(row.speaker(), row.text(), row.phase(), row.questionPosition(),
+					row.inputMode(), "DORA".equals(row.speaker()) ? "AI" : null, "CLIENT", row.occurredAt()));
+		}
+		return items;
+	}
+
+	public static Views.OpenSession open(SessionRow s) {
+		return new Views.OpenSession(s.id(), s.mode().name(), s.status().name(), s.channel(), s.applicationId());
 	}
 
 	/** Retroalimentación; nula si aún no se pidió. */

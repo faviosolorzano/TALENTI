@@ -24,7 +24,8 @@ import com.talenti.practice.domain.SessionStatus;
 
 /**
  * Único lugar del módulo que toca sus tablas: {@code practice_session}, {@code practice_question},
- * {@code practice_turn}, {@code practice_feedback} e {@code interview_event} (principio 12). Nunca guarda audio. Las
+ * {@code practice_turn}, {@code practice_feedback}, {@code interview_event}, {@code realtime_call} y
+ * {@code practice_utterance} (principio 12). Nunca guarda audio. Las
  * consultas por persona filtran por {@code user_id}: una sesión ajena es igual a una inexistente (012-32).
  */
 @Repository
@@ -37,7 +38,8 @@ public class PracticeRepository {
 			String noticeVersion, Instant noticeAcceptedAt, List<String> degradedReasons, String llmAdapter,
 			String llmModel, String sttModel, String ttsModel, String ttsVoice, String promptVersion,
 			String rubricVersion, String bankVersion, Instant createdAt, Instant startedAt, Instant endedAt,
-			Instant lastActivityAt) {
+			Instant lastActivityAt, String channel, String realtimeModel, String realtimeVoice,
+			String transcriptionModel, Instant endsAt) {
 
 		public SessionRow {
 			degradedReasons = List.copyOf(degradedReasons);
@@ -109,7 +111,8 @@ public class PracticeRepository {
 	private static final String SESSION_COLUMNS = """
 			id, user_id, mode, basis, vacancy_id, application_id, topic, question_count, voice_enabled, status, attempt,
 			notice_version, notice_accepted_at, degraded_reasons, llm_adapter, llm_model, stt_model, tts_model,
-			tts_voice, prompt_version, rubric_version, bank_version, created_at, started_at, ended_at, last_activity_at""";
+			tts_voice, prompt_version, rubric_version, bank_version, created_at, started_at, ended_at, last_activity_at,
+			channel, realtime_model, realtime_voice, transcription_model, ends_at""";
 
 	private static final String TURN_COLUMNS = """
 			t.id, t.question_id, q.session_id, q.position, t.client_turn_id, t.attempt, t.input_mode, t.transcript_raw,
@@ -153,7 +156,8 @@ public class PracticeRepository {
 				rs.getString("stt_model"), rs.getString("tts_model"), rs.getString("tts_voice"),
 				rs.getString("prompt_version"), rs.getString("rubric_version"), rs.getString("bank_version"),
 				instant(rs, "created_at"), instant(rs, "started_at"), instant(rs, "ended_at"),
-				instant(rs, "last_activity_at"));
+				instant(rs, "last_activity_at"), rs.getString("channel"), rs.getString("realtime_model"),
+				rs.getString("realtime_voice"), rs.getString("transcription_model"), instant(rs, "ends_at"));
 	}
 
 	private static QuestionRow question(ResultSet rs, int n) throws SQLException {
@@ -428,6 +432,214 @@ public class PracticeRepository {
 				+ "ORDER BY occurred_at, id").param("sessionId", sessionId)
 				.query((rs, n) -> new EventRow(rs.getString("kind"), instant(rs, "occurred_at"), rs.getString("data")))
 				.list();
+	}
+
+	// ------------------------------------------------------------------------------------------ tiempo real (enmienda 2)
+
+	/** Una llamada en tiempo real. Nunca guarda el SDP ni las instrucciones. */
+	public record CallRow(UUID id, UUID sessionId, String providerCallId, String status, String instructionsVersion,
+			String startPhase, Instant startedAt, Instant endedAt, String endReason, Integer measuredSeconds) {
+
+		@Override
+		public String toString() {
+			return "CallRow[id=" + id + ", status=" + status + "]";
+		}
+
+	}
+
+	/** Algo dicho (UTTERANCE) o una etapa aceptada (STAGE) de la conversación en tiempo real. */
+	public record UtteranceRow(UUID id, UUID callId, long seq, String eventId, String kind, String speaker,
+			String phase, Integer questionPosition, String text, String inputMode, Integer latencyMs,
+			Instant occurredAt, Instant receivedAt) {
+
+		@Override
+		public String toString() {
+			return "UtteranceRow[seq=" + seq + ", kind=" + kind + ", phase=" + phase + "]";
+		}
+
+	}
+
+	/** Lo necesario para guardar un evento de la conversación. */
+	public record NewUtterance(String eventId, String kind, String speaker, String phase, Integer questionPosition,
+			String text, String inputMode, Integer latencyMs, Instant occurredAt) {
+
+		@Override
+		public String toString() {
+			return "NewUtterance[kind=" + kind + ", phase=" + phase + "]";
+		}
+
+	}
+
+	private static final String CALL_COLUMNS = """
+			id, session_id, provider_call_id, status, instructions_version, start_phase, started_at, ended_at, end_reason,
+			measured_seconds""";
+
+	private static final String UTTERANCE_COLUMNS = """
+			id, call_id, seq, event_id, kind, speaker, phase, question_position, text, input_mode, latency_ms, occurred_at,
+			received_at""";
+
+	private static CallRow call(ResultSet rs, int n) throws SQLException {
+		return new CallRow(rs.getObject("id", UUID.class), rs.getObject("session_id", UUID.class),
+				rs.getString("provider_call_id"), rs.getString("status"), rs.getString("instructions_version"),
+				rs.getString("start_phase"), instant(rs, "started_at"), instant(rs, "ended_at"),
+				rs.getString("end_reason"), integer(rs, "measured_seconds"));
+	}
+
+	private static UtteranceRow utterance(ResultSet rs, int n) throws SQLException {
+		return new UtteranceRow(rs.getObject("id", UUID.class), rs.getObject("call_id", UUID.class), rs.getLong("seq"),
+				rs.getString("event_id"), rs.getString("kind"), rs.getString("speaker"), rs.getString("phase"),
+				integer(rs, "question_position"), rs.getString("text"), rs.getString("input_mode"),
+				integer(rs, "latency_ms"), instant(rs, "occurred_at"), instant(rs, "received_at"));
+	}
+
+	/**
+	 * Reserva la llamada ABIERTA de la sesión antes de hablar con el proveedor (así una segunda pestaña recibe 409).
+	 *
+	 * @throws org.springframework.dao.DuplicateKeyException si la sesión ya tiene una llamada abierta
+	 */
+	public void insertCall(UUID id, UUID sessionId, String instructionsVersion, String startPhase, Instant now) {
+		jdbc.sql("""
+				INSERT INTO realtime_call (id, session_id, status, instructions_version, start_phase, started_at)
+				VALUES (:id, :sessionId, 'OPEN', :version, :phase, :now)""")
+				.param("id", id).param("sessionId", sessionId).param("version", instructionsVersion)
+				.param("phase", startPhase).param("now", utc(now)).update();
+	}
+
+	/** El proveedor abrió la llamada: se anota su id y el instante real de inicio. */
+	public void callOpened(UUID id, String providerCallId, Instant now) {
+		jdbc.sql("UPDATE realtime_call SET provider_call_id = :providerCallId, started_at = :now WHERE id = :id")
+				.param("id", id).param("providerCallId", providerCallId).param("now", utc(now)).update();
+	}
+
+	/** El proveedor no abrió la llamada (012-42): queda FALLIDA y no cuenta como reconexión. */
+	public void callFailed(UUID id, Instant now) {
+		jdbc.sql("""
+				UPDATE realtime_call SET status = 'FAILED', ended_at = :now, end_reason = 'PROVIDER_ERROR',
+				    measured_seconds = 0
+				WHERE id = :id AND status = 'OPEN'""").param("id", id).param("now", utc(now)).update();
+	}
+
+	/** Cierra la llamada si sigue abierta. Falso si ya estaba cerrada (otro cierre llegó antes). */
+	public boolean closeCall(UUID id, String reason, Instant endedAt, int seconds) {
+		return jdbc.sql("""
+				UPDATE realtime_call SET status = 'CLOSED', ended_at = :endedAt, end_reason = :reason,
+				    measured_seconds = :seconds
+				WHERE id = :id AND status = 'OPEN'""")
+				.param("id", id).param("reason", reason).param("endedAt", utc(endedAt)).param("seconds", seconds)
+				.update() == 1;
+	}
+
+	public Optional<CallRow> openCall(UUID sessionId) {
+		return jdbc.sql("SELECT " + CALL_COLUMNS + " FROM realtime_call WHERE session_id = :sessionId AND status = 'OPEN'")
+				.param("sessionId", sessionId).query(PracticeRepository::call).optional();
+	}
+
+	public Optional<CallRow> findCall(UUID id, UUID sessionId) {
+		return jdbc.sql("SELECT " + CALL_COLUMNS + " FROM realtime_call WHERE id = :id AND session_id = :sessionId")
+				.param("id", id).param("sessionId", sessionId).query(PracticeRepository::call).optional();
+	}
+
+	/** Llamadas que el proveedor sí abrió (la primera y las reconexiones); las fallidas no cuentan. */
+	public int countOpenedCalls(UUID sessionId) {
+		return jdbc.sql("SELECT count(*) FROM realtime_call WHERE session_id = :sessionId AND status <> 'FAILED'")
+				.param("sessionId", sessionId).query(Integer.class).single();
+	}
+
+	public boolean hasRealtimeCalls(UUID sessionId) {
+		return countOpenedCalls(sessionId) > 0;
+	}
+
+	/** El fin fijado de las OTRAS sesiones con una llamada abierta: lo que ya está reservado del gasto (012-49). */
+	public List<Instant> openCallEnds(UUID exceptSessionId) {
+		return jdbc.sql("""
+				SELECT s.ends_at FROM realtime_call c JOIN practice_session s ON s.id = c.session_id
+				WHERE c.status = 'OPEN' AND s.ends_at IS NOT NULL AND s.id <> :sessionId""")
+				.param("sessionId", exceptSessionId)
+				.query((rs, n) -> instant(rs, "ends_at")).list();
+	}
+
+	/** Sesiones abiertas con una llamada abierta y su fin ya pasado antes de {@code cutoff} (012-49). */
+	public List<SessionRow> realtimePastEnd(Instant cutoff) {
+		return jdbc.sql("SELECT " + SESSION_COLUMNS + " FROM practice_session s WHERE status IN ('CREATED', 'IN_PROGRESS') "
+				+ "AND ends_at IS NOT NULL AND ends_at < :cutoff AND EXISTS (SELECT 1 FROM realtime_call c "
+				+ "WHERE c.session_id = s.id AND c.status = 'OPEN')")
+				.param("cutoff", utc(cutoff)).query(PracticeRepository::session).list();
+	}
+
+	/** La primera llamada abierta con éxito: la sesión pasa a IN_PROGRESS por el canal en tiempo real (012-39). */
+	public void markRealtime(UUID id, String model, String voice, String transcriptionModel, String promptVersion,
+			Instant endsAt, Instant now) {
+		jdbc.sql("""
+				UPDATE practice_session SET status = 'IN_PROGRESS', started_at = coalesce(started_at, :now),
+				    channel = 'REALTIME', realtime_model = :model, realtime_voice = :voice,
+				    transcription_model = :transcriptionModel, prompt_version = :promptVersion, ends_at = :endsAt,
+				    last_activity_at = :now
+				WHERE id = :id AND status IN ('CREATED', 'IN_PROGRESS')""")
+				.param("id", id).param("model", model).param("voice", voice)
+				.param("transcriptionModel", transcriptionModel).param("promptVersion", promptVersion)
+				.param("endsAt", utc(endsAt)).param("now", utc(now)).update();
+	}
+
+	/** 012-53: con FALLBACK la sesión sigue por turnos. */
+	public void setChannel(UUID id, String channel) {
+		jdbc.sql("UPDATE practice_session SET channel = :channel WHERE id = :id").param("id", id)
+				.param("channel", channel).update();
+	}
+
+	/** Bloquea la fila de la sesión hasta el fin de la transacción: los eventos de una sesión se procesan de a uno. */
+	public void lockSession(UUID id) {
+		jdbc.sql("SELECT id FROM practice_session WHERE id = :id FOR UPDATE").param("id", id).query(UUID.class).list();
+	}
+
+	/** Guarda un evento; falso si ese {@code event_id} ya estaba (idempotente, 012-44). */
+	public boolean insertUtterance(UUID sessionId, UUID callId, NewUtterance u, Instant now) {
+		return jdbc.sql("""
+				INSERT INTO practice_utterance (id, session_id, call_id, event_id, kind, speaker, phase, question_position,
+				    text, input_mode, latency_ms, occurred_at, received_at)
+				VALUES (:id, :sessionId, :callId, :eventId, :kind, :speaker, :phase, :position, :text, :inputMode,
+				    :latencyMs, :occurredAt, :now)
+				ON CONFLICT (session_id, event_id) DO NOTHING""")
+				.param("id", UUID.randomUUID()).param("sessionId", sessionId).param("callId", callId)
+				.param("eventId", u.eventId()).param("kind", u.kind()).param("speaker", u.speaker())
+				.param("phase", u.phase()).param("position", u.questionPosition()).param("text", u.text())
+				.param("inputMode", u.inputMode()).param("latencyMs", u.latencyMs())
+				.param("occurredAt", utc(u.occurredAt())).param("now", utc(now)).update() == 1;
+	}
+
+	public boolean utteranceExists(UUID sessionId, String eventId) {
+		return jdbc.sql("SELECT count(*) FROM practice_utterance WHERE session_id = :sessionId AND event_id = :eventId")
+				.param("sessionId", sessionId).param("eventId", eventId).query(Integer.class).single() > 0;
+	}
+
+	/** Todo lo de la conversación en tiempo real, en orden de llegada. */
+	public List<UtteranceRow> utterances(UUID sessionId) {
+		return jdbc.sql("SELECT " + UTTERANCE_COLUMNS + " FROM practice_utterance WHERE session_id = :sessionId ORDER BY seq")
+				.param("sessionId", sessionId).query(PracticeRepository::utterance).list();
+	}
+
+	/** Respuesta armada desde la conversación (012-46): una por pregunta, sin audio. */
+	public void insertAssembledTurn(UUID id, UUID questionId, UUID clientTurnId, InputMode mode, String text,
+			Instant now) {
+		jdbc.sql("""
+				INSERT INTO practice_turn (id, question_id, client_turn_id, attempt, input_mode, transcript_raw,
+				    transcript_final, created_at)
+				VALUES (:id, :questionId, :clientTurnId, 1, :mode, :text, :text, :now)""")
+				.param("id", id).param("questionId", questionId).param("clientTurnId", clientTurnId)
+				.param("mode", mode.name()).param("text", text).param("now", utc(now)).update();
+	}
+
+	/** Rearma una respuesta con intervenciones tardías, solo si la persona no la corrigió. Falso si no cambió. */
+	public boolean updateAssembledTurn(UUID id, InputMode mode, String text) {
+		return jdbc.sql("""
+				UPDATE practice_turn SET transcript_raw = :text, transcript_final = :text, input_mode = :mode
+				WHERE id = :id AND corrected_at IS NULL AND transcript_raw <> :text""")
+				.param("id", id).param("mode", mode.name()).param("text", text).update() == 1;
+	}
+
+	/** Latencia del canal en tiempo real que reporta el navegador (012-55). Solo números. */
+	public List<Integer> recentRealtimeLatencyMs(int last) {
+		return jdbc.sql("SELECT latency_ms FROM practice_utterance WHERE latency_ms IS NOT NULL "
+				+ "ORDER BY received_at DESC LIMIT :last").param("last", last).query(Integer.class).list();
 	}
 
 }

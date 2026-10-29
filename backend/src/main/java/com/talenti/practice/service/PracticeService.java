@@ -76,10 +76,16 @@ public class PracticeService {
 
 	private final Clock clock;
 
+	private final RealtimeService realtime;
+
+	private final RealtimeCalls calls;
+
 	PracticeService(PracticeRepository repository, ProfileReader profiles, VacancyLookup vacancies, SkillCatalog catalog,
 			AiUsageQuota quota, SessionPlanning planning, SessionViews views, DoraService dora, UsageMeter usage,
 			ConversationPort conversation, QuestionBank bank, Rubric rubric, InterviewNotice notice,
-			DoraProperties properties, Clock clock) {
+			DoraProperties properties, Clock clock, RealtimeService realtime, RealtimeCalls calls) {
+		this.realtime = realtime;
+		this.calls = calls;
 		this.repository = repository;
 		this.profiles = profiles;
 		this.vacancies = vacancies;
@@ -113,7 +119,7 @@ public class PracticeService {
 		QuotaStatus status = quota.check(userId, AiFunction.PRACTICE_SESSION);
 		return new Views.Options(bases, profileTopics, properties.maxQuestions(),
 				new Views.Quota(status.used(), status.limit(), status.personalResets()), !usage.spendReached(),
-				new Views.Notice(notice.version(), notice.text()));
+				new Views.Notice(notice.version(), notice.text()), realtime.availability());
 	}
 
 	private List<Views.Topic> profileTopics(ProfileSnapshot snapshot) {
@@ -133,8 +139,9 @@ public class PracticeService {
 			throw DoraErrors.invalid("questionCount", "out-of-range", 1, properties.maxQuestions());
 		}
 		List<QuestionPlanner.BasisRef> basis = basis(userId, command);
-		if (repository.findOpen(userId).isPresent()) {
-			throw DoraErrors.conflict("session-open");
+		Optional<SessionRow> open = repository.findOpen(userId);
+		if (open.isPresent()) {
+			throw DoraErrors.sessionOpen(open.get());
 		}
 		QuotaStatus status = quota.check(userId, AiFunction.PRACTICE_SESSION);
 		if (!status.allowed()) {
@@ -152,8 +159,8 @@ public class PracticeService {
 							q.source(), q.basisRef())).toList(),
 					clock.instant());
 		}
-		catch (DuplicateKeyException open) {
-			throw DoraErrors.conflict("session-open");
+		catch (DuplicateKeyException race) {
+			throw DoraErrors.sessionOpen(repository.findOpen(userId).orElse(null));
 		}
 		if (plan.degraded()) {
 			repository.addDegraded(id, "QUESTION_BANK");
@@ -230,9 +237,16 @@ public class PracticeService {
 
 	/** 012-21: borra la práctica con todo lo asociado. Nunca limitado por el cupo (T8). */
 	public void delete(UUID userId, UUID id) {
-		practice(userId, id);
+		SessionRow session = practice(userId, id);
+		// Una llamada en tiempo real abierta se cierra (y se cuelga sin bloquear) antes de borrar todo.
+		calls.closeOpenCall(session, "DELETED", false);
 		repository.deletePractice(id, userId);
 		dora.forget(id);
+	}
+
+	/** 012-54: la sesión abierta de la persona (práctica o entrevista), si hay. */
+	public Optional<Views.OpenSession> openSession(UUID userId) {
+		return repository.findOpen(userId).map(SessionViews::open);
 	}
 
 	private SessionRow practice(UUID userId, UUID id) {

@@ -85,6 +85,13 @@ class PracticeController {
 		return service.list(user.id(), pageNumber, pageSize);
 	}
 
+	/** 012-54: la sesión abierta de la persona (200) o nada (204). */
+	@GetMapping("/sessions/open")
+	ResponseEntity<Views.OpenSession> open(@AuthenticationPrincipal CurrentUser user) {
+		return service.openSession(user.id()).map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.noContent().build());
+	}
+
 	@GetMapping("/sessions/{id}")
 	Views.Session detail(@AuthenticationPrincipal CurrentUser user, @PathVariable String id) {
 		return service.detail(user.id(), Ids.session(id));

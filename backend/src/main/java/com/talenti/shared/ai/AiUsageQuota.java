@@ -17,4 +17,12 @@ public interface AiUsageQuota {
 	 */
 	boolean monthlySpendReached();
 
+	/**
+	 * Cuánto queda del tope mensual de gasto, en millonésimas de dólar (nunca negativo). Sirve para acotar de antemano la
+	 * duración de una llamada en tiempo real (012-49).
+	 */
+	default long monthlySpendRemainingMicros() {
+		return monthlySpendReached() ? 0 : Long.MAX_VALUE;
+	}
+
 }
