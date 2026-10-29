@@ -145,6 +145,10 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   expect(levelBox!.x).toBeGreaterThanOrEqual(evidenceBox!.x + evidenceBox!.width)
   await shot(page, 'cv-evidencia-escritorio')
   await evidence.locator('summary').click()
+  await page.setViewportSize({ width: 360, height: 800 })
+  await reflow(page)
+  await shot(page, 'cv-revision-movil')
+  await page.setViewportSize({ width: 1440, height: 1000 })
   for (const name of ['Java', 'SQL', 'Git']) {
     const row = page
       .locator('.suggestion')
