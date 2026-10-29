@@ -51,6 +51,9 @@ public class TestcontainersConfiguration {
 	 */
 	public static PostgreSQLContainer newContainer() {
 		return new PostgreSQLContainer(PGVECTOR_IMAGE)
+				// Hasta 32 contextos cacheados con pools de 6, más el contexto entrante y Flyway.
+				// Solo la base efímera de pruebas; no cambia PostgreSQL de ejecución.
+				.withCommand("postgres", "-c", "fsync=off", "-c", "max_connections=250")
 				.withEnv("APP_DB_USER", APP_USER)
 				.withEnv("APP_DB_PASSWORD", APP_PASSWORD)
 				.withCopyFileToContainer(MountableFile.forHostPath(INIT_SCRIPT, 0755),
