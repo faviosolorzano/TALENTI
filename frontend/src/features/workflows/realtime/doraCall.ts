@@ -160,10 +160,12 @@ export class DoraCall {
   private callId: string | null = null
   private callOpen = false
   private attempts = 0
+  private mediaAttempt = 0
   private disposed = false
   private closing = false
   private ending = false
   private speechStoppedAt: number | null = null
+  private speechTimes = new Map<string, number>()
   private pendingLatency: number | null = null
   private followUps = new Set<number>()
   private lastPosition: number | null = null
@@ -232,6 +234,7 @@ export class DoraCall {
   async start() {
     if (this.disposed || this.active) return
     this.attempts++
+    const mediaAttempt = ++this.mediaAttempt
     this.closing = false
     this.update({ status: 'preparing', problem: null, canRetry: false })
     let stream: MediaStream
@@ -240,11 +243,11 @@ export class DoraCall {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       })
     } catch {
-      if (!this.disposed) this.fail('mic-denied')
+      if (!this.disposed && mediaAttempt === this.mediaAttempt) this.fail('mic-denied')
       return
     }
     // The person left while the permission was pending: release it (012-F03).
-    if (this.disposed) {
+    if (this.disposed || mediaAttempt !== this.mediaAttempt) {
       stream.getTracks().forEach((track) => track.stop())
       return
     }
@@ -322,8 +325,10 @@ export class DoraCall {
     if (this.callId) {
       try {
         result = await this.deps.api.hangup(this.options.sessionId, this.callId, 'FALLBACK')
-      } catch {
-        result = null
+      } catch (error) {
+        // The server still owns a REALTIME session: do not switch the UI on a failed request.
+        this.fail(this.problemOf(error))
+        return
       }
     }
     this.callOpen = false
@@ -466,11 +471,15 @@ export class DoraCall {
     const n = this.names
     const type = text(event.type)
     if (type === n.speechStarted) {
+      const itemId = text(event.item_id)
+      if (itemId) this.speechTimes.set(itemId, this.deps.now())
       // The person talks: DORA is cut by the provider and the interface stops showing her (012-60).
       this.goodbye?.()
       this.update({ status: 'listening' })
     } else if (type === n.speechStopped) {
       this.speechStoppedAt = this.deps.now()
+      const itemId = text(event.item_id)
+      if (itemId && !this.speechTimes.has(itemId)) this.speechTimes.set(itemId, this.deps.now())
     } else if (type === n.outputAudioStarted) {
       if (this.speechStoppedAt !== null) {
         this.pendingLatency = Math.max(0, this.deps.now() - this.speechStoppedAt)
@@ -483,7 +492,10 @@ export class DoraCall {
     } else if (type === n.personTranscript) {
       const said = text(event.transcript).trim().slice(0, MAX_TEXT)
       if (!said) return
-      const eventId = 'person:' + (text(event.item_id) || this.deps.newId())
+      const itemId = text(event.item_id)
+      const occurredAt = this.speechTimes.get(itemId) ?? this.deps.now()
+      this.speechTimes.delete(itemId)
+      const eventId = 'person:' + (itemId || this.deps.newId())
       this.addEntry({
         id: eventId,
         speaker: 'PERSON',
@@ -497,7 +509,7 @@ export class DoraCall {
         speaker: 'PERSON',
         text: said,
         inputMode: 'VOICE',
-        occurredAt: new Date(this.deps.now()).toISOString(),
+        occurredAt: new Date(occurredAt).toISOString(),
       })
     } else if (type === n.doraTranscriptDelta) {
       const id = 'dora:' + (text(event.item_id) || text(event.response_id) || 'live')
@@ -570,6 +582,7 @@ export class DoraCall {
         type: 'stage',
         eventId: 'stage:' + callId,
         phase,
+        occurredAt: new Date(this.deps.now()).toISOString(),
         ...(position !== null ? { position } : {}),
       })
     this.toolOutput(callId, output)
@@ -710,6 +723,7 @@ export class DoraCall {
 
   /** Releases connection, channel, tracks and timers. Keeps the transcript and the call id. */
   private release() {
+    this.mediaAttempt++
     for (const timer of this.timers) clearTimeout(timer)
     this.timers.clear()
     this.connectTimer = null
@@ -742,6 +756,8 @@ export class DoraCall {
       this.audio.srcObject = null
     }
     this.localAnalyser = this.remoteAnalyser = null
+    if (this.context) void this.context.close().catch(() => {})
+    this.context = null
   }
 
   private later(run: () => void, ms: number) {

@@ -100,7 +100,7 @@ export type RealtimeEvent =
       occurredAt: string
       latencyMs?: number
     }
-  | { type: 'stage'; eventId: string; phase: string; position?: number }
+  | { type: 'stage'; eventId: string; phase: string; position?: number; occurredAt?: string }
 
 export interface RealtimeEventsResult {
   accepted: number

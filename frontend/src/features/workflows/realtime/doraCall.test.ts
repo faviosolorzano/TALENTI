@@ -205,6 +205,49 @@ describe('012-60 interruption, mute and level', () => {
 })
 
 describe('012-61 transcript, events and tools', () => {
+  it('012-46: late transcripts keep the speech time before a new question stage', async () => {
+    const { call, peer, sent } = await connect()
+    const before = Date.now()
+    peer.channel.emit({ type: 'input_audio_buffer.speech_started', item_id: 'late-person' })
+    await vi.advanceTimersByTimeAsync(500)
+    peer.channel.emit({ type: 'input_audio_buffer.speech_stopped', item_id: 'late-person' })
+    await vi.advanceTimersByTimeAsync(500)
+    const changedAt = Date.now()
+    peer.channel.emit({
+      type: 'response.function_call_arguments.done',
+      name: 'set_stage',
+      call_id: 'question-2',
+      arguments: JSON.stringify({ phase: 'QUESTION', position: 2 }),
+    })
+    peer.channel.emit({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'late-person',
+      transcript: 'La respuesta anterior',
+    })
+    await vi.advanceTimersByTimeAsync(1000)
+    const events = sent.flatMap((batch) => batch.events)
+    expect(events.find((event) => event.type === 'stage')).toMatchObject({
+      occurredAt: new Date(changedAt).toISOString(),
+    })
+    expect(events.find((event) => event.type === 'utterance')).toMatchObject({
+      occurredAt: new Date(before).toISOString(),
+    })
+    call.dispose()
+  })
+
+  it('012-63: a failed fallback stays in error and can be retried, without claiming success', async () => {
+    const { call, peer, api, onFallback } = await connect()
+    peer.channel.close()
+    api.hangup.mockRejectedValueOnce(new ApiError(0, null))
+    await call.fallback()
+    expect(onFallback).not.toHaveBeenCalled()
+    expect(call.getSnapshot()).toMatchObject({ status: 'error', problem: 'connection' })
+    await call.fallback()
+    expect(onFallback).toHaveBeenCalledTimes(1)
+    expect(api.hangup).toHaveBeenCalledTimes(2)
+    call.dispose()
+  })
+
   it('012-61: transcripts appear live (DORA as partial then final) and leave in one batch within 1 s', async () => {
     const { call, peer, sent } = await connect()
     peer.channel.emit({ type: 'input_audio_buffer.speech_stopped' })
@@ -294,8 +337,20 @@ describe('012-61 transcript, events and tools', () => {
     expect(peer.channel.sentTypes().filter((t) => t === 'response.create').length).toBe(before + 1)
     await vi.advanceTimersByTimeAsync(1000)
     expect(sent.flatMap((b) => b.events)).toEqual([
-      { type: 'stage', eventId: 'stage:t1', phase: 'QUESTION', position: 1 },
-      { type: 'stage', eventId: 'stage:t2', phase: 'FOLLOW_UP', position: 1 },
+      expect.objectContaining({
+        type: 'stage',
+        eventId: 'stage:t1',
+        phase: 'QUESTION',
+        position: 1,
+        occurredAt: expect.any(String),
+      }),
+      expect.objectContaining({
+        type: 'stage',
+        eventId: 'stage:t2',
+        phase: 'FOLLOW_UP',
+        position: 1,
+        occurredAt: expect.any(String),
+      }),
     ])
   })
 
@@ -427,6 +482,32 @@ describe('012-63 failures', () => {
 })
 
 describe('012-65 cleanup', () => {
+  it('012-65: a permission granted after choosing fallback is released without creating a call', async () => {
+    let grant!: (stream: MediaStream) => void
+    const mic = fakeStream()
+    const { api } = fakeApi()
+    const call = new DoraCall({
+      sessionId: 'session-1',
+      closingNotice: '',
+      deps: {
+        createPeer: () => new FakePeer() as unknown as RTCPeerConnection,
+        getUserMedia: () =>
+          new Promise((resolve) => {
+            grant = resolve
+          }),
+        api,
+      },
+    })
+    const pending = call.start()
+    await call.fallback()
+    grant(mic.stream)
+    await pending
+    expect(mic.track.stop).toHaveBeenCalled()
+    expect(api.createCall).not.toHaveBeenCalled()
+    expect(call.getSnapshot().status).toBe('fallback')
+    call.dispose()
+  })
+
   it('012-65: dispose closes channel, connection, tracks and audio context and hangs up USER_LEFT with keepalive', async () => {
     const { call, peer, mic, audio, api, sent } = await connect()
     peer.channel.emit({
