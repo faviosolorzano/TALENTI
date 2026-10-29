@@ -202,10 +202,15 @@ talenti:
           channel: oai-events
           person-transcript: conversation.item.input_audio_transcription.completed
           dora-transcript: response.output_audio_transcript.done
+          dora-transcript-delta: response.output_audio_transcript.delta
           speech-started: input_audio_buffer.speech_started
           speech-stopped: input_audio_buffer.speech_stopped
+          output-audio-started: output_audio_buffer.started
+          output-audio-stopped: output_audio_buffer.stopped
           function-call: response.function_call_arguments.done
           response-done: response.done
+          item-create: conversation.item.create      # el navegador envía texto escrito y avisos a DORA
+          response-create: response.create           # el navegador pide que DORA hable (saludo, retomar)
       prices:
         # Precios en dólares para ESTIMAR el costo (012-30). A CONFIRMAR con la página de precios del proveedor antes
         # de la prueba 012-34; no son una factura. Tokens estimados como caracteres / 4.

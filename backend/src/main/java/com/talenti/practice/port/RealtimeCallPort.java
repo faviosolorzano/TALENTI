@@ -15,8 +15,9 @@ public interface RealtimeCallPort {
 	}
 
 	/** Nombres del canal de datos y de los eventos que el navegador debe escuchar (configuración, a confirmar). */
-	record EventNames(String channel, String personTranscript, String doraTranscript, String speechStarted,
-			String speechStopped, String functionCall, String responseDone) {
+	record EventNames(String channel, String personTranscript, String doraTranscript, String doraTranscriptDelta,
+			String speechStarted, String speechStopped, String outputAudioStarted, String outputAudioStopped,
+			String functionCall, String responseDone, String itemCreate, String responseCreate) {
 	}
 
 	/**

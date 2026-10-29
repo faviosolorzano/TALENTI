@@ -190,6 +190,12 @@ class RealtimeIntegrationTests extends PracticeIntegrationTest {
 		assertThat(call.at("/events/personTranscript").asString())
 				.isEqualTo("conversation.item.input_audio_transcription.completed");
 		assertThat(call.at("/events/doraTranscript").asString()).isEqualTo("response.output_audio_transcript.done");
+		for (String key : List.of("channel", "personTranscript", "doraTranscript", "doraTranscriptDelta", "speechStarted",
+				"speechStopped", "outputAudioStarted", "outputAudioStopped", "functionCall", "responseDone", "itemCreate",
+				"responseCreate")) {
+			assertThat(call.at("/events/" + key).asString()).as("evento %s", key).isNotBlank();
+		}
+		assertThat(call.at("/events/responseCreate").asString()).isEqualTo("response.create");
 		Map<String, Object> row = jdbc.queryForMap("SELECT status, channel, realtime_model, realtime_voice, "
 				+ "transcription_model, prompt_version, ends_at FROM practice_session WHERE id = ?::uuid", session);
 		assertThat(row.get("status")).isEqualTo("IN_PROGRESS");
@@ -472,6 +478,7 @@ class RealtimeIntegrationTests extends PracticeIntegrationTest {
 				session)).as("la entrevista no usa cupo personal").isZero();
 		JsonNode view = ok(student.api().get("/api/v1/applications/" + application + "/interview"));
 		assertThat(view.get("conversation").size()).isEqualTo(5);
+		assertThat(view.get("channel").asString()).isEqualTo("REALTIME");
 	}
 
 	// ------------------------------------------------------------------------------------------ 012-49, 012-50

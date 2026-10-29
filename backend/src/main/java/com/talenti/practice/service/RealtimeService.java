@@ -268,7 +268,9 @@ public class RealtimeService {
 		RealtimeCallPort.EventNames names = port.events();
 		return new Views.RealtimeCall(callId, created.sdp(), plan.endsAt(), plan.warnAt(), start.name(), startPosition,
 				new Views.RealtimeEvents(names.channel(), names.personTranscript(), names.doraTranscript(),
-						names.speechStarted(), names.speechStopped(), names.functionCall(), names.responseDone()));
+						names.doraTranscriptDelta(), names.speechStarted(), names.speechStopped(),
+						names.outputAudioStarted(), names.outputAudioStopped(), names.functionCall(),
+						names.responseDone(), names.itemCreate(), names.responseCreate()));
 	}
 
 	// ------------------------------------------------------------------------------------------ eventos

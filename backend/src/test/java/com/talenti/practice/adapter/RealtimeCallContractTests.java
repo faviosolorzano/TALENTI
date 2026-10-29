@@ -31,7 +31,8 @@ abstract class RealtimeCallContractTests {
 	static final String OFFER = "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
 
 	static final RealtimeCallPort.EventNames EVENTS = new RealtimeCallPort.EventNames("oai-events", "person.done",
-			"dora.done", "speech.started", "speech.stopped", "function.done", "response.done");
+			"dora.done", "dora.delta", "speech.started", "speech.stopped", "audio.started", "audio.stopped",
+			"function.done", "response.done", "item.create", "response.create");
 
 	/** El adaptador; {@code failing} lo programa para que falle al abrir y al colgar. */
 	protected abstract RealtimeCallPort port(boolean failing);

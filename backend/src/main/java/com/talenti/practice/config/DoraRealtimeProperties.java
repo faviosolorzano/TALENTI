@@ -82,10 +82,15 @@ public record DoraRealtimeProperties(
 			@DefaultValue("oai-events") String channel,
 			@DefaultValue("conversation.item.input_audio_transcription.completed") String personTranscript,
 			@DefaultValue("response.output_audio_transcript.done") String doraTranscript,
+			@DefaultValue("response.output_audio_transcript.delta") String doraTranscriptDelta,
 			@DefaultValue("input_audio_buffer.speech_started") String speechStarted,
 			@DefaultValue("input_audio_buffer.speech_stopped") String speechStopped,
+			@DefaultValue("output_audio_buffer.started") String outputAudioStarted,
+			@DefaultValue("output_audio_buffer.stopped") String outputAudioStopped,
 			@DefaultValue("response.function_call_arguments.done") String functionCall,
-			@DefaultValue("response.done") String responseDone) {
+			@DefaultValue("response.done") String responseDone,
+			@DefaultValue("conversation.item.create") String itemCreate,
+			@DefaultValue("response.create") String responseCreate) {
 	}
 
 }

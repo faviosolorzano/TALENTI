@@ -49,7 +49,9 @@ class DoraRealtimeConfig {
 	static RealtimeCallPort.EventNames eventNames(DoraRealtimeProperties properties) {
 		DoraRealtimeProperties.Events events = properties.events();
 		return new RealtimeCallPort.EventNames(events.channel(), events.personTranscript(), events.doraTranscript(),
-				events.speechStarted(), events.speechStopped(), events.functionCall(), events.responseDone());
+				events.doraTranscriptDelta(), events.speechStarted(), events.speechStopped(), events.outputAudioStarted(),
+				events.outputAudioStopped(), events.functionCall(), events.responseDone(), events.itemCreate(),
+				events.responseCreate());
 	}
 
 	@Configuration(proxyBeanMethods = false)

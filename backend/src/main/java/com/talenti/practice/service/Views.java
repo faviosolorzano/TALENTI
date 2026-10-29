@@ -48,8 +48,10 @@ public final class Views {
 	}
 
 	/** Nombres del canal de datos y de los eventos del proveedor que el navegador escucha (configuración). */
-	public record RealtimeEvents(String channel, String personTranscript, String doraTranscript, String speechStarted,
-			String speechStopped, String functionCall, String responseDone) {
+	public record RealtimeEvents(String channel, String personTranscript, String doraTranscript,
+			String doraTranscriptDelta, String speechStarted, String speechStopped, String outputAudioStarted,
+			String outputAudioStopped, String functionCall, String responseDone, String itemCreate,
+			String responseCreate) {
 	}
 
 	/** 012-44: cuántos eventos se guardaron, cuántos ya estaban y cuántos se rechazaron. */

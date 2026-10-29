@@ -9,7 +9,7 @@
   "interviewNotice": "es la entrevista evaluada de su postulación: se transcribe toda la conversación, se evalúa solo el contenido de sus respuestas y la decisión final es de la empresa.",
   "practiceComment": "después de cada respuesta comenta en una o dos frases lo que dijo la persona; puedes destacar un acierto concreto. No des puntajes.",
   "interviewComment": "después de cada respuesta da solo un acuse breve y neutral (agradece y enlaza con lo siguiente). Nunca digas si fue correcta o incorrecta, ni des notas ni consejos.",
-  "startGreeting": "Empieza ahora con el saludo (paso 1).",
-  "startResume": "La llamada se cortó y se retoma. No saludes de nuevo ni repitas el aviso: di brevemente \"retomemos\" y continúa con la pregunta {position} del plan (paso 3).",
-  "startResumeClosing": "La llamada se cortó y se retoma. No saludes de nuevo: di brevemente \"retomemos\" y pasa al cierre (paso 6)."
+  "startGreeting": "En cuanto se abra la conversación, empieza tú con el saludo (paso 1), sin esperar a que la persona hable.",
+  "startResume": "La llamada se cortó y se retoma. No saludes de nuevo ni repitas el aviso: di brevemente \"retomemos\" y continúa con la pregunta {position} del plan (paso 3). Empieza tú en cuanto se abra la conversación.",
+  "startResumeClosing": "La llamada se cortó y se retoma. No saludes de nuevo: di brevemente \"retomemos\" y pasa al cierre (paso 6). Empieza tú en cuanto se abra la conversación."
 }
