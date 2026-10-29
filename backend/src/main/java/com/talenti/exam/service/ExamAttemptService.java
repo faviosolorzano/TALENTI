@@ -236,9 +236,11 @@ public class ExamAttemptService {
 	}
 	private void closeLocked(AttemptRow attempt,AttemptStatus status,String reason) {
 		if(status!=AttemptStatus.CLOSED_WITHDRAWN&&!stages.completeExam(attempt.applicationId(),attempt.userId())) throw ExamErrors.conflict("exam-application-state");
-		store.close(attempt.id(),status,reason,clock.instant());
-		if(status!=AttemptStatus.CLOSED_WITHDRAWN) snapshots.scheduleFromEnd(attempt.id(),clock.instant());
-		if(status==AttemptStatus.SUBMITTED||status==AttemptStatus.TIMED_OUT) store.event(attempt.id(),status.name(),null,null,clock.instant(),Map.of());
+		Instant now=clock.instant();
+		store.close(attempt.id(),status,reason,now);
+		// 014-56: el plazo de las fotos corre desde el mismo instante del fin del intento.
+		if(status!=AttemptStatus.CLOSED_WITHDRAWN) snapshots.scheduleFromEnd(attempt.id(),now);
+		if(status==AttemptStatus.SUBMITTED||status==AttemptStatus.TIMED_OUT) store.event(attempt.id(),status.name(),null,null,now,Map.of());
 	}
 	private static void requireRunning(AttemptRow a) { if(a.status()!=AttemptStatus.IN_PROGRESS) throw ExamErrors.conflict("exam-closed"); }
 	private ExamQuestion question(AttemptRow a,UUID id) { return store.questions(a.versionId()).stream().filter(q->q.id().equals(id)).findFirst().orElseThrow(ExamErrors::missing); }
