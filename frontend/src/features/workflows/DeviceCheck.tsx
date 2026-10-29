@@ -3,11 +3,14 @@ import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
 import { es } from '../../i18n/es'
 import './doraCall.css'
+import { deviceConstraint, listDevices, savePreferredDevice } from './mediaPreferences'
 const c = es.doraCall
 function useDevice(kind: 'camera' | 'microphone') {
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
+  const [devices, setDevices] = useState<{ id: string; label: string }[]>([])
+  const [selected, setSelected] = useState('')
   const current = useRef<MediaStream | null>(null)
   const generation = useRef(0)
   const mounted = useRef(false)
@@ -31,17 +34,19 @@ function useDevice(kind: 'camera' | 'microphone') {
     setStream(null)
     setPending(false)
   }
-  async function start() {
+  async function start(chosen?: string) {
     if (waiting.current || current.current) return
     const request = ++generation.current
     waiting.current = true
     setPending(true)
     setError('')
     try {
+      // Una elección explícita usa ese dispositivo; si no, el guardado (o el predeterminado del sistema).
+      const pick = chosen ? { deviceId: { exact: chosen } } : deviceConstraint(kind)
       const value = await navigator.mediaDevices.getUserMedia(
         kind === 'camera'
-          ? { video: { facingMode: 'user' }, audio: false }
-          : { audio: true, video: false },
+          ? { video: chosen ? pick : { facingMode: 'user', ...pick }, audio: false }
+          : { audio: Object.keys(pick).length ? pick : true, video: false },
       )
       if (!mounted.current || request !== generation.current) {
         value.getTracks().forEach((t) => t.stop())
@@ -49,6 +54,11 @@ function useDevice(kind: 'camera' | 'microphone') {
       }
       current.current = value
       setStream(value)
+      const inUse = value.getTracks()[0]?.getSettings?.().deviceId ?? ''
+      setSelected(inUse)
+      void listDevices(kind).then((list) => {
+        if (mounted.current && request === generation.current) setDevices(list)
+      })
     } catch (error) {
       if (mounted.current && request === generation.current)
         setError(
@@ -65,7 +75,13 @@ function useDevice(kind: 'camera' | 'microphone') {
       }
     }
   }
-  return { stream, pending, error, start, stop }
+  /** Cambia a otro dispositivo y lo recuerda para DORA y el examen. */
+  function choose(deviceId: string) {
+    savePreferredDevice(kind, deviceId)
+    stop()
+    void start(deviceId)
+  }
+  return { stream, pending, error, start, stop, devices, selected, choose }
 }
 export function DeviceCheck({ disabled = false }: { disabled?: boolean }) {
   const [open, setOpen] = useState(false)
@@ -154,6 +170,7 @@ export function DeviceCheckBody() {
         >
           {camera.pending ? c.pending : camera.stream ? c.cameraStop : c.cameraStart}
         </Button>
+        <DevicePicker label={c.cameraPick} device={camera} />
         {camera.pending && (
           <Button variant="quiet" onClick={camera.stop}>
             {c.stop}
@@ -172,6 +189,7 @@ export function DeviceCheckBody() {
         >
           {mic.pending ? c.pending : mic.stream ? c.micStop : c.micStart}
         </Button>
+        <DevicePicker label={c.micPick} device={mic} />
         {mic.pending && (
           <Button variant="quiet" onClick={mic.stop}>
             {c.stop}
@@ -193,6 +211,38 @@ export function DeviceCheckBody() {
         {soundError && <p role="alert">{c.mediaError}</p>}
       </section>
     </div>
+  )
+}
+
+/** Lista para elegir el dispositivo; aparece cuando ya hay permiso y más de una opción. */
+function DevicePicker({
+  label,
+  device,
+}: {
+  label: string
+  device: {
+    devices: { id: string; label: string }[]
+    selected: string
+    pending: boolean
+    choose: (id: string) => void
+  }
+}) {
+  if (device.devices.length < 2) return null
+  return (
+    <label className="device-check__picker">
+      <span>{label}</span>
+      <select
+        value={device.selected}
+        disabled={device.pending}
+        onChange={(event) => device.choose(event.target.value)}
+      >
+        {device.devices.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.label}
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }
 

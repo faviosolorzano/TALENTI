@@ -1,4 +1,5 @@
 import { ConversationOrb, CallIcon } from './ConversationOrb'
+import { deviceConstraint } from './mediaPreferences'
 import { DeviceCheck } from './DeviceCheck'
 import { es } from '../../i18n/es'
 import './doraCall.css'
@@ -517,7 +518,10 @@ export function DoraConversation({
     setMicStarting(true)
     playbackRef.current?.stop()
     try {
-      const input = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mic = deviceConstraint('microphone')
+      const input = await navigator.mediaDevices.getUserMedia({
+        audio: Object.keys(mic).length ? mic : true,
+      })
       if (!mounted.current) {
         input.getTracks().forEach((track) => track.stop())
         return
