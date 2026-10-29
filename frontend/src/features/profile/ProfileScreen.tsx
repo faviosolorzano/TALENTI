@@ -80,6 +80,8 @@ function ProfileView({ initial }: { initial: Profile }) {
   const navigate = useNavigate()
   const returnTo = safeReturnTo(params.get('returnTo'))
   const editorRef = useRef<HTMLDivElement>(null)
+  const tabsRef = useRef<HTMLElement>(null)
+
   // `?seccion=` opens a card at the start; an unknown value is ignored (006-20).
   const fromAddress = sectionFromParam(params.get('seccion'))
 
@@ -93,6 +95,21 @@ function ProfileView({ initial }: { initial: Profile }) {
   // Cards with unsaved changes stay open when the person opens another one.
   const [dirty, setDirty] = useState<ReadonlySet<SectionKey>>(new Set())
   const [savedKey, setSavedKey] = useState<SectionKey | null>(null)
+
+  useEffect(() => {
+    const revealSelected = () => {
+      const nav = tabsRef.current
+      const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+      if (!nav || !tab) return
+      const region = nav.getBoundingClientRect()
+      const item = tab.getBoundingClientRect()
+      if (item.left < region.left) nav.scrollLeft -= region.left - item.left
+      else if (item.right > region.right) nav.scrollLeft += item.right - region.right
+    }
+    revealSelected()
+    window.addEventListener('resize', revealSelected)
+    return () => window.removeEventListener('resize', revealSelected)
+  }, [selected])
 
   const reportDirty = useCallback((section: SectionKey, value: boolean) => {
     setDirty((current) => {
@@ -298,7 +315,7 @@ function ProfileView({ initial }: { initial: Profile }) {
             </Button>
           </div>
         </div>
-        <nav className="profile-tabs" aria-label={es.profile.title}>
+        <nav className="profile-tabs" aria-label={es.profile.title} ref={tabsRef}>
           {SECTION_ORDER.map((section) => (
             <button
               key={section}

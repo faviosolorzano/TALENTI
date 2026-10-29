@@ -130,6 +130,21 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
     timeout: 30000,
   })
   await shot(page, 'cv-revision-escritorio')
+  const skillEvidence = page
+    .locator('.suggestion')
+    .filter({ has: page.getByText('Java', { exact: true }) })
+    .first()
+  const evidence = skillEvidence.locator('details')
+  await evidence.locator('summary').click()
+  const evidenceBox = await evidence.boundingBox()
+  const levelBox = await skillEvidence
+    .getByRole('button', { name: es.redesign.reviewLevel, exact: true })
+    .boundingBox()
+  expect(evidenceBox).not.toBeNull()
+  expect(levelBox).not.toBeNull()
+  expect(levelBox!.x).toBeGreaterThanOrEqual(evidenceBox!.x + evidenceBox!.width)
+  await shot(page, 'cv-evidencia-escritorio')
+  await evidence.locator('summary').click()
   for (const name of ['Java', 'SQL', 'Git']) {
     const row = page
       .locator('.suggestion')
@@ -410,6 +425,18 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
           expect(Math.abs(box.left - boxes[0]!.left)).toBeLessThanOrEqual(1)
         }
         await expect(page.locator('.home')).not.toContainText(es.applications.stages.unknown)
+      }
+      if (route?.startsWith('/perfil?')) {
+        await expect
+          .poll(async () =>
+            page.locator('.profile-tabs').evaluate((nav) => {
+              const tab = nav.querySelector('[aria-current="page"]')!
+              const item = tab.getBoundingClientRect()
+              const region = nav.getBoundingClientRect()
+              return item.left >= region.left - 1 && item.right <= region.right + 1
+            }),
+          )
+          .toBe(true)
       }
       if (width === 360) await shot(page, name + '-movil')
       if (width === 1440) await shot(page, name + '-escritorio')
