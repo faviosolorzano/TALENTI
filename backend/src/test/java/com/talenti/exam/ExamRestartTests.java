@@ -49,7 +49,7 @@ class ExamRestartTests {
 	private static UUID create(ApiClient api,UUID application) throws InterruptedException {
 		final UUID[] id={null};
 		await(()->{
-			var response=api.post("/api/v1/applications/"+application+"/exam",Map.of("noticeAccepted",true,"noticeVersion","v1"));
+			var response=api.post("/api/v1/applications/"+application+"/exam",Map.of("noticeAccepted",true,"noticeVersion",ExamTestSupport.NOTICE));
 			assertThat(response.status()).as(response.body()).isIn(201,202);
 			if(response.status()==201) id[0]=UUID.fromString(response.json().get("id").asString());
 			return id[0]!=null;
@@ -72,7 +72,7 @@ class ExamRestartTests {
 				jdbc.update("INSERT INTO application(id,user_id,vacancy_id,status,submitted_at) VALUES (?,?,?,'SUBMITTED',now())",a,user,vacancy);
 				jdbc.update("INSERT INTO application(id,user_id,vacancy_id,status,submitted_at) VALUES (?,?,?,'SUBMITTED',now())",b,user,otherVacancy);
 				active=create(api,a);submitted=create(api,b);
-				for(UUID id:List.of(active,submitted)) assertThat(api.post("/api/v1/exam-attempts/"+id+"/start",null).status()).isEqualTo(200);
+				for(UUID id:List.of(active,submitted)) assertThat(api.post("/api/v1/exam-attempts/"+id+"/start",ExamTestSupport.START).status()).isEqualTo(200);
 				var attempt=store.findAttempt(active).orElseThrow();deadline=attempt.deadlineAt();seed=attempt.shuffleSeed();
 				activeQuestion=store.questions(attempt.versionId()).stream().filter(q->q.type()==ExamQuestion.Type.OPEN).findFirst().orElseThrow().id();
 				assertThat(api.put("/api/v1/exam-attempts/"+active+"/answers/"+activeQuestion,Map.of("text","Respuesta conservada","revision",0)).status()).isEqualTo(200);

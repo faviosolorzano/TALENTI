@@ -75,9 +75,11 @@ class ArchitectureTests {
 					belongToAnyOf(CurrentUser.class, Role.class, ProfileReader.class, ProfileSnapshot.class,
 							ProfileFirstName.class, VacancyLookup.class, VacancyInfo.class, SkillCatalog.class,
 							SkillInfo.class, ApplicationStages.class))
-			// exam (spec 014) solo consulta vacantes, sesión y la interfaz de etapas.
+			// exam (spec 014) solo consulta vacantes, sesión, la interfaz de etapas y, para la marca de agua (enmienda 1,
+			// 014-43), el nombre y apellido del perfil.
 			.ignoreDependency(resideInAPackage("com.talenti.exam.."),
-					belongToAnyOf(CurrentUser.class, Role.class, VacancyLookup.class, VacancyInfo.class, ApplicationStages.class))
+					belongToAnyOf(CurrentUser.class, Role.class, VacancyLookup.class, VacancyInfo.class, ApplicationStages.class,
+							com.talenti.profile.ProfileWatermarkName.class))
 			.as("los módulos no dependen unos de otros; solo usan shared, y shared no depende de ningún módulo");
 
 	@ArchTest

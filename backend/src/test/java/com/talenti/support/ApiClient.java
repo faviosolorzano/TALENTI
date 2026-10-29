@@ -176,6 +176,12 @@ public final class ApiClient {
 
 	public Response postMultipart(String path, String fileName, String contentType, byte[] content,
 			Map<String, String> fields, boolean withCsrf) {
+		return postMultipart(path, "file", fileName, contentType, content, fields, withCsrf);
+	}
+
+	/** Igual, con el archivo en el campo {@code part} (p. ej. {@code image} para las fotos del examen). */
+	public Response postMultipart(String path, String part, String fileName, String contentType, byte[] content,
+			Map<String, String> fields, boolean withCsrf) {
 		if (withCsrf && cookies.get("XSRF-TOKEN") == null) {
 			get("/api/v1/auth/csrf");
 		}
@@ -187,7 +193,7 @@ public final class ApiClient {
 						+ "\"\r\n\r\n" + field.getValue() + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			}
 			if (content != null) {
-				body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
+				body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + part + "\"; filename=\"" + fileName
 						+ "\"\r\nContent-Type: " + contentType + "\r\n\r\n")
 						.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 				body.write(content);

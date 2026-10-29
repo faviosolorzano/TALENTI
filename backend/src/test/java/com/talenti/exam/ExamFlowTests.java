@@ -50,7 +50,7 @@ class ExamFlowTests extends MatchingIntegrationTest {
 		RegisteredStudent student=registerStudent(); UUID application=application(student,true);
 		long deadline=System.nanoTime()+Duration.ofSeconds(15).toNanos();
 		while(true) {
-			var response=student.api().post("/api/v1/applications/"+application+"/exam",Map.of("noticeAccepted",true,"noticeVersion","v1"));
+			var response=student.api().post("/api/v1/applications/"+application+"/exam",Map.of("noticeAccepted",true,"noticeVersion",ExamTestSupport.NOTICE));
 			if(response.status()==201) return new Fixture(student,application,UUID.fromString(response.json().get("id").asString()));
 			assertThat(response.status()).as(response.body()).isEqualTo(202);
 			assertThat(response.json().get("status").asString()).isEqualTo("PREPARING");
@@ -60,7 +60,7 @@ class ExamFlowTests extends MatchingIntegrationTest {
 	}
 	private static String route(Fixture f) { return "/api/v1/exam-attempts/"+f.attempt(); }
 	private List<ExamQuestion> questions(Fixture f) { return store.questions(store.findAttempt(f.attempt()).orElseThrow().versionId()); }
-	private void start(Fixture f) { assertThat(f.student().api().post(route(f)+"/start",null).status()).isEqualTo(200); }
+	private void start(Fixture f) { assertThat(f.student().api().post(route(f)+"/start",ExamTestSupport.START).status()).isEqualTo(200); }
 	private static void await(BooleanSupplier check) {
 		long deadline=System.nanoTime()+Duration.ofSeconds(15).toNanos();
 		while(!check.getAsBoolean()) { if(System.nanoTime()>deadline) throw new AssertionError("No terminó la operación asíncrona"); try {Thread.sleep(25);}catch(InterruptedException e){throw new IllegalStateException(e);} }
@@ -122,7 +122,9 @@ class ExamFlowTests extends MatchingIntegrationTest {
 		done(f);var result=results.forApplication(f.application()).orElseThrow();
 		assertThat(result.closedReason()).isEqualTo("SCREEN_LEFT_TWICE");assertThat(result.incomplete()).isTrue();
 		assertThat(store.events(f.attempt()).stream().filter(e->e.kind().equals("SCREEN_LEFT"))).hasSize(2);
-		assertThat(result.toString()).doesNotContain("fraud","suspicion","ranking");
+		// El único texto con "fraude" es el rótulo obligatorio que lo niega (014-57).
+		assertThat(result.withProctoring(null).toString()).doesNotContain("fraud","suspicion","ranking");
+		assertThat(result.proctoring().label()).isEqualTo("Hechos registrados durante el examen; no indican fraude. La decisión es de la empresa.");
 	}
 	@Test void t014_19_platformFailureKeepsOpenPointsPendingAndEventuallyRequiresHumanReview() {
 		Fixture f=create();start(f);grader.fail(true);
@@ -248,9 +250,9 @@ class ExamFlowTests extends MatchingIntegrationTest {
 		var set=authoring.ensure(vacancy);await(()->store.findSet(set.id()).orElseThrow().status().equals("READY"));
 		// Simula preguntas del proveedor antes de usarlas: ninguna versión está bloqueada aún.
 		jdbc.update("UPDATE exam_question SET source='AI',content=jsonb_set(content,'{source}','\"AI\"') WHERE version_id IN (SELECT id FROM exam_version WHERE set_id=?)",set.id());
-		var created=student.api().post("/api/v1/applications/"+application+"/exam",Map.of("noticeAccepted",true,"noticeVersion","v1"));
+		var created=student.api().post("/api/v1/applications/"+application+"/exam",Map.of("noticeAccepted",true,"noticeVersion",ExamTestSupport.NOTICE));
 		assertThat(created.status()).isEqualTo(201);String id=created.json().get("id").asString();
-		var started=student.api().post("/api/v1/exam-attempts/"+id+"/start",null);
+		var started=student.api().post("/api/v1/exam-attempts/"+id+"/start",ExamTestSupport.START);
 		assertThat(started.status()).isEqualTo(200);assertThat(started.json().get("questions")).hasSize(10);
 		for(var question:started.json().get("questions")) assertThat(question.get("generatedBy").asString()).isEqualTo("AI");
 		assertThat(started.body()).doesNotContain("correctId","references","keyPoints","gradeDetail");
@@ -272,7 +274,7 @@ class ExamFlowTests extends MatchingIntegrationTest {
 	}
 	@Test void t014_02_34_unsupportedAndRoleSecurityDoNotModifyApplication() {
 		var student=registerStudent();UUID application=application(student,false);String path="/api/v1/applications/"+application+"/exam";
-		var body=Map.of("noticeAccepted",true,"noticeVersion","v1");
+		var body=Map.of("noticeAccepted",true,"noticeVersion",ExamTestSupport.NOTICE);
 		assertThat(student.api().post(path,body).json().get("code").asString()).isEqualTo("exam-not-supported");
 		assertThat(jdbc.queryForObject("SELECT status FROM application WHERE id=?",String.class,application)).isEqualTo("SUBMITTED");
 		assertThat(client().get("/api/v1/exam-attempts/"+UUID.randomUUID()).status()).isEqualTo(401);
