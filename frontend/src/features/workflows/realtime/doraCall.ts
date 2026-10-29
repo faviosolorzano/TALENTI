@@ -309,7 +309,7 @@ export class DoraCall {
     if (!this.snapshot.canRetry) return
     await this.outbox.flush()
     await this.closeCall('ERROR')
-    void this.start()
+    await this.start()
   }
 
   /** "Seguir por turnos" (012-63, 012-53): the session continues in the turn-based screen. */
