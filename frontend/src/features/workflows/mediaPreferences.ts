@@ -3,6 +3,8 @@
  * examen usen el mismo dispositivo; si no hay elección (o el almacenamiento no está disponible) se usa el
  * predeterminado del sistema.
  */
+import { es } from '../../i18n/es'
+
 export type MediaKind = 'camera' | 'microphone'
 
 const KEYS: Record<MediaKind, string> = {
@@ -41,7 +43,8 @@ export async function listDevices(kind: MediaKind): Promise<{ id: string; label:
     const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
       (d) => d.kind === wanted && d.deviceId,
     )
-    return devices.map((d, i) => ({ id: d.deviceId, label: d.label || String(i + 1) }))
+    const unnamed = kind === 'camera' ? es.doraCall.cameraNumber : es.doraCall.micNumber
+    return devices.map((d, i) => ({ id: d.deviceId, label: d.label || unnamed(i + 1) }))
   } catch {
     return []
   }

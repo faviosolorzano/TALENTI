@@ -3,7 +3,12 @@ import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
 import { es } from '../../i18n/es'
 import './doraCall.css'
-import { deviceConstraint, listDevices, savePreferredDevice } from './mediaPreferences'
+import {
+  deviceConstraint,
+  listDevices,
+  preferredDevice,
+  savePreferredDevice,
+} from './mediaPreferences'
 const c = es.doraCall
 function useDevice(kind: 'camera' | 'microphone') {
   const [stream, setStream] = useState<MediaStream | null>(null)
@@ -60,14 +65,21 @@ function useDevice(kind: 'camera' | 'microphone') {
         if (mounted.current && request === generation.current) setDevices(list)
       })
     } catch (error) {
-      if (mounted.current && request === generation.current)
-        setError(
-          error instanceof DOMException && ['NotAllowedError', 'SecurityError'].includes(error.name)
-            ? c.mediaDenied
-            : error instanceof DOMException && error.name === 'NotFoundError'
-              ? c.mediaMissing
-              : c.mediaError,
-        )
+      if (!mounted.current || request !== generation.current) return
+      // Aunque falle el primer intento, se ofrece la lista para probar con otro dispositivo (D-69).
+      void listDevices(kind).then((list) => {
+        if (!mounted.current || request !== generation.current) return
+        setDevices(list)
+        const wanted = chosen ?? preferredDevice(kind)
+        setSelected(list.some((d) => d.id === wanted) ? (wanted ?? '') : (list[0]?.id ?? ''))
+      })
+      setError(
+        error instanceof DOMException && ['NotAllowedError', 'SecurityError'].includes(error.name)
+          ? c.mediaDenied
+          : error instanceof DOMException && error.name === 'NotFoundError'
+            ? c.mediaMissing
+            : c.mediaError,
+      )
     } finally {
       if (mounted.current && request === generation.current) {
         waiting.current = false
@@ -81,7 +93,12 @@ function useDevice(kind: 'camera' | 'microphone') {
     stop()
     void start(deviceId)
   }
-  return { stream, pending, error, start, stop, devices, selected, choose }
+  /** Reintenta con el dispositivo marcado en la lista, después de un fallo. */
+  function retry() {
+    if (selected) choose(selected)
+    else void start()
+  }
+  return { stream, pending, error, start, stop, devices, selected, choose, retry }
 }
 export function DeviceCheck({ disabled = false }: { disabled?: boolean }) {
   const [open, setOpen] = useState(false)
@@ -214,7 +231,10 @@ export function DeviceCheckBody() {
   )
 }
 
-/** Lista para elegir el dispositivo; aparece cuando ya hay permiso y más de una opción. */
+/**
+ * Lista para elegir el dispositivo: aparece con más de una opción o, si el intento falló, con cualquier opción para
+ * reintentar con la elegida.
+ */
 function DevicePicker({
   label,
   device,
@@ -224,25 +244,35 @@ function DevicePicker({
     devices: { id: string; label: string }[]
     selected: string
     pending: boolean
+    error: string
     choose: (id: string) => void
+    retry: () => void
   }
 }) {
-  if (device.devices.length < 2) return null
+  const failed = Boolean(device.error)
+  if (device.devices.length < (failed ? 1 : 2)) return null
   return (
-    <label className="device-check__picker">
-      <span>{label}</span>
-      <select
-        value={device.selected}
-        disabled={device.pending}
-        onChange={(event) => device.choose(event.target.value)}
-      >
-        {device.devices.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <>
+      <label className="device-check__picker">
+        <span>{label}</span>
+        <select
+          value={device.selected}
+          disabled={device.pending}
+          onChange={(event) => device.choose(event.target.value)}
+        >
+          {device.devices.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {failed && (
+        <Button variant="quiet" disabled={device.pending} onClick={device.retry}>
+          {c.retryChosen}
+        </Button>
+      )}
+    </>
   )
 }
 
