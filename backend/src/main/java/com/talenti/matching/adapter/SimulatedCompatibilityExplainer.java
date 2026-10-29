@@ -26,7 +26,7 @@ public class SimulatedCompatibilityExplainer implements CompatibilityExplainerPo
 
 	public static final String MODEL = "modelo-simulado";
 
-	public static final String PROMPT_VERSION = "explica-simulado-1";
+	public static final String PROMPT_VERSION = CompatibilityExplainerPort.SIMULATED_PROMPT_VERSION;
 
 	/** Cómo se comporta la próxima llamada. */
 	public enum Mode {

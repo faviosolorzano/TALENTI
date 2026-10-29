@@ -30,7 +30,7 @@ public class OpenAiCompatibilityExplainer implements CompatibilityExplainerPort 
 	public static final String ADAPTER = "openai";
 
 	/** Versión de las instrucciones (principio 11): súbela si cambia cualquier texto de abajo o el esquema. */
-	public static final String PROMPT_VERSION = "explica-2026.10-1";
+	public static final String PROMPT_VERSION = CompatibilityExplainerPort.OPENAI_PROMPT_VERSION;
 
 	static final String INSTRUCTIONS = """
 			Eres DORA, la asistente de inteligencia artificial de Talenti. Explicas a un estudiante de programación de un instituto del Perú, en español sencillo, amable y tuteando, el resultado de compatibilidad con una vacante que YA calculó el sistema con reglas. Tú no calculas nada.

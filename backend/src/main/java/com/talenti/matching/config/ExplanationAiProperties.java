@@ -46,8 +46,8 @@ public record ExplanationAiProperties(
 	 * proveedor: son una estimación, no una factura. Los tokens se estiman como caracteres / 4.
 	 */
 	public record Prices(
-			@DefaultValue("0.15") BigDecimal inputPerMillionTokens,
-			@DefaultValue("0.60") BigDecimal outputPerMillionTokens) {
+			@DefaultValue("0.40") BigDecimal inputPerMillionTokens,
+			@DefaultValue("1.60") BigDecimal outputPerMillionTokens) {
 
 		public Prices {
 			if (inputPerMillionTokens.signum() < 0 || outputPerMillionTokens.signum() < 0) {

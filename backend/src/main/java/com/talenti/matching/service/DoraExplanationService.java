@@ -221,11 +221,13 @@ public class DoraExplanationService {
 	 * Con la IA encendida, la huella debe coincidir con la de ahora. Apagada, vale lo guardado si los datos y la fórmula
 	 * no cambiaron (015-12: "si la IA está apagada y hay una explicación de IA vigente en caché, se devuelve esa").
 	 */
-	private static boolean current(ExplanationStore.Stored stored, ExplanationRequest request, String hash) {
+	private boolean current(ExplanationStore.Stored stored, ExplanationRequest request, String hash) {
 		if (hash != null) {
 			return hash.equals(stored.inputHash());
 		}
-		return CompatibilityCalculator.FORMULA_VERSION.equals(stored.formulaVersion())
+		return CompatibilityExplainerPort.currentPromptVersion(stored.adapter()).equals(stored.promptVersion())
+				&& (ai.model() == null || ai.model().isBlank() || ai.model().equals(stored.model()))
+				&& CompatibilityCalculator.FORMULA_VERSION.equals(stored.formulaVersion())
 				&& ExplanationFingerprint.of(request, stored.formulaVersion(), stored.promptVersion(), stored.model())
 						.equals(stored.inputHash());
 	}

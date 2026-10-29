@@ -13,6 +13,16 @@ import com.talenti.matching.domain.ExplanationRequest;
  * el tiempo máximo y la interrumpe si se agota. Falla con {@link ExplainerException}.
  */
 public interface CompatibilityExplainerPort {
+	/** Metadatos disponibles también con la IA apagada para invalidar cachés de instrucciones anteriores. */
+	String OPENAI_PROMPT_VERSION = "explica-2026.10-1";
+	String SIMULATED_PROMPT_VERSION = "explica-simulado-1";
+	static String currentPromptVersion(String adapter) {
+		return switch (adapter) {
+			case "openai" -> OPENAI_PROMPT_VERSION;
+			case "simulated" -> SIMULATED_PROMPT_VERSION;
+			default -> "";
+		};
+	}
 
 	/** Nombre estable del adaptador, por ejemplo {@code simulated} u {@code openai}. */
 	String adapter();
