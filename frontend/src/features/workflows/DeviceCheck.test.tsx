@@ -216,3 +216,61 @@ it('elegir cámara: con varias cámaras se puede cambiar y la elección queda gu
   expect(window.localStorage.getItem('talenti.media.camera')).toBe('laptop')
   window.localStorage.removeItem('talenti.media.camera')
 })
+
+it('D-69: si el primer intento de cámara falla, se ofrece la lista numerada y se reintenta con la elegida', async () => {
+  window.localStorage.removeItem('talenti.media.camera')
+  const working = stream('camara-dos')
+  const media = vi.fn(async (constraints: MediaStreamConstraints) => {
+    const video = constraints.video as { deviceId?: { exact?: string } }
+    if (video.deviceId?.exact !== 'dos') throw new DOMException('busy', 'NotReadableError')
+    return {
+      ...working.value,
+      getTracks: () => [{ stop: working.stop, getSettings: () => ({ deviceId: 'dos' }) }],
+    } as unknown as MediaStream
+  })
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: {
+      getUserMedia: media,
+      // Sin permiso concedido los nombres llegan vacíos.
+      enumerateDevices: async () => [
+        { kind: 'videoinput', deviceId: 'uno', label: '' },
+        { kind: 'videoinput', deviceId: 'dos', label: '' },
+      ],
+    },
+  })
+  const { user } = await open()
+  await user.click(screen.getByRole('button', { name: c.cameraStart }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(c.mediaError)
+  const picker = await screen.findByRole('combobox', { name: c.cameraPick })
+  expect(screen.getByRole('option', { name: c.cameraNumber(1) })).toBeInTheDocument()
+  expect(screen.getByRole('option', { name: c.cameraNumber(2) })).toBeInTheDocument()
+  await user.selectOptions(picker, 'dos')
+  await screen.findByText(c.cameraOn)
+  expect(media).toHaveBeenLastCalledWith({ video: { deviceId: { exact: 'dos' } }, audio: false })
+  expect(window.localStorage.getItem('talenti.media.camera')).toBe('dos')
+  window.localStorage.removeItem('talenti.media.camera')
+})
+
+it('D-69: con un solo micrófono que falla, el botón de reintento prueba con el elegido', async () => {
+  window.localStorage.removeItem('talenti.media.microphone')
+  const mic = stream('mic')
+  const media = vi
+    .fn()
+    .mockRejectedValueOnce(new DOMException('busy', 'NotReadableError'))
+    .mockResolvedValueOnce(mic.value)
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: {
+      getUserMedia: media,
+      enumerateDevices: async () => [{ kind: 'audioinput', deviceId: 'unico', label: '' }],
+    },
+  })
+  const { user } = await open()
+  await user.click(screen.getByRole('button', { name: c.micStart }))
+  expect(await screen.findByRole('option', { name: c.micNumber(1) })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: c.retryChosen }))
+  await screen.findByText(c.micReady)
+  expect(media).toHaveBeenLastCalledWith({ audio: { deviceId: { exact: 'unico' } }, video: false })
+  window.localStorage.removeItem('talenti.media.microphone')
+})

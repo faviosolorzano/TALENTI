@@ -124,6 +124,30 @@ export interface ExamAttempt {
   questions: ExamQuestion[]
   answers: ExamAnswer[]
   events: { kind: string; occurredAt: string }[]
+  /** Supervisión del examen (spec 014, Enmienda 1). Ausente en intentos v1 o en un backend anterior. */
+  proctoring?: ExamProctoring | null
+  /** Marca de agua: nombre del perfil y código corto de la postulación (014-43). */
+  watermark?: { name: string; code: string } | null
+  /** Base de calibración guardada al empezar (014-38), si el servidor la devuelve. */
+  calibration?: { baseYawDeg: number; basePitchDeg: number } | null
+}
+export interface ExamProctoring {
+  required: boolean
+  /** El intento sin empezar aceptó un aviso anterior y debe aceptar el vigente (014-37). */
+  noticeOutdated?: boolean
+  /** Base de calibración guardada al empezar, si ya empezó. */
+  calibration?: { baseYawDeg: number; basePitchDeg: number } | null
+  /** Umbrales de `talenti.exam.proctoring.thresholds`; se leen con `parseThresholds`. */
+  thresholds?: unknown
+  /** Intervalo de fotos, en segundos o ISO-8601. */
+  snapshotInterval?: unknown
+}
+/** Cuerpo de `POST /exam-attempts/{id}/start` con supervisión (014-38). */
+export interface ExamStartRequest {
+  cameraReady: boolean
+  fullscreen: boolean
+  detection: 'AVAILABLE' | 'UNAVAILABLE'
+  calibration: { baseYawDeg: number; basePitchDeg: number } | null
 }
 export interface ExamPreparation {
   status: string

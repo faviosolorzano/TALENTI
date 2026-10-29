@@ -84,6 +84,9 @@ export const es = {
     cameraStop: 'Apagar cámara',
     cameraPick: 'Elige tu cámara',
     micPick: 'Elige tu micrófono',
+    cameraNumber: (n: number) => `Cámara ${n}`,
+    micNumber: (n: number) => `Micrófono ${n}`,
+    retryChosen: 'Probar con el elegido',
     micStop: 'Detener micrófono',
     closeTranscript: 'Cerrar transcripción',
     closeHelp: 'Cerrar ayuda',
@@ -348,6 +351,54 @@ export const es = {
       'Si cambias de pestaña o sales de pantalla completa, Talenti registra el evento. El aviso del servidor explica sus consecuencias.',
     fullscreen: 'Entrar en pantalla completa',
     noScore: 'La vista del estudiante no muestra notas ni resultados internos de la empresa.',
+    proctoring: {
+      unsupported:
+        'Para este examen necesitas una cámara y una computadora con Chrome, Edge, Firefox o Safari de escritorio. Tu postulación sigue enviada; no pierdes nada por no empezar ahora.',
+      cameraDenied:
+        'El navegador no dio permiso para usar la cámara. Permítelo desde el candado de la barra de direcciones y vuelve a intentar.',
+      cameraBusy:
+        'No se pudo abrir la cámara. Cierra otras apps que la estén usando o elige otra cámara.',
+      newNotice:
+        'Las reglas del examen cambiaron. Lee el aviso actualizado y acéptalo para empezar.',
+      acceptNotice: 'Aceptar el aviso',
+      beforeStart:
+        'Al comenzar encenderemos tu cámara, tomaremos tu posición de referencia y pasaremos a pantalla completa.',
+      begin: 'Comenzar',
+      retry: 'Intentar de nuevo',
+      cameraPick: 'Elige tu cámara',
+      stepCamera: 'Encendiendo la cámara…',
+      stepLoading: 'Preparando la detección en tu equipo…',
+      stepCalibrating: 'Mira la pantalla como lo harás en el examen',
+      stepStarting: 'Abriendo el examen…',
+      calibrationFrames:
+        'No pudimos verte bien. Siéntate frente a la cámara, con luz de frente, y repite.',
+      calibrationAngle: 'La cámara quedó muy de lado. Acomódala frente a ti y repite.',
+      repeatCalibration: 'Repetir',
+      detectionUnavailable:
+        'La detección no está disponible en este equipo. Puedes rendir el examen con la cámara y las fotos.',
+      ready: 'Todo listo. El examen se rinde en pantalla completa.',
+      enterAndStart: 'Pasar a pantalla completa y empezar',
+      fullscreenFailed: 'El navegador no permitió la pantalla completa. Vuelve a intentarlo.',
+      cameraLabel: 'Tu cámara',
+      cameraLost: 'Se perdió la cámara. Vuelve a conectarla para seguir.',
+      cameraNeeded: 'Enciende la cámara para seguir con el examen.',
+      reconnect: 'Reconectar',
+      leftFullscreen: 'Vuelve a pantalla completa para seguir',
+      returnFullscreen: 'Volver a pantalla completa',
+      timeContinues: 'El tiempo sigue corriendo. Tus respuestas guardadas están a salvo.',
+      noCopy: 'En el examen no se puede copiar ni pegar.',
+      noContextMenu: 'En el examen no está disponible el clic derecho.',
+      noPrint: 'En el examen no se puede imprimir.',
+      printHidden: 'El contenido del examen no se imprime.',
+      limits:
+        'No podemos impedir la tecla de captura del sistema ni una foto con otro equipo: estas medidas disuaden y dejan registro.',
+      notices: {
+        GAZE_AWAY: 'Cuidado: estás mirando a otro lado. Mantén la vista en el examen.',
+        FACE_MISSING: 'No te vemos en la cámara. Colócate frente a ella.',
+        MULTIPLE_FACES: 'Parece que hay otra persona frente a la cámara. El examen es individual.',
+        PHONE_VISIBLE: 'Parece que hay un celular a la vista. Guárdalo, por favor.',
+      },
+    },
     fullName: 'Nombre',
     contact: 'Correo de contacto',
     academic: 'Formación',
@@ -398,6 +449,10 @@ export const es = {
       'revision-conflict':
         'La respuesta cambió en otra pestaña. Actualiza el examen antes de guardar.',
       'exam-not-completed': 'Primero completa el examen técnico.',
+      'notice-version-outdated':
+        'Las reglas del examen cambiaron. Lee el aviso actual y acéptalo para empezar.',
+      'proctoring-required': 'Para empezar se necesitan la cámara y la pantalla completa.',
+      'exam-closed': 'El examen ya está cerrado.',
       'application-already-exists': 'Ya tienes una postulación activa a esta vacante.',
       'vacancy-closed': 'La vacante ya está cerrada. Puedes explorar otras vacantes.',
     },

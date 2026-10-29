@@ -6,6 +6,7 @@ import { useBlocker, useParams } from 'react-router'
 import {
   workflowApi as api,
   type ExamAttempt,
+  type ExamStartRequest,
   type ExamPreparation,
   type ExamQuestion,
   type ExamAnswer,
@@ -15,8 +16,30 @@ import {
 import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
-import notice from '../../content/exam-notice-v1.md?raw'
+import notice from '../../content/exam-notice-v2.md?raw'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError, Source } from './shared'
+import { EventBudget } from './proctoring/eventBudget'
+import {
+  ExamCamera,
+  ProctoredCover,
+  ProctoredStart,
+  SecureArea,
+  type BlockedKind,
+} from './proctoring/ProctoredExam'
+import type { EpisodeData, ProctoringEventKind, SnapshotReason } from './proctoring/session'
+import { useFullscreen, useProctoringSession } from './proctoring/useProctoring'
+
+/** Versión vigente del aviso del examen (014-37). */
+const NOTICE_VERSION = 'v2'
+/** Eventos de la versión anterior que, si no se envían, merecen avisar a la persona. */
+const CONNECTION_EVENTS = new Set([
+  'SCREEN_LEFT',
+  'SCREEN_RETURNED',
+  'CONNECTION_LOST',
+  'CONNECTION_RESTORED',
+  'FOCUS_LOST',
+])
+const BLOCK_MESSAGE_MS = 4000
 
 export function ExamPage() {
   const { id = '' } = useParams()
@@ -66,7 +89,7 @@ function ExamLoader({ id }: { id: string }) {
               void action.perform(async () => {
                 const result = await api<ExamAttempt | ExamPreparation>(
                   '/applications/' + id + '/exam',
-                  { method: 'POST', json: { noticeAccepted: true, noticeVersion: 'v1' } },
+                  { method: 'POST', json: { noticeAccepted: true, noticeVersion: NOTICE_VERSION } },
                 )
                 if ('id' in result) {
                   setPreparing(false)
@@ -89,13 +112,19 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
   const [dirty, setDirty] = useState(false)
   const [confirm, setConfirm] = useState(false)
   const [eventMessage, setEventMessage] = useState('')
+  const [blockMessage, setBlockMessage] = useState('')
+  const [noticeAccepted, setNoticeAccepted] = useState(false)
   const [seconds, setSeconds] = useState(initial.remainingSeconds)
   const baseline = useRef({ seconds: initial.remainingSeconds, at: 0 })
   const saveCurrentRef = useRef<() => Promise<void>>(async () => {})
   const mounted = useRef(true)
   const responseVersion = useRef(0)
+  const eventAbort = useRef<AbortController | null>(null)
+  const [budget] = useState(() => new EventBudget())
   const running = attempt.status === 'IN_PROGRESS'
   const closed = attempt.status !== 'NOT_STARTED' && !running
+  // Supervisión (spec 014, Enmienda 1): solo si el servidor la exige para este intento.
+  const proctored = Boolean(initial.proctoring?.required)
   const blocker = useBlocker(dirty)
   const q = attempt.questions[active]
   function update(next: ExamAttempt) {
@@ -104,13 +133,106 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
     setSeconds(next.remainingSeconds)
     setAttempt(next)
   }
+  /** Envía un evento del intento respetando el presupuesto por minuto (014-51). */
+  function sendEvent(
+    kind: string,
+    clientEventId: string = crypto.randomUUID(),
+    data?: EpisodeData,
+  ) {
+    if (!budget.allow(kind, performance.now())) return
+    const signal = eventAbort.current?.signal
+    void api<{ rule: string; message: string; status: string } | undefined>(
+      '/exam-attempts/' + attempt.id + '/events',
+      {
+        method: 'POST',
+        signal,
+        json: {
+          kind,
+          clientEventId,
+          clientOccurredAt: new Date().toISOString(),
+          ...(data ? { data } : {}),
+        },
+      },
+    )
+      .then((result) => {
+        if (!mounted.current || !result) return
+        if (result.message) setEventMessage(result.message)
+        if (result.rule === 'CLOSED')
+          void api<ExamAttempt>('/exam-attempts/' + attempt.id, { signal }).then((next) => {
+            if (mounted.current) update(next)
+          })
+      })
+      .catch(() => {
+        if (mounted.current && CONNECTION_EVENTS.has(kind)) setEventMessage(t.eventUnsent)
+      })
+  }
+  const sendRef = useRef(sendEvent)
+  useEffect(() => {
+    sendRef.current = sendEvent
+  })
+  const { session, view } = useProctoringSession(initial, proctored, {
+    report: (kind: ProctoringEventKind, clientEventId: string, data?: EpisodeData) =>
+      sendRef.current(kind, clientEventId, data),
+    upload: async (
+      image: Blob,
+      reason: SnapshotReason,
+      clientTakenAt: string,
+      eventClientId?: string,
+    ) => {
+      const form = new FormData()
+      form.append('image', image, 'snapshot.jpg')
+      form.append('reason', reason)
+      form.append('clientTakenAt', clientTakenAt)
+      if (eventClientId) form.append('eventClientId', eventClientId)
+      await api('/exam-attempts/' + attempt.id + '/snapshots', { method: 'POST', form })
+    },
+  })
+  const fullscreen = useFullscreen()
+  const covered = proctored && running && (!view?.stream || !fullscreen)
   useEffect(() => {
     baseline.current.at = Date.now()
     mounted.current = true
+    const controller = new AbortController()
+    eventAbort.current = controller
     return () => {
       mounted.current = false
+      controller.abort()
     }
   }, [])
+  useEffect(() => {
+    if (!blockMessage) return
+    const timer = setTimeout(() => setBlockMessage(''), BLOCK_MESSAGE_MS)
+    return () => clearTimeout(timer)
+  }, [blockMessage])
+  useEffect(() => {
+    // Al cerrar el intento se apagan la cámara, el análisis y las fotos, y se sale de pantalla completa.
+    if (!closed || !session) return
+    session.dispose()
+    if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => {})
+  }, [closed, session])
+  function blocked(kind: BlockedKind) {
+    sendRef.current(kind)
+    setBlockMessage(
+      kind === 'PRINT_ATTEMPT'
+        ? t.proctoring.noPrint
+        : kind === 'CONTEXT_MENU'
+          ? t.proctoring.noContextMenu
+          : t.proctoring.noCopy,
+    )
+  }
+  /** Tras recuperar la cámara al reanudar un intento (p. ej. después de recargar), vuelve la supervisión. */
+  async function resumeMonitoring() {
+    if (!session || session.isMonitoring) return
+    if (!session.calibrated && (await session.loadDetection()) === 'AVAILABLE') {
+      const result = await session.calibrate()
+      if (!result.ok)
+        session.useBase({
+          yawDeg: (attempt.proctoring?.calibration ?? attempt.calibration)?.baseYawDeg ?? 0,
+          pitchDeg: (attempt.proctoring?.calibration ?? attempt.calibration)?.basePitchDeg ?? 0,
+        })
+    }
+    if (mounted.current) session.beginMonitoring()
+  }
   useEffect(() => {
     if (!running) return
     const timer = setInterval(() => {
@@ -160,36 +282,10 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
   }, [running, dirty])
   useEffect(() => {
     if (!running) return
-    const controller = new AbortController()
-    const report = (kind: string) => {
-      void api<{ rule: string; message: string; status: string }>(
-        '/exam-attempts/' + attempt.id + '/events',
-        {
-          method: 'POST',
-          signal: controller.signal,
-          json: {
-            kind,
-            clientEventId: crypto.randomUUID(),
-            clientOccurredAt: new Date().toISOString(),
-          },
-        },
-      )
-        .then((result) => {
-          if (!mounted.current) return
-          if (result.message) setEventMessage(result.message)
-          if (result.rule === 'CLOSED')
-            void api<ExamAttempt>('/exam-attempts/' + attempt.id, {
-              signal: controller.signal,
-            }).then((next) => {
-              if (mounted.current) update(next)
-            })
-        })
-        .catch(() => {
-          if (mounted.current) setEventMessage(t.eventUnsent)
-        })
-    }
+    const report = (kind: string) => sendRef.current(kind)
     let outside = false
-    let wasFullscreen = false
+    // Con supervisión el examen empieza ya en pantalla completa: salir de ella cuenta desde el primer momento.
+    let wasFullscreen = Boolean(document.fullscreenElement)
     const leave = () => {
       if (!outside) {
         outside = true
@@ -203,7 +299,7 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
       }
     }
     const visibility = () => (document.visibilityState === 'hidden' ? leave() : returned())
-    const fullscreen = () => {
+    const fullscreenChange = () => {
       if (document.fullscreenElement) {
         wasFullscreen = true
         returned()
@@ -212,7 +308,7 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
         leave()
       }
     }
-    document.addEventListener('fullscreenchange', fullscreen)
+    document.addEventListener('fullscreenchange', fullscreenChange)
     const offline = () => report('CONNECTION_LOST')
     const online = () => report('CONNECTION_RESTORED')
     const focus = () => report('FOCUS_LOST')
@@ -221,38 +317,152 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
     window.addEventListener('online', online)
     window.addEventListener('blur', focus)
     return () => {
-      controller.abort()
-      document.removeEventListener('fullscreenchange', fullscreen)
+      document.removeEventListener('fullscreenchange', fullscreenChange)
       document.removeEventListener('visibilitychange', visibility)
       window.removeEventListener('offline', offline)
       window.removeEventListener('online', online)
       window.removeEventListener('blur', focus)
     }
   }, [running, attempt.id])
+  const questions = (
+    <>
+      <details>
+        <summary>{t.examRules}</summary>
+        <p className="workflow__pre">{attempt.notice}</p>
+      </details>
+      <nav className="workflow__actions" aria-label={t.questionList}>
+        {attempt.questions.map((item, i) => (
+          <Button
+            key={item.id}
+            variant={i === active ? 'primary' : 'quiet'}
+            aria-current={i === active ? 'step' : undefined}
+            disabled={action.busy}
+            onClick={() =>
+              void action.perform(async () => {
+                if (dirty) await saveCurrentRef.current()
+                setActive(i)
+              })
+            }
+          >
+            {i + 1}
+          </Button>
+        ))}
+      </nav>
+      {q && (
+        <ExamEditor
+          key={q.id}
+          question={q}
+          attemptId={attempt.id}
+          answer={attempt.answers.find((a) => a.questionId === q.id)}
+          onDirty={setDirty}
+          onSaved={(answer) => {
+            responseVersion.current++
+            setAttempt((current) => ({
+              ...current,
+              answers: [
+                ...current.answers.filter((item) => item.questionId !== answer.questionId),
+                answer,
+              ],
+            }))
+          }}
+          saveCurrentRef={saveCurrentRef}
+          number={active + 1}
+        />
+      )}
+      <Button disabled={action.busy} onClick={() => setConfirm(true)}>
+        {t.submitExam}
+      </Button>
+    </>
+  )
   return (
     <>
       <ActionError message={action.error} />
       <p role="status">{eventMessage}</p>
+      {proctored && running && (
+        <p className="exam-notice" role="status" aria-live="polite">
+          {view?.notice ? t.proctoring.notices[view.notice] : blockMessage}
+        </p>
+      )}
       {attempt.status === 'NOT_STARTED' ? (
-        <>
-          <div className="workflow__notice">
-            <Markdown>{attempt.notice}</Markdown>
-          </div>
-          <Button
-            disabled={action.busy}
-            onClick={() =>
-              void action.perform(async () =>
-                update(
-                  await api<ExamAttempt>('/exam-attempts/' + attempt.id + '/start', {
-                    method: 'POST',
-                  }),
-                ),
-              )
-            }
-          >
-            {t.startExam}
-          </Button>
-        </>
+        proctored &&
+        (attempt.proctoring?.noticeOutdated || attempt.noticeVersion !== NOTICE_VERSION) ? (
+          <>
+            <p>{t.proctoring.newNotice}</p>
+            <div className="workflow__notice">
+              <Markdown>{notice}</Markdown>
+            </div>
+            <label className="workflow__choice">
+              <input
+                type="checkbox"
+                checked={noticeAccepted}
+                onChange={(e) => setNoticeAccepted(e.target.checked)}
+              />
+              {t.acceptNotice}
+            </label>
+            <Button
+              disabled={!noticeAccepted || action.busy}
+              onClick={() =>
+                void action.perform(async () =>
+                  update(
+                    await api<ExamAttempt>('/exam-attempts/' + attempt.id + '/notice', {
+                      method: 'POST',
+                      json: { noticeAccepted: true, noticeVersion: NOTICE_VERSION },
+                    }),
+                  ),
+                )
+              }
+            >
+              {action.busy ? t.working : t.proctoring.acceptNotice}
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className="workflow__notice">
+              <Markdown>{attempt.notice}</Markdown>
+            </div>
+            {proctored && session && view ? (
+              <ProctoredStart
+                session={session}
+                view={view}
+                onStart={({ detection, calibration }) =>
+                  action.perform(async () => {
+                    const body: ExamStartRequest = {
+                      cameraReady: session.hasCamera,
+                      fullscreen: Boolean(document.fullscreenElement),
+                      detection,
+                      calibration: calibration && {
+                        baseYawDeg: Math.round(calibration.yawDeg * 10) / 10,
+                        basePitchDeg: Math.round(calibration.pitchDeg * 10) / 10,
+                      },
+                    }
+                    update(
+                      await api<ExamAttempt>('/exam-attempts/' + attempt.id + '/start', {
+                        method: 'POST',
+                        json: body,
+                      }),
+                    )
+                    session.beginMonitoring()
+                  })
+                }
+              />
+            ) : (
+              <Button
+                disabled={action.busy}
+                onClick={() =>
+                  void action.perform(async () =>
+                    update(
+                      await api<ExamAttempt>('/exam-attempts/' + attempt.id + '/start', {
+                        method: 'POST',
+                      }),
+                    ),
+                  )
+                }
+              >
+                {t.startExam}
+              </Button>
+            )}
+          </>
+        )
       ) : closed ? (
         <>
           <p role="status">{t.examDone}</p>
@@ -276,65 +486,40 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
             {t.timeRemaining}: {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
           </div>
           <p>{t.visibilityNotice}</p>
-          {document.fullscreenEnabled && (
-            <Button
-              variant="quiet"
-              disabled={action.busy}
-              onClick={() =>
-                void action.perform(async () => {
-                  await document.documentElement.requestFullscreen()
-                })
-              }
-            >
-              {t.fullscreen}
-            </Button>
+          {proctored && session && view ? (
+            <>
+              <ProctoredCover
+                view={view}
+                fullscreen={fullscreen}
+                session={session}
+                onReconnected={() => void resumeMonitoring()}
+              />
+              <ExamCamera stream={view.stream} />
+              {/* Tapadas, las preguntas siguen montadas: lo escrito sin guardar no se pierde. */}
+              <div hidden={covered} inert={covered} data-testid="exam-questions">
+                <SecureArea watermark={attempt.watermark} onBlocked={blocked}>
+                  {questions}
+                </SecureArea>
+              </div>
+            </>
+          ) : (
+            <>
+              {document.fullscreenEnabled && (
+                <Button
+                  variant="quiet"
+                  disabled={action.busy}
+                  onClick={() =>
+                    void action.perform(async () => {
+                      await document.documentElement.requestFullscreen()
+                    })
+                  }
+                >
+                  {t.fullscreen}
+                </Button>
+              )}
+              {questions}
+            </>
           )}
-          <details>
-            <summary>{t.examRules}</summary>
-            <p className="workflow__pre">{attempt.notice}</p>
-          </details>
-          <nav className="workflow__actions" aria-label={t.questionList}>
-            {attempt.questions.map((item, i) => (
-              <Button
-                key={item.id}
-                variant={i === active ? 'primary' : 'quiet'}
-                aria-current={i === active ? 'step' : undefined}
-                disabled={action.busy}
-                onClick={() =>
-                  void action.perform(async () => {
-                    if (dirty) await saveCurrentRef.current()
-                    setActive(i)
-                  })
-                }
-              >
-                {i + 1}
-              </Button>
-            ))}
-          </nav>
-          {q && (
-            <ExamEditor
-              key={q.id}
-              question={q}
-              attemptId={attempt.id}
-              answer={attempt.answers.find((a) => a.questionId === q.id)}
-              onDirty={setDirty}
-              onSaved={(answer) => {
-                responseVersion.current++
-                setAttempt((current) => ({
-                  ...current,
-                  answers: [
-                    ...current.answers.filter((item) => item.questionId !== answer.questionId),
-                    answer,
-                  ],
-                }))
-              }}
-              saveCurrentRef={saveCurrentRef}
-              number={active + 1}
-            />
-          )}
-          <Button disabled={action.busy} onClick={() => setConfirm(true)}>
-            {t.submitExam}
-          </Button>
         </>
       )}
       {confirm && (

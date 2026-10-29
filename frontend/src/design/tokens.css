@@ -247,6 +247,15 @@
   --z-cookie-banner: 20;
   --z-modal: 50;
 
+  /* ---- Exam proctoring (spec 014, amendment 1) ---- */
+  --exam-camera-width: 10rem; /* 160 px own camera view */
+  --exam-camera-height: 7.5rem; /* 120 px */
+  --z-exam-camera: 15; /* under the cookie banner (20) and the header (30) */
+  --color-exam-watermark: var(--color-brand-navy);
+  --opacity-exam-watermark: 0.07; /* low enough that the exam text keeps AA contrast */
+  --exam-watermark-gap: var(--space-12);
+  --exam-watermark-angle: -30deg;
+
   /* ---- Sizes of the signature pieces ---- */
   --ring-size: 8.25rem; /* 132 px on phones */
   --orb-max-size: 27.5rem; /* 440 px */
