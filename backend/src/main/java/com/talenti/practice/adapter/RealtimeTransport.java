@@ -45,8 +45,10 @@ public interface RealtimeTransport {
 				String boundary = "----talenti" + UUID.randomUUID().toString().replace("-", "");
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				for (Map.Entry<String, String> field : fields.entrySet()) {
+					String contentType = "session".equals(field.getKey()) ? "application/json" : "application/sdp";
 					out.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + field.getKey()
-							+ "\"\r\n\r\n" + field.getValue() + "\r\n").getBytes(StandardCharsets.UTF_8));
+							+ "\"\r\nContent-Type: " + contentType + "\r\n\r\n" + field.getValue() + "\r\n")
+							.getBytes(StandardCharsets.UTF_8));
 				}
 				out.writeBytes(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
 				HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(timeout)
