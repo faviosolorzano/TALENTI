@@ -60,7 +60,6 @@ export function DoraExplains({
     setOpen(false)
     button.current?.focus()
   }
-  const practiceUrl = `/practicar?vacante=${encodeURIComponent(vacancyId)}`
   return (
     <div className="dora-explains">
       <button
@@ -125,9 +124,9 @@ export function DoraExplains({
                 </div>
               ) : null,
             )}
-            <div>
-              <h3>{t.practice}</h3>
-              {data.practice.length ? (
+            {data.practice.length > 0 && (
+              <div>
+                <h3>{t.practice}</h3>
                 <ul className="dora-explains__practice">
                   {data.practice.map((item) => (
                     <li key={item.skill.slug}>
@@ -139,21 +138,11 @@ export function DoraExplains({
                           <li key={index}>{action}</li>
                         ))}
                       </ul>
-                      <Button
-                        variant="quiet"
-                        to={`${practiceUrl}&tema=${encodeURIComponent(item.skill.slug)}`}
-                      >
-                        {t.practiceSkill(item.skill.name)}
-                      </Button>
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <Button variant="quiet" to={practiceUrl}>
-                  {t.practiceVacancy}
-                </Button>
-              )}
-            </div>
+              </div>
+            )}
             <p className="dora-explains__footnote">{t.disclosure}</p>
           </>
         )}

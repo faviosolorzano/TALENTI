@@ -62,10 +62,8 @@ it('015-20,22,24,27: one explicit request, real score refreshed, AI label, fold 
   expect(screen.getByText('72 %')).toBeVisible()
   expect(screen.getByText(es.compatibility.verdict.MEDIUM)).toBeVisible()
   expect(within(region).queryByRole('heading', { name: t.unknown })).toBeNull()
-  expect(within(region).getByRole('link', { name: t.practiceSkill('SQL') })).toHaveAttribute(
-    'href',
-    `/practicar?vacante=${id}&tema=sql`,
-  )
+  expect(within(region).queryByRole('link')).toBeNull()
+  expect(within(region).getByRole('heading', { name: t.practice })).toBeVisible()
   await user.click(within(region).getByRole('button', { name: t.hide }))
   expect(button).toHaveFocus()
   expect(button).toHaveAttribute('aria-expanded', 'false')
@@ -85,10 +83,8 @@ it('015-23: a limited template is never labeled AI and no gaps offers practice f
   expect(await within(region).findByText(t.personalLimit)).toBeVisible()
   expect(within(region).getByText(t.template)).toBeVisible()
   expect(within(region).queryByText(es.ai.label)).toBeNull()
-  expect(within(region).getByRole('link', { name: t.practiceVacancy })).toHaveAttribute(
-    'href',
-    `/practicar?vacante=${id}`,
-  )
+  expect(within(region).queryByRole('link')).toBeNull()
+  expect(within(region).queryByRole('heading', { name: t.practice })).toBeNull()
 })
 it('015-21,25: loading cannot issue a duplicate, failure remains local and retry succeeds', async () => {
   const { user, button, compatibility } = await open()

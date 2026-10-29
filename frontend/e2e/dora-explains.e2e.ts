@@ -12,7 +12,7 @@ test.skip(
   'Requiere servidor propio con explicación simulada.',
 )
 test.describe.configure({ timeout: 120000 })
-test('015: explicación a pedido, regreso, foco, vistas adaptables y práctica precargada con servidor real', async ({
+test('015: recomendaciones a pedido sin enlaces de estudio, foco y vistas adaptables', async ({
   page,
   baseURL,
 }) => {
@@ -82,22 +82,10 @@ test('015: explicación a pedido, regreso, foco, vistas adaptables y práctica p
   expect(
     violations.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious'),
   ).toEqual([])
-  const practice = region.getByRole('link', { name: t.practiceSkill('SQL'), exact: true })
-  await expect(practice).toHaveAttribute('href', `/practicar?vacante=${vacancy}&tema=sql`)
   await region.getByRole('button', { name: t.hide, exact: true }).click()
   await expect(trigger).toBeFocused()
   await trigger.press('Enter')
   await expect(region.getByText(es.ai.label)).toBeVisible()
   expect(calls).toBe(1)
-  await practice.click()
-  await expect(page).toHaveURL(new RegExp(`/practicar\\?vacante=${vacancy}&tema=sql`))
-  await expect(page.getByRole('combobox', { name: es.workflows.topic })).toHaveValue('sql')
-  await expect(page.getByRole('combobox', { name: es.workflows.basis })).toHaveValue('VACANCY')
-  await page.screenshot({
-    path: `${output}/practica-precargada-360.png`,
-    fullPage: true,
-    animations: 'disabled',
-  })
-  await page.goBack()
-  await expect(page).toHaveURL(new RegExp(`/oportunidades/${vacancy}`))
+  expect(await region.getByRole('link').count()).toBe(0)
 })

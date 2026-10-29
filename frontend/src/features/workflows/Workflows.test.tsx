@@ -21,42 +21,6 @@ function mount(
   return app
 }
 afterEach(clearCsrfCookie)
-for (const [requested, expected] of [
-  ['sql', 'sql'],
-  ['no-permitido', ''],
-] as const) {
-  it(`015-24: practice accepts only a permitted vacancy topic (${requested})`, async () => {
-    mount(`/practicar?vacante=vacancy-topic&tema=${requested}`, (path) => {
-      if (path === '/practice/options')
-        return json({
-          bases: [
-            { basis: 'PROFILE', available: true, vacancies: [] },
-            {
-              basis: 'VACANCY',
-              available: true,
-              vacancies: [
-                {
-                  id: 'vacancy-topic',
-                  title: 'Vacante SQL',
-                  company: 'Empresa de prueba',
-                  topics: [{ slug: 'sql', name: 'SQL' }],
-                },
-              ],
-            },
-          ],
-          topics: [],
-          maxQuestions: 3,
-          voiceAvailable: false,
-          quota: { used: 0, limit: 20 },
-        })
-      if (path.startsWith('/practice/sessions?')) return json({ items: [] })
-      return undefined
-    })
-    expect(await screen.findByRole('combobox', { name: t.topic })).toHaveValue(expected)
-    expect(screen.getByRole('combobox', { name: t.basis })).toHaveValue('VACANCY')
-    expect(screen.getByRole('combobox', { name: t.chooseVacancy })).toHaveValue('vacancy-topic')
-  })
-}
 it('GitHub disabled reports the actual service limit and never claims a linked account', async () => {
   const { user } = mount('/perfil/github', (path) =>
     path === '/github'
