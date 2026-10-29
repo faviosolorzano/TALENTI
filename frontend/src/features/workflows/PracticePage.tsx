@@ -54,7 +54,7 @@ function PracticeSetup() {
   const [params] = useSearchParams()
   const [basis, setBasis] = useState(params.get('vacante') ? 'VACANCY' : 'PROFILE')
   const [vacancy, setVacancy] = useState(params.get('vacante') ?? '')
-  const [topic, setTopic] = useState('')
+  const [topic, setTopic] = useState(params.get('tema') ?? '')
   const [count, setCount] = useState(3)
   const [voiceChoice, setVoice] = useState<boolean | null>(null)
   const navigate = useNavigate()
@@ -70,7 +70,7 @@ function PracticeSetup() {
       json: {
         basis,
         vacancyId: basis === 'VACANCY' ? vacancy : undefined,
-        topic: topic || undefined,
+        topic: allowedTopic || undefined,
         questionCount: count,
         voice,
       },
@@ -79,6 +79,7 @@ function PracticeSetup() {
     basis === 'VACANCY'
       ? (selected?.vacancies.find((item) => item.id === vacancy)?.topics ?? [])
       : (data?.topics ?? [])
+  const allowedTopic = topics.some((item) => item.slug === topic) ? topic : ''
   return (
     <WorkflowFrame title={t.practice}>
       <section className="dora-prepare">
@@ -159,7 +160,7 @@ function PracticeSetup() {
             )}
             <label>
               {t.topic}
-              <select value={topic} onChange={(event) => setTopic(event.target.value)}>
+              <select value={allowedTopic} onChange={(event) => setTopic(event.target.value)}>
                 <option value="">{t.allTopics}</option>
                 {topics.map((item) => (
                   <option key={item.slug} value={item.slug}>

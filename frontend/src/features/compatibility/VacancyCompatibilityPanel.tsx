@@ -1,7 +1,10 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
-import { fetchCompatibility, type Compatibility } from '../../api/compatibility'
-import { AiLabel } from '../../components/AiLabel'
+import {
+  fetchCompatibility,
+  type Compatibility,
+  type DoraExplanation,
+} from '../../api/compatibility'
 import { Button } from '../../components/Button'
 
 import { useApiResource } from '../../hooks/useApiResource'
@@ -14,13 +17,15 @@ import { firstMissingSection } from './matchFormat'
 import { RequirementComparison } from './RequirementComparison'
 import { useSessionLost } from './useSessionLost'
 import './VacancyCompatibilityPanel.css'
+import { DoraExplains } from './DoraExplains'
 
 const t = es.compatibility
 
 function Calculated({ result }: { result: Compatibility }) {
-  const percent = result.percent
+  const [latest, setLatest] = useState<DoraExplanation | null>(null)
+  const percent = latest?.percent ?? result.percent
+  const level = latest?.level ?? result.level
   const basis = result.informationBasis
-  const aiWritten = result.explanation.source === 'AI'
   return (
     <>
       <div className="compat-panel__score">
@@ -28,24 +33,18 @@ function Calculated({ result }: { result: Compatibility }) {
           {percent} % <small>{es.ring.caption}</small>
         </p>
         <div className="compat-panel__verdict">
-          <p className="compat-panel__verdict-title">
-            {result.level ? t.verdict[result.level] : ''}
-          </p>
+          <p className="compat-panel__verdict-title">{level ? t.verdict[level] : ''}</p>
           {basis !== null && basis < 100 && <p className="compat-panel__basis">{t.basis(basis)}</p>}
         </div>
       </div>
 
       {result.capped && <p className="compat-panel__cap">{t.capped(result.formula.cap)}</p>}
 
-      <details className="compat-panel__explanation">
-        <summary>{es.redesign.explanationHelp}</summary>
-        {aiWritten ? (
-          <AiLabel />
-        ) : (
-          <p className="compat-panel__explanation-label">{t.explanationLabel}</p>
-        )}
-        <p>{result.explanation.text}</p>
-      </details>
+      <DoraExplains
+        vacancyId={result.vacancyId}
+        available={Boolean(result.doraExplanation?.available)}
+        onResult={setLatest}
+      />
 
       <RequirementComparison items={[...result.matches, ...result.gaps, ...result.missingInfo]} />
       <HowItIsCalculated formula={result.formula} />
@@ -142,7 +141,7 @@ export function VacancyCompatibilityPanel({
 
       {state.status === 'success' &&
         (state.data.status === 'CALCULATED' ? (
-          <Calculated result={state.data} />
+          <Calculated key={vacancyId} result={state.data} />
         ) : (
           <>
             <Insufficient result={state.data} />

@@ -81,11 +81,14 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
   it('007-20: the template explanation says "calculada con reglas" and has NO AI label', async () => {
     openStudentApp(detailPath)
     const region = await panel()
+    fireEvent.click(
+      await within(region).findByRole('button', { name: es.doraExplains.templateTrigger }),
+    )
     expect(await within(region).findByText(t.explanationLabel)).toBeInTheDocument()
     expect(within(region).queryByText(es.ai.label)).not.toBeInTheDocument()
   })
 
-  it('007-20: an explanation written by AI (a later slice) does carry the AI label', async () => {
+  it('015-20: the old GET explanation is never presented as a new AI response', async () => {
     openStudentApp(detailPath, {
       compatibility: {
         details: {
@@ -96,8 +99,11 @@ describe('Panel "Tu compatibilidad" in the detail (007-18 to 007-21)', () => {
       },
     })
     const region = await panel()
-    expect(await within(region).findByText(es.ai.label)).toBeInTheDocument()
-    expect(within(region).queryByText(t.explanationLabel)).not.toBeInTheDocument()
+    expect(
+      await within(region).findByRole('button', { name: es.doraExplains.templateTrigger }),
+    ).toBeInTheDocument()
+    expect(within(region).queryByText(es.ai.label)).not.toBeInTheDocument()
+    expect(within(region).queryByText('Texto de prueba.')).not.toBeInTheDocument()
   })
 
   it('007-20: "Cómo se calcula" is a keyboard-operable disclosure that reads the weights from the response', async () => {
