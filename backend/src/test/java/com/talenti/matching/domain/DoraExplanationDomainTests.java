@@ -209,8 +209,8 @@ class DoraExplanationDomainTests {
 				new ExplanationDraft.Practice("git", List.of("Haz commits pequeños con Git.")))))).as("sobra una")
 				.isEqualTo(Rejection.PRACTICE_MISMATCH);
 		assertThat(rejection(new ExplanationDraft(valid.fit(), valid.gaps(), null,
-				List.of(new ExplanationDraft.Practice("sql", List.of())), p.get(1))))
-				.isNotNull();
+				List.of(new ExplanationDraft.Practice("sql", List.of()), p.get(1)))))
+				.isEqualTo(Rejection.ACTIONS_COUNT);
 		assertThat(rejection(new ExplanationDraft(valid.fit(), valid.gaps(), null,
 				List.of(new ExplanationDraft.Practice("sql", List.of("a SQL", "b SQL", "c SQL", "d SQL")), p.get(1)))))
 				.isEqualTo(Rejection.ACTIONS_COUNT);
@@ -246,6 +246,8 @@ class DoraExplanationDomainTests {
 		assertThat(rejection(with(fit -> fit + " Escribe a ana.prueba@correo.pe."))).isEqualTo(Rejection.CONTACT);
 		assertThat(rejection(with(fit -> fit + " Mira https://ejemplo.invalido/curso."))).isEqualTo(Rejection.CONTACT);
 		assertThat(rejection(with(fit -> fit + " Entra a cursos.com."))).isEqualTo(Rejection.CONTACT);
+		assertThat(rejection(with(fit -> fit + " Entra a git.dev."))).isEqualTo(Rejection.CONTACT);
+		assertThat(rejection(with(fit -> fit + " Escribe a git@correo.pe."))).isEqualTo(Rejection.CONTACT);
 		assertThat(rejection(with(fit -> fit + " Llama al +51 912 345 678."))).isEqualTo(Rejection.CONTACT);
 
 		// Node.js está en el resultado de esta vacante: no es un enlace.
@@ -255,7 +257,7 @@ class DoraExplanationDomainTests {
 		ExplanationRequest request = ExplanationRequest.of("Vacante", CALCULATOR.calculate(PROFILE, node, null));
 		ExplanationDraft draft = new ExplanationDraft("Encajas porque ya manejas Java.", "Aún no figura Node.js.", null,
 				List.of(new ExplanationDraft.Practice("node-js", List.of("Crea un servidor pequeño con Node.js."))));
-		assertThat(VALIDATOR.validate(draft, request, CATALOG).valid()).isTrue();
+		assertThat(VALIDATOR.validate(draft, request, CATALOG).rejection()).isNull();
 	}
 
 	@Test

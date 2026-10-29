@@ -189,29 +189,41 @@ public final class ExplanationValidator {
 				return Rejection.FORBIDDEN_PHRASE;
 			}
 		}
-		// Los nombres de habilidades (".NET", "Node.js", "ASP.NET") no son enlaces: se tapan antes de buscar contactos.
-		String masked = normalized;
-		for (List<Pattern> patterns : terms.values()) {
-			for (Pattern pattern : patterns) {
-				masked = pattern.matcher(masked).replaceAll(" habilidad ");
-			}
-		}
-		if (EMAIL.matcher(masked).find() || LINK.matcher(masked).find() || PHONE.matcher(masked).find()) {
+		if (EMAIL.matcher(normalized).find() || PHONE.matcher(normalized).find()) {
 			return Rejection.CONTACT;
+		}
+		var links = LINK.matcher(normalized);
+		while (links.find()) {
+			String candidate = links.group();
+			// ASP.NET es un nombre completo del catálogo; git.dev sigue siendo un enlace,
+			// aunque "Git" por separado sea una habilidad permitida.
+			boolean skillName = terms.values().stream().flatMap(List::stream)
+					.anyMatch(pattern -> pattern.matcher(candidate).matches());
+			if (!skillName) return Rejection.CONTACT;
 		}
 		return null;
 	}
 
 	private static Set<String> mentions(String text, Map<String, List<Pattern>> terms) {
 		String normalized = normalize(text);
-		Set<String> found = new HashSet<>();
+		record Mention(String slug, int start, int end) { }
+		List<Mention> mentions = new ArrayList<>();
 		for (Map.Entry<String, List<Pattern>> entry : terms.entrySet()) {
 			for (Pattern pattern : entry.getValue()) {
-				if (pattern.matcher(normalized).find()) {
-					found.add(entry.getKey());
-					break;
-				}
+				var matcher = pattern.matcher(normalized);
+				while (matcher.find()) mentions.add(new Mention(entry.getKey(), matcher.start(), matcher.end()));
 			}
+		}
+		// El nombre más largo tiene precedencia: "JS" dentro de "Node.js" no menciona JavaScript.
+		mentions.sort(java.util.Comparator.comparingInt((Mention m) -> m.end() - m.start()).reversed());
+		boolean[] occupied = new boolean[normalized.length()];
+		Set<String> found = new HashSet<>();
+		for (Mention mention : mentions) {
+			boolean overlaps = false;
+			for (int i = mention.start(); i < mention.end(); i++) overlaps |= occupied[i];
+			if (overlaps) continue;
+			found.add(mention.slug());
+			java.util.Arrays.fill(occupied, mention.start(), mention.end(), true);
 		}
 		return found;
 	}
