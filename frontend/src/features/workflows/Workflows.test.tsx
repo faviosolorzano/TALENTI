@@ -117,13 +117,13 @@ it('a failed exam save preserves the answer and prevents switching to a differen
   expect(screen.getByRole('radio', { name: 'Primera opción' })).toBeChecked()
   expect(screen.queryByText('Explica tu decisión')).toBeNull()
 })
-it('exam creation waits for explicit acceptance of the actual versioned notice', async () => {
+it('014-37: exam creation waits for explicit acceptance of the current v2 notice', async () => {
   let writes = 0
   const { user } = mount('/postulaciones/app-test/examen', (path, init) => {
     if (path !== '/applications/app-test/exam') return undefined
     if (init?.method === 'POST') {
       writes++
-      expect(JSON.parse(String(init.body))).toEqual({ noticeAccepted: true, noticeVersion: 'v1' })
+      expect(JSON.parse(String(init.body))).toEqual({ noticeAccepted: true, noticeVersion: 'v2' })
       return json({ ...fixture(), status: 'NOT_STARTED' })
     }
     return writes
