@@ -139,6 +139,7 @@ export function insufficientDetail(
 }
 
 export interface FakeCompatibilityOptions {
+  explanations?: Record<string, import('../api/compatibility').DoraExplanation>
   /** Does the profile have enough to be calculated? (default: yes) */
   sufficient?: boolean
   /** Full result by vacancy id (default: `sampleDetail`, or `insufficientDetail` when not sufficient). */
@@ -216,6 +217,32 @@ export function mockCompatibilityBackend(
       return json(200, body)
     }
 
+    const explanation = /^\/compatibility\/vacancies\/([^/]+)\/explanation$/.exec(path)
+    if (explanation && init?.method === 'POST') {
+      const id = decodeURIComponent(explanation[1] ?? '')
+      return json(
+        200,
+        options.explanations?.[id] ?? {
+          vacancyId: id,
+          percent: 81,
+          level: 'HIGH',
+          source: 'TEMPLATE',
+          fallbackReason: 'AI_DISABLED',
+          cached: false,
+          sections: { fit: 'Ya manejas Java.', gaps: 'Puedes mejorar SQL.', unknown: null },
+          practice: [
+            {
+              skill: { slug: 'sql', name: 'SQL' },
+              requirementKind: 'REQUIRED',
+              outcome: 'PARTIAL',
+              actions: ['Haz una consulta con SQL.'],
+            },
+          ],
+          versions: { formula: '1', prompt: null, template: '1', model: null, adapter: 'template' },
+          generatedAt: '2026-10-29T20:00:00Z',
+        },
+      )
+    }
     const match = /^\/compatibility\/vacancies\/([^/]+)$/.exec(path)
     if (match) {
       const id = decodeURIComponent(match[1] ?? '')

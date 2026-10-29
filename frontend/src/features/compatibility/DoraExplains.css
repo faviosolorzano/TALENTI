@@ -1,0 +1,65 @@
+.dora-explains {
+  min-width: 0;
+}
+.dora-explains__trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-height: 44px;
+  text-align: start;
+}
+.dora-explains__trigger > span:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+.dora-explains__orb {
+  flex: none;
+  width: var(--space-6);
+  height: var(--space-6);
+  overflow: hidden;
+}
+.dora-explains__body:not([hidden]) {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+.dora-explains__body {
+  overflow-wrap: anywhere;
+}
+.dora-explains__body h3 {
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-2);
+}
+.dora-explains__label,
+.dora-explains__footnote {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+.dora-explains__practice {
+  display: grid;
+  gap: var(--space-5);
+  list-style: none;
+  padding: 0;
+}
+.dora-explains__practice h4 small {
+  display: inline-block;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
+.dora-explains__practice ul {
+  padding-inline-start: var(--space-5);
+  margin-block: var(--space-2) var(--space-3);
+}
+.dora-explains__skeleton {
+  display: grid;
+  gap: var(--space-3);
+}
+@media (max-width: 32.5rem) {
+  .dora-explains__practice .btn {
+    width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+}

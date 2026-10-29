@@ -77,6 +77,7 @@ export interface CompatibilityFormula {
 }
 
 export interface Compatibility extends CompatibilitySummary {
+  doraExplanation?: { available: boolean }
   reasons: InsufficientReason[]
   /** 0 to 100: how much of the information could be used. */
   informationBasis: number | null
@@ -86,6 +87,47 @@ export interface Compatibility extends CompatibilitySummary {
   missingInfo: CompatibilityItem[]
   explanation: CompatibilityExplanation
   formula: CompatibilityFormula
+}
+
+export interface DoraExplanation {
+  vacancyId: string
+  percent: number
+  level: CompatibilityLevel
+  source: 'AI' | 'TEMPLATE'
+  fallbackReason:
+    | 'AI_DISABLED'
+    | 'TIMEOUT'
+    | 'AI_ERROR'
+    | 'PERSONAL_LIMIT'
+    | 'GLOBAL_LIMIT'
+    | 'INVALID_OUTPUT'
+    | null
+  cached: boolean
+  sections: { fit: string; gaps: string | null; unknown: string | null }
+  practice: {
+    skill: { slug: string; name: string }
+    requirementKind: 'REQUIRED' | 'DESIRABLE'
+    outcome: RequirementOutcome
+    actions: string[]
+  }[]
+  versions: {
+    formula: string
+    prompt: string | null
+    template: string
+    model: string | null
+    adapter: string
+  }
+  generatedAt: string
+}
+
+export function fetchDoraExplanation(vacancyId: string, signal?: AbortSignal) {
+  return apiFetch<DoraExplanation>(
+    `/compatibility/vacancies/${encodeURIComponent(vacancyId)}/explanation`,
+    {
+      method: 'POST',
+      signal,
+    },
+  )
 }
 
 export interface RecommendedItem {
