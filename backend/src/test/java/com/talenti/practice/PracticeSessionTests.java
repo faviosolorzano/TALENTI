@@ -41,7 +41,7 @@ class PracticeSessionTests extends PracticeIntegrationTest {
 		assertThat(options.get("quota").get("limit").asInt()).isEqualTo(20);
 		assertThat(options.get("quota").get("resetsAt").asString()).isNotBlank();
 		assertThat(options.get("voiceAvailable").asBoolean()).isTrue();
-		assertThat(options.get("interviewNotice").get("version").asString()).isEqualTo("v1");
+		assertThat(options.get("interviewNotice").get("version").asString()).isEqualTo("v2");
 		assertThat(llm.journal()).isEmpty();
 		assertThat(count("SELECT count(*) FROM ai_usage_event WHERE user_id = ?", student.id())).isEqualTo(usageBefore);
 

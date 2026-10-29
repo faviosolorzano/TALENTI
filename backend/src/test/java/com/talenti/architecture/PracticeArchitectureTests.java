@@ -148,7 +148,7 @@ class PracticeArchitectureTests {
 	private static final Pattern TABLE = Pattern.compile("(?i)\\b(?:from|join|into|update)\\s+(\\w+)");
 
 	private static final Set<String> OWN = Set.of("practice_session", "practice_question", "practice_turn",
-			"practice_feedback", "interview_event");
+			"practice_feedback", "interview_event", "realtime_call", "practice_utterance");
 
 	@Test
 	@DisplayName("012-22 y principio 12: practice solo consulta sus tablas y ningún otro módulo las lee")

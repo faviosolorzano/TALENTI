@@ -20,6 +20,12 @@ talenti:
   dora:
     # Las pruebas barren la inactividad a mano con reloj simulado (012-14).
     sweep-interval: PT999H
+  ai:
+    dora:
+      realtime:
+        # Las pruebas cierran por tiempo a mano con reloj simulado (012-49). Ninguna prueba sale a la red: el adaptador
+        # en tiempo real es el SIMULADO salvo en la prueba de la clave, que usa un servidor local falso.
+        sweep-interval: PT999H
   github:
     # NINGUNA prueba llama a GitHub real (spec 013, sección 9): por defecto ambas direcciones apuntan a un puerto local
     # cerrado, y las pruebas de GitHub las cambian por su servidor simulado. GithubNoRealNetworkTests lo vigila.
