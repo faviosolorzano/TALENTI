@@ -18,20 +18,17 @@ public class EmptyDatabaseConfiguration {
 
 	private static PostgreSQLContainer container;
 
-	@Bean(destroyMethod = "")
-	PostgreSQLContainer emptyPostgresContainer() {
-		return shared();
-	}
-
 	private static synchronized PostgreSQLContainer shared() {
 		if (container == null) {
 			container = TestcontainersConfiguration.newContainer();
+			container.start();
 		}
 		return container;
 	}
 
 	@Bean
-	DynamicPropertyRegistrar emptyDatabaseProperties(PostgreSQLContainer emptyPostgresContainer) {
+	DynamicPropertyRegistrar emptyDatabaseProperties() {
+		PostgreSQLContainer emptyPostgresContainer = shared();
 		return registry -> {
 			registry.add("spring.datasource.url", emptyPostgresContainer::getJdbcUrl);
 			registry.add("spring.datasource.username", () -> TestcontainersConfiguration.APP_USER);
