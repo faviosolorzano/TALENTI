@@ -1,8 +1,14 @@
 /* Seguridad del examen (spec 014, Enmienda 1). Todo valor viene de tokens. */
 .exam-secure {
   position: relative;
-  /* Deja sitio para la vista de la cámara fija en la esquina: nada del examen queda debajo al final. */
-  padding-block-end: calc(var(--exam-camera-height) + var(--space-8));
+}
+.exam-layout {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+.exam-layout > [data-testid='exam-questions'] {
+  min-width: 0;
 }
 .exam-secure__prompt,
 .exam-secure .workflow__question,
@@ -47,9 +53,9 @@
   font-weight: var(--font-weight-semibold);
 }
 .exam-camera {
-  position: fixed;
-  inset-block-end: var(--space-4);
-  inset-inline-end: var(--space-4);
+  position: relative;
+  justify-self: end;
+  margin: 0;
   z-index: var(--z-exam-camera);
   display: grid;
   gap: var(--space-1);
@@ -92,6 +98,21 @@
 }
 .exam-print-note {
   display: none;
+}
+@media (min-width: 61.25rem) {
+  .exam-layout {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .exam-layout > [data-testid='exam-questions'] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .exam-camera {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: var(--space-6);
+  }
 }
 @media print {
   .exam-secure,

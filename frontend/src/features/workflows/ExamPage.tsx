@@ -494,12 +494,14 @@ function ExamWorkspace({ initial }: { initial: ExamAttempt }) {
                 session={session}
                 onReconnected={() => void resumeMonitoring()}
               />
-              <ExamCamera stream={view.stream} />
-              {/* Tapadas, las preguntas siguen montadas: lo escrito sin guardar no se pierde. */}
-              <div hidden={covered} inert={covered} data-testid="exam-questions">
-                <SecureArea watermark={attempt.watermark} onBlocked={blocked}>
-                  {questions}
-                </SecureArea>
+              <div className="exam-layout">
+                <ExamCamera stream={view.stream} />
+                {/* Tapadas, las preguntas siguen montadas: lo escrito sin guardar no se pierde. */}
+                <div hidden={covered} inert={covered} data-testid="exam-questions">
+                  <SecureArea watermark={attempt.watermark} onBlocked={blocked}>
+                    {questions}
+                  </SecureArea>
+                </div>
               </div>
             </>
           ) : (
