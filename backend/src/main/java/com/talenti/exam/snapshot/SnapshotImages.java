@@ -55,7 +55,6 @@ public final class SnapshotImages {
 		try(ImageInputStream in=ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
 			reader.setInput(in,true,true);
 			reader.addIIOReadWarningListener((IIOReadWarningListener)(source,warning)->warned[0]=true);
-			if(reader.getNumImages(true)!=1) throw new Rejected(Problem.UNREADABLE);
 			int w=reader.getWidth(0), h=reader.getHeight(0);
 			if(w<1||h<1) throw new Rejected(Problem.UNREADABLE);
 			if(w>maxSide||h>maxSide) throw new Rejected(Problem.DIMENSIONS);
