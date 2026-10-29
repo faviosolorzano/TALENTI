@@ -1,9 +1,9 @@
-import { useId } from 'react'
+import { useId, type ReactNode } from 'react'
+import { useLocation } from 'react-router'
 import { fetchCompatibility, type Compatibility } from '../../api/compatibility'
 import { AiLabel } from '../../components/AiLabel'
 import { Button } from '../../components/Button'
-import { Card } from '../../components/Card'
-import { CompatibilityRing } from '../../components/CompatibilityRing'
+
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { ErrorNotice } from '../vacancies/ErrorNotice'
@@ -11,7 +11,7 @@ import '../vacancies/Skeletons.css'
 import { sectionPath } from '../profile/sections'
 import { HowItIsCalculated } from './HowItIsCalculated'
 import { firstMissingSection } from './matchFormat'
-import { MatchLists } from './MatchLists'
+import { RequirementComparison } from './RequirementComparison'
 import { useSessionLost } from './useSessionLost'
 import './VacancyCompatibilityPanel.css'
 
@@ -24,7 +24,9 @@ function Calculated({ result }: { result: Compatibility }) {
   return (
     <>
       <div className="compat-panel__score">
-        <CompatibilityRing value={percent} capped={result.capped} />
+        <p className="compat-panel__percent">
+          {percent} % <small>{es.ring.caption}</small>
+        </p>
         <div className="compat-panel__verdict">
           <p className="compat-panel__verdict-title">
             {result.level ? t.verdict[result.level] : ''}
@@ -35,16 +37,17 @@ function Calculated({ result }: { result: Compatibility }) {
 
       {result.capped && <p className="compat-panel__cap">{t.capped(result.formula.cap)}</p>}
 
-      <div className="compat-panel__explanation">
+      <details className="compat-panel__explanation">
+        <summary>{es.redesign.explanationHelp}</summary>
         {aiWritten ? (
           <AiLabel />
         ) : (
           <p className="compat-panel__explanation-label">{t.explanationLabel}</p>
         )}
         <p>{result.explanation.text}</p>
-      </div>
+      </details>
 
-      <MatchLists matches={result.matches} gaps={result.gaps} missingInfo={result.missingInfo} />
+      <RequirementComparison items={[...result.matches, ...result.gaps, ...result.missingInfo]} />
       <HowItIsCalculated formula={result.formula} />
     </>
   )
@@ -52,6 +55,7 @@ function Calculated({ result }: { result: Compatibility }) {
 
 function Insufficient({ result }: { result: Compatibility }) {
   const reason = result.reasons[0] ?? 'LOW_INFORMATION'
+  const location = useLocation()
   const action =
     reason === 'VACANCY_WITHOUT_REQUIREMENTS'
       ? null
@@ -61,20 +65,20 @@ function Insufficient({ result }: { result: Compatibility }) {
   return (
     <>
       <div className="compat-panel__score">
-        <CompatibilityRing value={null} />
         <div className="compat-panel__verdict">
           <p className="compat-panel__verdict-title">{t.insufficient.title}</p>
           <p className="compat-panel__basis">{t.insufficient[reason]}</p>
           {action && (
-            <Button to={action} size="sm">
+            <Button
+              to={`${action}&returnTo=${encodeURIComponent(location.pathname + location.search)}`}
+              size="sm"
+            >
               {t.insufficient.action}
             </Button>
           )}
         </div>
       </div>
-      {reason === 'LOW_INFORMATION' && (
-        <MatchLists matches={[]} gaps={[]} missingInfo={result.missingInfo} />
-      )}
+      {reason === 'LOW_INFORMATION' && <RequirementComparison items={result.missingInfo} />}
     </>
   )
 }
@@ -85,7 +89,13 @@ function Insufficient({ result }: { result: Compatibility }) {
  * calculated by the server; this component never calculates. If the call fails, only this card
  * shows the error: the vacancy stays readable.
  */
-export function VacancyCompatibilityPanel({ vacancyId }: { vacancyId: string }) {
+export function VacancyCompatibilityPanel({
+  vacancyId,
+  fallback,
+}: {
+  vacancyId: string
+  fallback?: ReactNode
+}) {
   const titleId = useId()
   const sessionLost = useSessionLost()
   const resource = useApiResource(`compatibility:${vacancyId}`, async (signal) => {
@@ -99,8 +109,7 @@ export function VacancyCompatibilityPanel({ vacancyId }: { vacancyId: string }) 
   const { state } = resource
 
   return (
-    <Card
-      as="section"
+    <section
       className="compat-panel"
       aria-labelledby={titleId}
       aria-busy={state.status === 'loading'}
@@ -124,14 +133,22 @@ export function VacancyCompatibilityPanel({ vacancyId }: { vacancyId: string }) 
         </div>
       )}
 
-      {state.status === 'error' && <ErrorNotice message={t.error} onRetry={resource.retry} />}
+      {state.status === 'error' && (
+        <>
+          <ErrorNotice message={t.error} onRetry={resource.retry} />
+          {fallback}
+        </>
+      )}
 
       {state.status === 'success' &&
         (state.data.status === 'CALCULATED' ? (
           <Calculated result={state.data} />
         ) : (
-          <Insufficient result={state.data} />
+          <>
+            <Insufficient result={state.data} />
+            {fallback}
+          </>
         ))}
-    </Card>
+    </section>
   )
 }

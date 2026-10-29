@@ -124,6 +124,7 @@ function ProjectForm({ project, onSaved, onCancel, onDirtyChange }: FormProps) {
           error={messageFor(state, 'description')}
         />
         <TagField
+          maxItems={8}
           label={t.technologies}
           hint={t.technologiesHint}
           addLabel={t.techAdd}

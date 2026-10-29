@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { acceptLegalDocuments, fetchLegalCatalog } from '../../api/legal'
 import { ApiError } from '../../api/client'
 import { Button } from '../../components/Button'
@@ -28,6 +28,7 @@ type Problem = 'mustAccept' | 'outdated' | 'failed'
 export function AcceptDocumentsPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const session = useSession()
   const returnTo = safeReturnTo(params.get('returnTo')) ?? DEFAULT_RETURN_PATH
   const { state, retry, refreshing } = useApiResource('accept-documents', fetchLegalCatalog, {
@@ -55,14 +56,14 @@ export function AcceptDocumentsPage() {
     if (!signedOut || leaving) return
     navigate(loginPathWithReturn(returnTo), {
       replace: true,
-      state: session.notice ? { notice: session.notice } : undefined,
+      state: { ...location.state, ...(session.notice ? { notice: session.notice } : {}) },
     })
-  }, [signedOut, leaving, navigate, returnTo, session.notice])
+  }, [signedOut, leaving, navigate, returnTo, session.notice, location.state])
 
   // Nothing pending: this screen has nothing to show ("con la versión al día no aparece nada").
   useEffect(() => {
-    if (upToDate && !saving) navigate(returnTo, { replace: true })
-  }, [upToDate, saving, navigate, returnTo])
+    if (upToDate && !saving) navigate(returnTo, { replace: true, state: location.state })
+  }, [upToDate, saving, navigate, returnTo, location.state])
 
   const pending = session.status === 'authenticated' && session.legalAcceptancePending
   const sessionLoading = session.status === 'loading'
@@ -80,12 +81,12 @@ export function AcceptDocumentsPage() {
       await acceptLegalDocuments(version)
       // The server now has the acceptance: ask who we are again (no page reload) and go on.
       await refresh()
-      navigate(returnTo, { replace: true })
+      navigate(returnTo, { replace: true, state: location.state })
       return
     } catch (error) {
       const status = error instanceof ApiError ? error.status : 0
       if (status === 401) {
-        navigate(loginPathWithReturn(returnTo), { replace: true })
+        navigate(loginPathWithReturn(returnTo), { replace: true, state: location.state })
         return
       }
       if (status === 409) {

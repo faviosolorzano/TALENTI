@@ -9,7 +9,7 @@ afterEach(clearCsrfCookie)
 
 const t = es.profile
 
-const pageTitle = () => screen.findByRole('heading', { level: 1, name: t.title })
+const pageTitle = () => screen.findByRole('heading', { level: 1 })
 const card = (title: string) => screen.getByRole('region', { name: title })
 const editButton = (title: string) =>
   within(card(title)).getByRole('button', { name: t.actions.editSection(title) })
@@ -22,7 +22,7 @@ async function openProfile(
 ) {
   const app = openStudentApp(path, { profile: { ...options, profile: data } })
   await pageTitle()
-  await screen.findByRole('region', { name: t.academic.title })
+  await screen.findByRole('navigation', { name: es.profile.title })
   return app
 }
 
@@ -45,7 +45,7 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
     expect(title.closest('[aria-busy="true"]')).not.toBeNull()
     expect(document.querySelector('.skeleton')).not.toBeNull()
     expect(screen.getByText(t.loading)).toBeInTheDocument()
-    await screen.findByRole('region', { name: t.academic.title })
+    await screen.findByRole('region', { name: t.about.title })
     expect(document.querySelector('[aria-busy="true"]')).toBeNull()
   })
 
@@ -59,114 +59,36 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
     profile.setFailing({})
     await user.click(within(alert).getByRole('button', { name: es.common.retry }))
 
-    expect(await screen.findByRole('region', { name: t.academic.title })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: t.about.title })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('006-14 and 006-20: an empty profile shows 0 %, one link per pending item and invitations without blame', async () => {
+  it('shows five sections in top navigation and exactly one editor', async () => {
+    const { user } = await openProfile()
+    const nav = screen.getByRole('navigation', { name: es.profile.title })
+    expect(within(nav).getAllByRole('button')).toHaveLength(5)
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(card(t.about.title)).toBeInTheDocument()
+    await user.click(within(nav).getByRole('button', { name: t.skills.title }))
+    expect(screen.queryByRole('region', { name: t.about.title })).not.toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: t.skills.pickerLabel })).toBeInTheDocument()
+  })
+  it('CV and GitHub lead to real screens without promising a PDF attachment', async () => {
     await openProfile()
-
-    expect(screen.getByText(es.profile.summary.percentLead, { exact: false })).toHaveTextContent(
-      'Tu perfil está al 0 %',
-    )
-    const bar = screen.getByRole('progressbar', { name: t.summary.barLabel })
-    expect(bar).toHaveAttribute('aria-valuenow', '0')
-    const missing = screen.getByRole('heading', { level: 3, name: t.summary.whatIsMissing })
-    const links = within(missing.parentElement as HTMLElement).getAllByRole('link')
-    expect(links).toHaveLength(6)
-    // The next step the server chose goes first and is marked.
-    expect(links[0]).toHaveTextContent(t.steps.SKILLS)
-    expect(links[0]).toHaveTextContent(t.summary.next)
-    expect(screen.getByText(t.skills.empty)).toBeInTheDocument()
-    expect(screen.getByText(t.projects.empty)).toBeInTheDocument()
-    expect(screen.getByText(t.academic.empty)).toBeInTheDocument()
-    expect(screen.getByText(t.availability.empty)).toBeInTheDocument()
-    // The four cards, each with an "Editar" button, and nothing about a CV upload.
-    for (const title of [
-      t.academic.title,
-      t.skills.title,
-      t.availability.title,
-      t.projects.title,
-    ]) {
-      expect(editButton(title)).toBeInTheDocument()
-    }
-    // The CV block is an entry to the reader (spec 009), no longer an announcement.
-    expect(within(card(t.cv.title)).getByRole('link', { name: t.cv.action })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: es.redesign.useCv })).toHaveAttribute(
       'href',
       '/perfil/cv',
     )
-    // 006-29: "Enlaza tu GitHub" only announces; it has no active control.
-    const github = card(t.github.title)
-    expect(within(github).getByText(t.github.soon)).toBeInTheDocument()
-    expect(within(github).getByText(/repositorios públicos/)).toBeInTheDocument()
-    expect(within(github).queryByRole('button')).not.toBeInTheDocument()
-    expect(within(github).queryByRole('link')).not.toBeInTheDocument()
-    // 006-28: "Datos personales" is the first card.
-    expect(editButton(t.about.title)).toBeInTheDocument()
-  })
-
-  it('RN-11: the percentage, the done marks and the next step come from the server, not from the page', async () => {
-    await openProfile({ ...FULL_ACADEMIC, ...THREE_SKILLS })
-
-    // Academic 15 + skills 25 = 40; the heaviest pending item is the projects (25).
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '40')
-    expect(screen.getByText(es.profile.summary.percentLead, { exact: false })).toHaveTextContent(
-      'Tu perfil está al 40 %',
+    expect(screen.getByRole('link', { name: es.redesign.github })).toHaveAttribute(
+      'href',
+      '/perfil/github',
     )
-    const first = within(
-      screen.getByRole('heading', { level: 3, name: t.summary.whatIsMissing })
-        .parentElement as HTMLElement,
-    ).getAllByRole('link')[0]
-    expect(first).toHaveTextContent(t.steps.PROJECTS)
-    expect(within(card(t.academic.title)).getByText(t.sectionStatus.done)).toBeInTheDocument()
-    expect(within(card(t.skills.title)).getByText(t.sectionStatus.done)).toBeInTheDocument()
-    expect(within(card(t.projects.title)).getByText(t.sectionStatus.pending)).toBeInTheDocument()
-    // Read mode shows what is saved; every skill is labelled as declared.
-    expect(within(card(t.academic.title)).getByText('Desarrollo de Software')).toBeInTheDocument()
-    expect(within(card(t.academic.title)).getByText(t.academic.cycleValue(5))).toBeInTheDocument()
-    const skills = within(card(t.skills.title)).getByRole('list', { name: t.skills.listLabel })
-    expect(within(skills).getAllByRole('listitem')).toHaveLength(3)
-    expect(skills).toHaveTextContent(t.skills.levels[2])
-    expect(skills).toHaveTextContent(t.skills.declared)
   })
-
-  it('at 100 % it says the profile is complete and lists nothing as missing', async () => {
-    await openProfile({
-      about: {
-        firstNames: 'Ana',
-        lastNames: 'Quispe',
-        contactEmail: null,
-        phone: null,
-        about: 'Estudio software.',
-      },
-      ...FULL_ACADEMIC,
-      ...THREE_SKILLS,
-      availability: { hoursPerWeek: 20, acceptedModalities: ['REMOTE'], location: 'Lima' },
-      projects: [
-        { id: 'p0', name: 'Tienda', description: 'Una tienda en línea.', technologies: ['React'] },
-      ],
-    })
-
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
-    expect(screen.getByText(t.summary.complete)).toBeInTheDocument()
-    expect(
-      screen.queryByRole('heading', { level: 3, name: t.summary.whatIsMissing }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('a "Qué falta" link opens its card in edit mode', async () => {
-    const { user } = await openProfile()
-
-    await user.click(screen.getByRole('link', { name: new RegExp(t.steps.PROJECTS) }))
-
-    expect(
-      within(card(t.projects.title)).getByRole('button', { name: t.projects.add }),
-    ).toBeInTheDocument()
-    expect(
-      within(card(t.projects.title)).queryByRole('button', {
-        name: t.actions.editSection(t.projects.title),
-      }),
-    ).not.toBeInTheDocument()
+  it('a complete profile still permits editing and has no completion gate', async () => {
+    const { user } = await openProfile({ ...FULL_ACADEMIC, ...THREE_SKILLS })
+    await user.click(screen.getByRole('button', { name: t.academic.title }))
+    expect(screen.getByLabelText(t.academic.career)).toHaveValue('Desarrollo de Software')
+    expect(screen.getByRole('button', { name: t.actions.save })).toBeEnabled()
   })
 })
 
@@ -181,9 +103,7 @@ describe('?seccion= (006-20)', () => {
       expect(within(skills).getByRole('searchbox', { name: t.skills.pickerLabel })).toHaveFocus(),
     )
     // The other cards stay in read mode.
-    expect(
-      within(card(t.academic.title)).queryByRole('button', { name: t.actions.save }),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: t.academic.title })).not.toBeInTheDocument()
   })
 
   it.each([
@@ -273,7 +193,6 @@ describe('Datos académicos (006-05, 006-15, 006-19)', () => {
 
     expect(await within(card(t.academic.title)).findByText(t.academic.cycleValue(5))).toBeVisible()
     expect(within(card(t.academic.title)).getByRole('status')).toHaveTextContent(t.actions.saved)
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '15')
     expect(profile.bodies).toEqual([
       {
         method: 'PUT',
@@ -315,7 +234,6 @@ describe('Datos académicos (006-05, 006-15, 006-19)', () => {
     expect(screen.getByLabelText(t.academic.career)).toHaveValue('Desarrollo de Software')
     expect(institute).toHaveValue('X')
     // Still in edit mode, and nothing was saved.
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0')
   })
 
   it('a number that is not a whole number goes to the server as typed, so the server says it is invalid', async () => {
@@ -352,6 +270,7 @@ describe('Datos académicos (006-05, 006-15, 006-19)', () => {
 
     await user.click(screen.getByRole('button', { name: t.actions.cancel }))
 
+    await user.click(screen.getByRole('button', { name: es.redesign.discard }))
     expect(within(card(t.academic.title)).getByText('Desarrollo de Software')).toBeVisible()
     expect(screen.queryByText('Otra carrera')).not.toBeInTheDocument()
     await waitFor(() => expect(editButton(t.academic.title)).toHaveFocus())
@@ -363,7 +282,7 @@ describe('One card at a time', () => {
     const { user } = await openProfile({}, '/perfil?seccion=academico')
     expect(screen.getByLabelText(t.academic.career)).toBeInTheDocument()
 
-    await user.click(editButton(t.availability.title))
+    await user.click(screen.getByRole('button', { name: t.availability.title }))
 
     expect(screen.queryByLabelText(t.academic.career)).not.toBeInTheDocument()
     expect(screen.getByLabelText(t.availability.hours)).toBeInTheDocument()
@@ -373,9 +292,25 @@ describe('One card at a time', () => {
     const { user } = await openProfile({}, '/perfil?seccion=academico')
     await user.type(screen.getByLabelText(t.academic.career), 'Desarrollo')
 
-    await user.click(editButton(t.availability.title))
+    await user.click(screen.getByRole('button', { name: t.availability.title }))
 
     expect(screen.getByLabelText(t.academic.career)).toHaveValue('Desarrollo')
-    expect(screen.getByLabelText(t.availability.hours)).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: es.redesign.stay }))
+    expect(screen.queryByLabelText(t.availability.hours)).not.toBeInTheDocument()
   })
+})
+
+it('protects inputs and section navigation until the current profile save finishes', async () => {
+  const { user } = await openProfile({}, '/perfil?seccion=academico', { writeDelayMs: 400 })
+  await user.type(screen.getByLabelText(t.academic.career), 'Desarrollo de Software')
+  await user.click(screen.getByRole('button', { name: t.actions.save }))
+  expect(await screen.findByRole('button', { name: t.actions.saving })).toBeDisabled()
+  expect(screen.getByLabelText(t.academic.career)).toBeDisabled()
+  expect(screen.getByRole('button', { name: t.skills.title })).toBeDisabled()
+  expect(screen.getByRole('link', { name: es.redesign.useCv })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+  await screen.findByText('Desarrollo de Software')
 })

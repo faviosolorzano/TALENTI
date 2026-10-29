@@ -55,9 +55,12 @@ public class SessionLifecycle {
 
 	private final Clock clock;
 
+	private final RealtimeCalls realtime;
+
 	SessionLifecycle(PracticeRepository repository, LiveSessions live, ApplicationStages stages, FeedbackService feedback,
 			UsageMeter usage, @Qualifier("doraExecutor") ExecutorService executor, DoraProperties properties,
-			JsonMapper mapper, Clock clock) {
+			JsonMapper mapper, Clock clock, RealtimeCalls realtime) {
+		this.realtime = realtime;
 		this.repository = repository;
 		this.live = live;
 		this.stages = stages;
@@ -82,8 +85,25 @@ public class SessionLifecycle {
 	 * @param status {@code COMPLETED}, {@code ABANDONED} o {@code FAILED}
 	 */
 	public boolean close(SessionRow session, SessionStatus status) {
+		return close(session, status, "SESSION_CLOSED");
+	}
+
+	/**
+	 * Cierra la sesión y, si conversaba en tiempo real, arma antes las respuestas pendientes y después cierra la llamada
+	 * con los segundos del servidor y la cuelga sin bloquear (enmienda 2: 012-46, 012-50, 012-51).
+	 *
+	 * @param callReason motivo con que se cierra la llamada abierta, si hay ({@code TIME_LIMIT}, {@code SESSION_CLOSED})
+	 */
+	public boolean close(SessionRow session, SessionStatus status, String callReason) {
+		realtime.beforeClose(session);
 		if (!repository.close(session.id(), status, clock.instant())) {
 			return false;
+		}
+		try {
+			realtime.closeOpenCall(session, callReason, status == SessionStatus.FAILED);
+		}
+		catch (RuntimeException e) {
+			log.warn("No se pudo cerrar la llamada en tiempo real de una sesión: {}", e.getClass().getName());
 		}
 		live.forget(session.id());
 		switch (status) {

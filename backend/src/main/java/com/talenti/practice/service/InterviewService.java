@@ -111,8 +111,9 @@ public class InterviewService implements InterviewResults {
 			throw DoraErrors.conflict("notice-version-outdated");
 		}
 		List<SessionRow> attempts = repository.interviews(applicationId);
-		if (attempts.stream().anyMatch(s -> s.status().isOpen())) {
-			throw DoraErrors.conflict("session-open");
+		Optional<SessionRow> openAttempt = attempts.stream().filter(s -> s.status().isOpen()).findFirst();
+		if (openAttempt.isPresent()) {
+			throw DoraErrors.sessionOpen(openAttempt.get());
 		}
 		boolean firstAttempt = attempts.isEmpty();
 		boolean canStart = switch (application.stage()) {
@@ -124,8 +125,9 @@ public class InterviewService implements InterviewResults {
 			throw DoraErrors.conflict(application.stage() == ApplicationStages.Stage.INTERVIEW_PENDING
 					? "interview-attempts-exhausted" : "interview-not-allowed");
 		}
-		if (repository.findOpen(userId).isPresent()) {
-			throw DoraErrors.conflict("session-open");
+		Optional<SessionRow> open = repository.findOpen(userId);
+		if (open.isPresent()) {
+			throw DoraErrors.sessionOpen(open.get());
 		}
 		if (usage.spendReached()) {
 			throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "interview-unavailable");
@@ -158,8 +160,8 @@ public class InterviewService implements InterviewResults {
 				}
 			});
 		}
-		catch (org.springframework.dao.DuplicateKeyException open) {
-			throw DoraErrors.conflict("session-open");
+		catch (org.springframework.dao.DuplicateKeyException race) {
+			throw DoraErrors.sessionOpen(repository.findOpen(userId).orElse(null));
 		}
 		if (plan.degraded()) {
 			repository.addDegraded(id, "QUESTION_BANK");
@@ -199,7 +201,7 @@ public class InterviewService implements InterviewResults {
 		boolean canRetry = application.stage() == ApplicationStages.Stage.INTERVIEW_PENDING && canRetry(attempts);
 		return Optional.of(new Views.InterviewView(applicationId, last.id(), last.status().name(), last.attempt(),
 				properties.interview().maxAttempts(), canRetry, last.noticeVersion(), last.noticeAcceptedAt(),
-				session.nextPosition(), questions));
+				session.nextPosition(), questions, last.channel(), session.conversation()));
 	}
 
 	// ------------------------------------------------------------------------------------------ resultados (empresa)
@@ -243,12 +245,18 @@ public class InterviewService implements InterviewResults {
 					values.size())));
 			List<Event> events = repository.events(session.id()).stream()
 					.map(event -> new Event(event.kind(), event.occurredAt())).toList();
+			// 012-48: la transcripción completa (persona y DORA, reportada por el navegador) queda visible para la
+			// empresa; las líneas de DORA solo se muestran, nunca se evalúan.
+			List<Utterance> conversation = views.conversation(session.id()).stream()
+					.map(u -> new Utterance(u.speaker(), u.text(), u.phase(), u.position(), u.inputMode(),
+							u.generatedBy(), u.reportedBy(), u.occurredAt()))
+					.toList();
 			result.add(new Attempt(session.id(), session.attempt(), session.status().name(), session.noticeVersion(),
 					session.noticeAcceptedAt(), session.startedAt(), session.endedAt(), answers,
 					session.questionCount() - answers.size(), summary, "AI",
 					new Versions(session.llmAdapter(), session.llmModel(), session.sttModel(), session.ttsModel(),
 							session.promptVersion(), session.rubricVersion(), session.bankVersion()),
-					events));
+					events, session.channel(), conversation));
 		}
 		return result;
 	}

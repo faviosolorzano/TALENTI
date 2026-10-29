@@ -7,7 +7,7 @@ describe('Routes', () => {
   it('route / renders the informative landing page instead of the notice', () => {
     renderApp('/')
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/lo que ya sabes hacer/)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Tu primera práctica/)
     expect(screen.queryByText(es.placeholder.underConstruction)).not.toBeInTheDocument()
     expect(document.title).toBe(`${es.pages.home.title} · ${es.app.name}`)
   })

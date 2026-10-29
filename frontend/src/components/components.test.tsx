@@ -59,8 +59,8 @@ describe('Button (003-04)', () => {
     expect(screen.getByRole('button', { name: 'Tres' })).toHaveClass('btn--quiet', 'btn--on-dark')
   })
 
-  it('takes its height (at least 44 px) from the --touch-target-min token', () => {
-    expect(css('Button.css')).toMatch(/\.btn \{[^}]*min-height: var\(--touch-target-min\)/)
+  it('takes its height (at least 44 px) from the 48 px --control-height token', () => {
+    expect(css('Button.css')).toMatch(/\.btn \{[^}]*min-height: var\(--control-height\)/)
   })
 
   it('is disabled: a button does nothing and a link does not navigate', async () => {
@@ -403,9 +403,9 @@ describe('Header (003-09)', () => {
     const names = within(menu)
       .getAllByRole('link')
       .map((link) => link.textContent)
-    expect(names.slice(0, 4)).toEqual([es.nav.home, es.nav.opportunities, es.nav.how, es.nav.dora])
+    expect(names).toEqual([es.nav.opportunities, es.nav.how, es.nav.login])
     expect(screen.getAllByRole('link', { name: es.nav.login }).length).toBeGreaterThan(0)
-    expect(screen.getByRole('link', { name: es.nav.register })).toHaveAttribute('href', '/registro')
+    expect(screen.queryByRole('link', { name: es.nav.register })).not.toBeInTheDocument()
     expect(screen.queryByText(/empresas/i)).not.toBeInTheDocument()
   })
 
@@ -415,7 +415,7 @@ describe('Header (003-09)', () => {
       'href',
       '/#como-funciona',
     )
-    expect(screen.getByRole('link', { name: es.nav.dora })).toHaveAttribute('href', '/#dora')
+    expect(screen.queryByRole('link', { name: es.nav.dora })).not.toBeInTheDocument()
   })
 
   it('folds the menu below 860 px and opens it into a row above (CSS uses the 860 px breakpoint)', () => {

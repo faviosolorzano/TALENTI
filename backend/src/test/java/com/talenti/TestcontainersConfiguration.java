@@ -37,14 +37,10 @@ public class TestcontainersConfiguration {
 	 * propio contexto, y levantar un PostgreSQL por contexto gasta tiempo y memoria. Las pruebas usan datos
 	 * propios (correos únicos), así que comparten la base sin estorbarse. Lo apaga Ryuk al terminar la JVM.
 	 */
-	@Bean(destroyMethod = "")
-	PostgreSQLContainer postgresContainer() {
-		return shared();
-	}
-
 	private static synchronized PostgreSQLContainer shared() {
 		if (sharedContainer == null) {
 			sharedContainer = newContainer();
+			sharedContainer.start();
 		}
 		return sharedContainer;
 	}
@@ -55,6 +51,9 @@ public class TestcontainersConfiguration {
 	 */
 	public static PostgreSQLContainer newContainer() {
 		return new PostgreSQLContainer(PGVECTOR_IMAGE)
+				// Hasta 32 contextos cacheados con pools de 6, más el contexto entrante y Flyway.
+				// Solo la base efímera de pruebas; no cambia PostgreSQL de ejecución.
+				.withCommand("postgres", "-c", "fsync=off", "-c", "max_connections=250")
 				.withEnv("APP_DB_USER", APP_USER)
 				.withEnv("APP_DB_PASSWORD", APP_PASSWORD)
 				.withCopyFileToContainer(MountableFile.forHostPath(INIT_SCRIPT, 0755),
@@ -63,7 +62,9 @@ public class TestcontainersConfiguration {
 
 	/** Conecta Flyway y la aplicación con el rol de la aplicación, no con el superusuario del contenedor. */
 	@Bean
-	DynamicPropertyRegistrar applicationRoleProperties(PostgreSQLContainer postgres) {
+	DynamicPropertyRegistrar applicationRoleProperties() {
+		// No exponer el contenedor compartido como bean: Boot lo apagaría al expulsar cualquier contexto.
+		PostgreSQLContainer postgres = shared();
 		return registry -> {
 			registry.add("spring.datasource.url", postgres::getJdbcUrl);
 			registry.add("spring.datasource.username", () -> APP_USER);

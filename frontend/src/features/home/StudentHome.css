@@ -240,3 +240,38 @@
   justify-items: end;
   gap: var(--space-1);
 }
+
+.home__grid,
+.home__side {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-6);
+}
+.home__title {
+  font-size: var(--font-size-task-title);
+}
+.home-block {
+  border: 0;
+  border-radius: 0;
+  padding: var(--space-6) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+  box-shadow: none;
+}
+.home-profile__progress {
+  display: none;
+}
+.home-profile {
+  display: block;
+}
+.home-profile__next {
+  justify-items: start;
+}
+.home-practice-link {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+}
+.home-practice-link p {
+  color: var(--color-text-muted);
+}

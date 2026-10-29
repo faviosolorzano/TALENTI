@@ -1,5 +1,4 @@
 import { useId, type ReactNode } from 'react'
-import { Card } from '../../components/Card'
 import './HomeBlock.css'
 
 interface HomeBlockProps {
@@ -19,8 +18,7 @@ interface HomeBlockProps {
 export function HomeBlock({ title, className, tag, busy, children }: HomeBlockProps) {
   const titleId = useId()
   return (
-    <Card
-      as="section"
+    <section
       className={className ? `home-block ${className}` : 'home-block'}
       aria-labelledby={titleId}
       aria-busy={busy || undefined}
@@ -32,7 +30,7 @@ export function HomeBlock({ title, className, tag, busy, children }: HomeBlockPr
         {tag}
       </div>
       {children}
-    </Card>
+    </section>
   )
 }
 

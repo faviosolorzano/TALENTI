@@ -110,6 +110,15 @@ public class UsageMeter {
 				failed ? sessionId : null));
 	}
 
+	/**
+	 * 012-50: una llamada en tiempo real cerrada, con los segundos medidos por el servidor y su costo estimado. Una sola
+	 * fila por llamada (el id de la llamada es la clave), sin contenido.
+	 */
+	public void realtime(UUID callId, UUID userId, String adapter, String model, int seconds, long costMicros) {
+		recordSafely(new AiUsageEvent(callId, userId, AiFunction.DORA_REALTIME, level, adapter, model,
+				AiUsageOutcome.SUCCESS, Math.max(0, seconds), 0, Math.max(0, costMicros)));
+	}
+
 	private void call(UUID userId, AiFunction function, String model, int inputSize, int outputSize, boolean success,
 			long costMicros) {
 		AiUsageEvent event = new AiUsageEvent(UUID.randomUUID(), userId, function, level, adapter, model,

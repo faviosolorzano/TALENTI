@@ -19,7 +19,36 @@
  */
 
 :root {
+  /* D-59: shared soft surfaces; text and control outlines remain opaque. */
+  --color-soft-canvas: #f4f7fc;
+  --color-soft-surface: #f9fbff;
+  --color-glass-surface: color-mix(in srgb, var(--color-brand-white) 88%, transparent);
+  --color-glass-line: color-mix(in srgb, var(--color-brand-blue) 12%, var(--color-brand-white));
+  --shadow-soft-raised:
+    8px 8px 22px color-mix(in srgb, var(--color-brand-navy) 9%, transparent),
+    -6px -6px 18px var(--color-brand-white), inset 0 1px 0 var(--color-brand-white);
+  --shadow-soft-inset:
+    inset 3px 3px 7px color-mix(in srgb, var(--color-brand-navy) 7%, transparent),
+    inset -3px -3px 7px var(--color-brand-white);
+  --shadow-soft-blue:
+    0 8px 20px color-mix(in srgb, var(--color-brand-blue) 24%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-brand-white) 32%, transparent);
+  --shadow-glass:
+    0 16px 44px color-mix(in srgb, var(--color-brand-navy) 10%, transparent),
+    inset 0 1px 0 var(--color-brand-white);
+  --glass-blur: 1rem;
+  --dora-dock-width: 26rem;
   /* ---- Brand ---- */
+  --font-size-hero: clamp(2.625rem, 6.65vw, 6rem);
+  --font-size-hero-support: clamp(1.375rem, 2.5vw, 2.25rem);
+  --font-size-task-title: clamp(1.875rem, 3.2vw, 3rem);
+  --technology-icon-size: 2rem;
+  --level-mark-height: 0.375rem;
+  --font-size-row-title: 1.25rem;
+  --font-weight-hero: 800;
+  --tracking-hero: -0.035em;
+  --hero-button-height: 3.5rem;
+  --hero-button-width: 18rem;
   --color-brand-navy: #0b132b;
   --color-brand-blue: #2563eb;
   --color-brand-white: #ffffff;
@@ -73,6 +102,7 @@
   --color-text-accent-inverse: var(--color-orb-300);
   --color-border: var(--color-neutral-200);
   --color-border-strong: var(--color-neutral-300);
+  --color-control: #7d899e;
   --color-border-accent: var(--color-brand-blue-line);
   --color-action: var(--color-brand-blue);
   --color-action-hover: var(--color-brand-blue-hover);
@@ -97,11 +127,10 @@
   --color-skeleton-shine: var(--color-neutral-50);
 
   /* ---- Typography ---- */
-  /* Families are self-hosted (@fontsource-variable, imported in main.tsx). The fallbacks keep
+  /* Hanken is self-hosted (fonts.css, imported in main.tsx). The fallbacks keep
      the layout readable while the font loads or if it fails. */
-  --font-family-base: 'Figtree Variable', system-ui, 'Segoe UI', sans-serif;
-  --font-family-heading:
-    'Bricolage Grotesque Variable', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  --font-family-base: 'Hanken Grotesk', system-ui, 'Segoe UI', sans-serif;
+  --font-family-heading: 'Hanken Grotesk', system-ui, 'Segoe UI', sans-serif;
   --font-family-mono: ui-monospace, 'SFMono-Regular', menlo, consolas, monospace;
 
   --font-size-2xs: 0.6875rem; /* 11 px */
@@ -110,7 +139,7 @@
   --font-size-sm: 0.875rem; /* 14 px */
   --font-size-ui: 0.9375rem; /* 15 px */
   --font-size-md: 1rem; /* 16 px */
-  --font-size-base: 1.0625rem; /* 17 px: body text */
+  --font-size-base: 1rem; /* 16 px: body text */
   --font-size-lg: 1.125rem; /* 18 px */
   --font-size-subtitle: 1.1875rem; /* 19 px */
   --font-size-xl: 1.3125rem; /* 21 px */
@@ -131,7 +160,7 @@
   --font-weight-medium: 500;
   --font-weight-nav: 550;
   --font-weight-semibold: 600;
-  --font-weight-heading: 650;
+  --font-weight-heading: 700;
   --font-weight-bold: 700;
 
   --line-height-none: 1;
@@ -175,7 +204,7 @@
   /* ---- Radii ---- */
   --radius-xs: 0.5rem; /* 8 px */
   --radius-sm: 0.75rem; /* 12 px */
-  --radius-button: 0.875rem; /* 14 px */
+  --radius-button: 0.75rem; /* 12 px */
   --radius-md: 1rem; /* 16 px */
   --radius-lg: 1.75rem; /* 28 px */
   --radius-full: 9999px;
@@ -193,11 +222,17 @@
 
   /* ---- Layout ---- */
   --content-max-width: 72.5rem; /* 1160 px */
-  --page-gutter: 1.125rem; /* 18 px on phones */
+  --auth-form-width: 28rem;
+  --profile-editor-width: 61.25rem;
+  --shell-max-width: 87.5rem; /* 1320 px of content plus desktop gutters */
+  --page-gutter: 1.25rem; /* 20 px on phones */
+  --control-height: 3rem;
+  --header-login-width: 7rem;
+  --account-menu-width: 12rem;
   --touch-target-min: 2.75rem; /* 44 px */
-  --header-height: 4.125rem; /* 66 px on phones */
+  --header-height: 4rem; /* 64 px on phones */
   --header-min-height: var(--header-height);
-  --logo-height: 2rem;
+  --logo-height: 3.5rem;
   --section-padding: var(--space-19);
   --scroll-offset: calc(var(--header-height) + var(--space-4));
   --z-header: 30;
@@ -215,6 +250,22 @@
   /* ---- Sizes of the signature pieces ---- */
   --ring-size: 8.25rem; /* 132 px on phones */
   --orb-max-size: 27.5rem; /* 440 px */
+  /* DORA-only accents approved in the visual reference D-58. */
+  --color-dora-cyan: #35d9ff;
+  --color-dora-ice: #edfdff;
+  --color-dora-violet: #bd9aff;
+  --color-dora-deep: #102ae0;
+  --color-dora-backdrop: #f2faff;
+  --dora-scene-width: 42rem;
+  --dora-control-size: 4rem;
+  --dora-mic-size: 6rem;
+  --dora-control-size-compact: 3.5rem;
+  --dora-mic-size-compact: 5rem;
+  --dora-call-orb-size: 16rem;
+  --dora-call-orb-size-compact: 10rem;
+  --dora-person-size-compact: 3rem;
+  --dora-person-size: 4rem;
+  --device-preview-width: 24rem;
   --stage-min-height: 21.25rem; /* 340 px */
   --avatar-size: 3rem; /* 48 px */
   --avatar-size-sm: 2.5rem; /* 40 px */
@@ -252,7 +303,7 @@
   --duration-enter: 450ms;
   --duration-panel: 500ms;
   --duration-ring: 1000ms;
-  --opacity-stale: 0.6; /* results kept on screen while a new answer arrives */
+  --opacity-stale: 1; /* results stay fully readable while refreshing */
   --duration-shimmer: 1400ms; /* loading skeletons; reduced motion stops the animation */
   --easing-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -260,8 +311,7 @@
 @media (min-width: 32.5rem) {
   :root {
     --page-gutter: var(--space-6);
-    --header-height: 4.75rem; /* 76 px */
-    --logo-height: 2.375rem;
+    --header-height: 4rem;
     --ring-size: 9.25rem; /* 148 px */
   }
 }
@@ -270,6 +320,14 @@
   :root {
     --section-padding: var(--space-26);
     --stage-min-height: 23.75rem; /* 380 px */
+  }
+}
+
+@media (min-width: 53.75rem) {
+  :root {
+    --header-height: 4.5rem;
+    --page-gutter: 2.5rem;
+    --logo-height: 4rem;
   }
 }
 

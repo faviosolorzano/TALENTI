@@ -17,6 +17,7 @@ interface TagFieldProps {
   removeLabel: (tag: string) => string
   /** Accessible name of the list of tags. */
   listLabel: string
+  maxItems?: number
   maxLength?: number
   inputRef?: Ref<HTMLInputElement>
 }
@@ -35,6 +36,7 @@ export function TagField({
   addLabel,
   removeLabel,
   listLabel,
+  maxItems,
   maxLength,
   inputRef,
 }: TagFieldProps) {
@@ -45,6 +47,7 @@ export function TagField({
   const [draft, setDraft] = useState('')
 
   function commit() {
+    if (maxItems !== undefined && values.length >= maxItems) return
     const text = draft.trim()
     setDraft('')
     if (!text) return
@@ -75,6 +78,7 @@ export function TagField({
           className="field__input"
           value={draft}
           maxLength={maxLength}
+          disabled={maxItems !== undefined && values.length >= maxItems}
           autoComplete="off"
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
@@ -82,7 +86,12 @@ export function TagField({
           onKeyDown={onKeyDown}
           onBlur={commit}
         />
-        <Button variant="quiet" onMouseDown={(event) => event.preventDefault()} onClick={commit}>
+        <Button
+          disabled={maxItems !== undefined && values.length >= maxItems}
+          variant="quiet"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={commit}
+        >
           {addLabel}
         </Button>
       </div>

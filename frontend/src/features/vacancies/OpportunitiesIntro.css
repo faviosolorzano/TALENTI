@@ -24,3 +24,19 @@
   background: var(--color-bg-inverse);
   color: var(--color-text-inverse);
 }
+
+.view-switch {
+  border: 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+  border-radius: 0;
+  padding: 0;
+}
+.view-switch__item {
+  border-radius: 0;
+  border-bottom: var(--border-width-accent) solid transparent;
+}
+.view-switch__item[aria-current='page'] {
+  background: var(--color-surface);
+  color: var(--color-action);
+  border-bottom-color: var(--color-action);
+}

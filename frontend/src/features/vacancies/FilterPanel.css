@@ -129,3 +129,26 @@
     margin-top: 0;
   }
 }
+
+.filters__toggle {
+  display: inline-flex;
+}
+.filters__panel {
+  display: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-5);
+  margin-top: var(--space-3);
+}
+.filters[data-open='true'] .filters__panel {
+  display: grid;
+  gap: var(--space-5);
+}
+@media (min-width: 48rem) {
+  .filters[data-open='true'] .filters__panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filters__head {
+    grid-column: 1 / -1;
+  }
+}

@@ -36,3 +36,7 @@
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+
+.dialog__scrim[hidden] {
+  display: none;
+}

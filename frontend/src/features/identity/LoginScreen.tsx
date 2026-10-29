@@ -53,7 +53,7 @@ export function LoginScreen() {
   }, [errors])
 
   if (session.status === 'authenticated' && !leaving) {
-    return <Navigate to={destinationFor(session.user?.role)} replace />
+    return <Navigate to={destinationFor(session.user?.role)} state={location.state} replace />
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -65,7 +65,7 @@ export function LoginScreen() {
       const user = await loginUser({ email, password })
       setLeaving(true)
       await session.refresh()
-      navigate(destinationFor(user.role), { replace: true })
+      navigate(destinationFor(user.role), { replace: true, state: location.state })
     } catch (error) {
       setPassword('')
       setErrors(loginErrors(error))
@@ -130,7 +130,16 @@ export function LoginScreen() {
 
         <p className="auth__alt">
           {es.identity.login.noAccount}{' '}
-          <Link to={sessionPaths.register}>{es.identity.login.goToRegister}</Link>
+          <Link
+            state={location.state}
+            to={
+              returnTo
+                ? `${sessionPaths.register}?returnTo=${encodeURIComponent(returnTo)}`
+                : sessionPaths.register
+            }
+          >
+            {es.identity.login.goToRegister}
+          </Link>
         </p>
       </form>
     </AuthLayout>

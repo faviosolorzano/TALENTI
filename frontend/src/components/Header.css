@@ -2,190 +2,169 @@
   position: sticky;
   top: 0;
   z-index: var(--z-header);
-  border-bottom: var(--border-width) solid transparent;
-  background: var(--color-bg);
-  transition: border-color var(--duration-slow);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
 }
-
-.header[data-scrolled] {
-  border-bottom-color: var(--color-border);
-}
-
-/* Phone and tablet: logo, "Crear cuenta" and the menu button. */
-.header__bar {
+.container.header__bar {
+  max-width: var(--shell-max-width);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
   min-height: var(--header-height);
 }
-
 .header__brand {
   display: block;
   flex: none;
   border-radius: var(--radius-xs);
 }
-
-.header__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-left: auto;
-}
-
-.header__login {
-  display: none;
-}
-
-.header__menu-button {
+.header__menu-button,
+.header__link--button {
   appearance: none;
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch-target-min);
-  padding: var(--space-2) var(--space-4);
-  border: var(--border-width-strong) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-text);
   font-family: var(--font-family-base);
-  font-size: var(--font-size-ui);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-none);
   cursor: pointer;
 }
-
-/* Folded menu: a panel under the bar, closed unless the button opened it. */
+.header__menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-min);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+}
+.header svg {
+  width: var(--space-6);
+  height: var(--space-6);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .header__menu {
   display: none;
   position: absolute;
+  inset-inline: 0;
   top: 100%;
-  left: 0;
-  right: 0;
+  max-height: calc(100dvh - var(--header-height));
+  overflow-y: auto;
   padding: var(--space-3) var(--page-gutter) var(--space-5);
   border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-surface);
 }
-
 .header__menu[data-open='true'] {
   display: block;
 }
-
-.header__list {
-  display: grid;
-  margin: 0 auto;
+.header__list,
+.header__account-panel {
+  margin: 0;
   padding: 0;
-  max-width: var(--content-max-width);
   list-style: none;
 }
-
+.header__list {
+  display: grid;
+  gap: var(--space-1);
+}
 .header__link {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   min-height: var(--touch-target-min);
-  padding: var(--space-3) var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-nav);
+  padding: var(--space-3);
+  border-bottom: var(--border-width-accent) solid transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
   text-decoration: none;
   transition:
-    color var(--duration-base),
-    background-color var(--duration-base);
+    color var(--duration-fast),
+    background-color var(--duration-fast);
 }
-
 .header__link:hover {
+  color: var(--color-action);
   background: var(--color-bg-tint);
-  color: var(--color-text);
 }
-
 .header__link[aria-current='page'] {
-  background: var(--color-bg-tint);
-  color: var(--color-text);
+  color: var(--color-action);
+  border-bottom-color: var(--color-action);
+  font-weight: var(--font-weight-semibold);
 }
-
-/* An entry that is not available yet: drawn quiet, with its tag, and it goes nowhere */
-.header__link--soon {
-  gap: var(--space-2);
-  cursor: not-allowed;
-}
-
-.header__link--soon:hover {
-  background: none;
-  color: var(--color-text-muted);
-}
-
-.header__soon {
-  padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--tracking-tag);
-  line-height: var(--line-height-none);
-  white-space: nowrap;
-}
-
-/* Wide: the menu opens up into a row and "Ingresar" becomes a button on the right. */
-@media (min-width: 53.75rem) {
-  .header__bar {
-    gap: var(--space-7);
-  }
-
-  .header__menu-button,
-  .header__list-login {
-    display: none;
-  }
-
-  .header__login {
-    display: inline-flex;
-  }
-
-  .header__menu {
-    position: static;
-    display: block;
-    margin-left: var(--space-3);
-    padding: 0;
-    border: 0;
-    background: none;
-  }
-
-  .header__list {
-    display: flex;
-    gap: var(--space-1);
-    margin: 0;
-  }
-
-  .header__link {
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--font-size-base);
-  }
-}
-
-/* "Cerrar sesión" inside the folded menu: a button that looks like the links around it */
 .header__link--button {
-  appearance: none;
   width: 100%;
   border: 0;
   background: none;
-  font-family: var(--font-family-base);
   text-align: left;
-  cursor: pointer;
 }
-
 .header__link--button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  cursor: wait;
+  color: var(--color-text-muted);
 }
-
-/* A line under the bar: the session could not be checked, or signing out failed */
+.header__account-panel {
+  padding-inline-start: var(--space-4);
+}
+.header__account-panel[hidden] {
+  display: none;
+}
+.header__login {
+  margin-top: var(--space-2);
+}
 .header__note {
   flex-basis: 100%;
   padding-bottom: var(--space-2);
   color: var(--color-text-muted);
-  font-size: var(--font-size-ui);
+  font-size: var(--font-size-sm);
 }
-
 .header__note--error {
   color: var(--color-danger);
-  font-weight: var(--font-weight-semibold);
+}
+@media (min-width: 53.75rem) {
+  .header__menu-button {
+    display: none;
+  }
+  .header__menu {
+    display: block;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+  }
+  .header__list {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+  }
+  .header__link {
+    min-height: var(--header-height);
+    padding-block: var(--space-4);
+    padding-inline: var(--space-2);
+  }
+  .header__login {
+    margin: 0 0 0 var(--space-3);
+    min-width: var(--header-login-width);
+  }
+  .header__account {
+    position: relative;
+  }
+  .header__account-panel {
+    position: absolute;
+    top: 100%;
+    inset-inline-end: 0;
+    min-width: var(--account-menu-width);
+    padding: var(--space-2);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .header__account-panel .header__link {
+    min-height: var(--touch-target-min);
+  }
 }

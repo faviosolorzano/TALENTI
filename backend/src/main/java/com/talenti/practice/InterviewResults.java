@@ -49,13 +49,29 @@ public interface InterviewResults {
 	record Event(String kind, Instant occurredAt) {
 	}
 
+	/**
+	 * Lo dicho en la conversación en tiempo real (spec 012, enmienda 2), en orden. Las líneas de DORA llevan
+	 * {@code generatedBy = AI}; todas las reporta el navegador ({@code reportedBy = CLIENT}) y se muestran, pero solo
+	 * las respuestas armadas de la persona se evalúan (012-47, 012-48).
+	 */
+	record Utterance(String speaker, String text, String phase, Integer position, String inputMode,
+			String generatedBy, String reportedBy, Instant occurredAt) {
+
+		@Override
+		public String toString() {
+			return "Utterance[speaker=" + speaker + ", phase=" + phase + "]";
+		}
+
+	}
+
 	record Versions(String llmAdapter, String llmModel, String sttModel, String ttsModel, String promptVersion,
 			String rubricVersion, String bankVersion) {
 	}
 
 	record Attempt(UUID sessionId, int attempt, String status, String noticeVersion, Instant noticeAcceptedAt,
 			Instant startedAt, Instant endedAt, List<AnswerResult> answers, int unanswered,
-			List<CriterionSummary> summary, String generatedBy, Versions versions, List<Event> events) {
+			List<CriterionSummary> summary, String generatedBy, Versions versions, List<Event> events,
+			String channel, List<Utterance> conversation) {
 
 		@Override
 		public String toString() {

@@ -1,7 +1,7 @@
+import { TechnologyIcon } from '../../components/TechnologyIcon'
 import { Link } from 'react-router'
 import type { CompatibilitySummary } from '../../api/compatibility'
 import type { VacancyCardData } from '../../api/vacancies'
-import { Card } from '../../components/Card'
 import { es } from '../../i18n/es'
 import { CompatibilityBadge } from '../compatibility/CompatibilityBadge'
 import { CompanyAvatar } from './CompanyAvatar'
@@ -29,14 +29,14 @@ export function VacancyCard({ vacancy, from, compatibility }: VacancyCardProps) 
   const hiddenCount = vacancy.skills.length - visibleSkills.length
 
   return (
-    <Card as="article" className="vacancy-card">
+    <article className="vacancy-card" id={`vacante-${vacancy.id}`} aria-label={vacancy.title}>
       <CompanyAvatar name={vacancy.company.name} />
       <div className="vacancy-card__body">
         <h3 className="vacancy-card__title">
           <Link
             className="vacancy-card__link"
             to={`/oportunidades/${encodeURIComponent(vacancy.id)}`}
-            state={from ? { from } : undefined}
+            state={from ? { from, restoreVacancy: vacancy.id, scrollY: window.scrollY } : undefined}
           >
             {vacancy.title}
           </Link>
@@ -64,6 +64,7 @@ export function VacancyCard({ vacancy, from, compatibility }: VacancyCardProps) 
           <ul className="vacancy-card__skills" aria-label={es.vacancies.skillsLabel}>
             {visibleSkills.map((skill) => (
               <li key={skill.slug} className="vacancy-card__skill">
+                <TechnologyIcon slug={skill.slug} />
                 {skill.name}
               </li>
             ))}
@@ -78,6 +79,6 @@ export function VacancyCard({ vacancy, from, compatibility }: VacancyCardProps) 
           </ul>
         )}
       </div>
-    </Card>
+    </article>
   )
 }

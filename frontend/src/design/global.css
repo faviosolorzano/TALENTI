@@ -28,6 +28,7 @@ body {
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
 }
 
 h1,
@@ -87,4 +88,35 @@ a {
   max-width: var(--content-max-width);
   margin-inline: auto;
   padding-inline: var(--page-gutter);
+}
+
+.landing-how {
+  max-width: var(--shell-max-width);
+  padding-block: var(--space-10) var(--space-16);
+  border-top: var(--border-width) solid var(--color-border);
+}
+.landing-how h2 {
+  font-size: var(--font-size-2xl);
+}
+.landing-how ol {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  padding: var(--space-6) 0;
+  list-style-position: inside;
+}
+.landing-how li {
+  display: grid;
+  gap: var(--space-3);
+}
+.landing-how h3 {
+  font-size: var(--font-size-lg);
+}
+.landing-how p {
+  color: var(--color-text-muted);
+}
+@media (min-width: 48rem) {
+  .landing-how ol {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }

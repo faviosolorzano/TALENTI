@@ -160,3 +160,34 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Integral redesign: search, compact filters, then a single flat result list. */
+.opportunities__intro {
+  background: var(--color-surface);
+  padding-block: var(--space-8);
+  border: 0;
+}
+.opportunities__title {
+  font-size: var(--font-size-task-title);
+}
+.opportunities__lead {
+  font-size: var(--font-size-md);
+  margin-block: var(--space-3) var(--space-4);
+}
+.opportunities__layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+.opportunities__filters {
+  position: static;
+}
+.opportunities__list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.opportunities__empty {
+  background: var(--color-surface);
+  border: 0;
+  border-radius: 0;
+  padding-inline: 0;
+}

@@ -24,6 +24,9 @@ class RoleInterceptor implements HandlerInterceptor {
 
 	private static final long MAX_JSON_BYTES = 64 * 1024;
 
+	/** Un lote de eventos en tiempo real: hasta 50 intervenciones de 4 000 caracteres (012-44). */
+	private static final long MAX_EVENTS_BYTES = 512 * 1024;
+
 	private final Role role;
 
 	RoleInterceptor(Role role) {
@@ -41,7 +44,8 @@ class RoleInterceptor implements HandlerInterceptor {
 		}
 		String type = request.getContentType();
 		boolean multipart = type != null && type.toLowerCase(java.util.Locale.ROOT).startsWith(MediaType.MULTIPART_FORM_DATA_VALUE);
-		if (!multipart && request.getContentLengthLong() > MAX_JSON_BYTES) {
+		long max = request.getRequestURI().endsWith("/realtime/events") ? MAX_EVENTS_BYTES : MAX_JSON_BYTES;
+		if (!multipart && request.getContentLengthLong() > max) {
 			throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "payload-too-large");
 		}
 		return true;

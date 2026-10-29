@@ -10,6 +10,9 @@ export const brandColors = {
   white: '#FFFFFF',
 } as const
 
+/** Necessary control outlines are distinct from decorative dividers (at least 3:1). */
+export const controlColor = '#7D899E'
+
 /** Tones of the brand blue (hover step) and the alpha of its soft and line variants. */
 export const blueTones = {
   hover: '#1D4ED8',
@@ -94,7 +97,7 @@ export const spacing = {
 export const radii = {
   xs: 0.5,
   sm: 0.75,
-  button: 0.875,
+  button: 0.75,
   md: 1,
   lg: 1.75,
   full: 9999,

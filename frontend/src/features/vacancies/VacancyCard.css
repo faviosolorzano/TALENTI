@@ -1,130 +1,98 @@
-.card.vacancy-card {
+.vacancy-card {
+  position: relative;
   display: flex;
-  gap: var(--space-4);
-  align-items: flex-start;
-  padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
-  transition:
-    box-shadow var(--duration-slow) var(--easing-standard),
-    border-color var(--duration-base),
-    transform var(--duration-slow) var(--easing-standard);
-}
-
-@media (min-width: 32.5rem) {
-  .card.vacancy-card {
-    gap: var(--space-5);
-    padding: var(--space-6);
-  }
-}
-
-.card.vacancy-card:hover {
-  border-color: var(--color-border-accent);
-  box-shadow: var(--shadow-md);
-  transform: translateY(calc(-1 * var(--space-1)));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card.vacancy-card:hover {
-    transform: none;
-  }
-}
-
-.vacancy-card__body {
+  align-items: center;
+  gap: var(--space-5);
+  padding-block: var(--space-6);
+  border-bottom: var(--border-width) solid var(--color-border);
   min-width: 0;
+}
+.vacancy-card__body {
   flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
 }
-
 .vacancy-card__title {
-  /* Two lines at most; the whole title stays in the link for assistive technology. */
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: anywhere;
-  font-size: var(--font-size-xl);
-  line-height: var(--line-height-tight);
+  font-size: var(--font-size-row-title);
+  line-height: var(--line-height-snug);
 }
-
 .vacancy-card__link {
   text-decoration: none;
 }
-
-/* The link covers the whole card. */
 .vacancy-card__link::after {
-  content: '';
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-lg);
+  content: '';
 }
-
-.vacancy-card__link:focus-visible {
-  outline: none;
+.vacancy-card__link:hover {
+  color: var(--color-action);
 }
-
-.vacancy-card__link:focus-visible::after {
-  outline: var(--focus-ring-width) solid var(--color-focus);
-  outline-offset: var(--focus-ring-offset);
-}
-
 .vacancy-card__company {
-  margin-top: var(--space-1);
   color: var(--color-text-muted);
-  font-size: var(--font-size-ui);
-  overflow-wrap: anywhere;
+  font-size: var(--font-size-md);
 }
-
 .vacancy-card__facts,
 .vacancy-card__skills {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-4);
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
-}
-
-.vacancy-card__facts {
-  margin-top: var(--space-3);
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+}
+.vacancy-card__skills {
+  color: var(--color-text);
+}
+.vacancy-card__skill {
+  font-weight: var(--font-weight-medium);
+}
+.vacancy-card__compat {
   font-size: var(--font-size-sm);
 }
-
-.vacancy-card__fact {
-  min-width: 0;
-  overflow-wrap: anywhere;
+@media (min-width: 61.25rem) {
+  .vacancy-card__body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-8);
+  }
+  .vacancy-card__title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .vacancy-card__company {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .vacancy-card__facts {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .vacancy-card__skills {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+  .vacancy-card__compat {
+    grid-column: 2 / 4;
+  }
 }
 
-.vacancy-card__fact + .vacancy-card__fact::before {
-  content: '·' / '';
-  margin-right: var(--space-2);
-}
-
-.vacancy-card__fact--modality {
-  color: var(--color-text-accent);
-  font-weight: var(--font-weight-bold);
-}
-
-.vacancy-card__skills {
-  margin-top: var(--space-4);
+@media (prefers-reduced-motion: reduce) {
+  .vacancy-card,
+  .vacancy-card__arrow {
+    transition: none;
+    animation: none;
+  }
 }
 
 .vacancy-card__skill {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  padding: var(--space-1) var(--space-3);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-bg-subtle);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-snug);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
-
-.vacancy-card__skill--more {
-  color: var(--color-text-muted);
-}
-
-.vacancy-card__compat {
-  margin-top: var(--space-3);
+.vacancy-card__skill .technology-icon {
+  width: var(--space-6);
+  height: var(--space-6);
 }

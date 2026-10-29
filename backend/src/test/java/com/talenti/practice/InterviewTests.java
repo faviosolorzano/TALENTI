@@ -25,7 +25,7 @@ import tools.jackson.databind.JsonNode;
 /** Entrevista evaluada de una postulación (012-23 a 012-28, 012-35, 012-36). */
 class InterviewTests extends PracticeIntegrationTest {
 
-	private static final String NOTICE = "v1";
+	private static final String NOTICE = "v2";
 
 	@Autowired
 	private InterviewResults results;
@@ -83,7 +83,7 @@ class InterviewTests extends PracticeIntegrationTest {
 		assertThat(count("SELECT count(*) FROM application_stage_event WHERE application_id = ?::uuid "
 				+ "AND from_status = 'SUBMITTED' AND to_status = 'INTERVIEW_PENDING'", application)).isEqualTo(1);
 		assertThat(jdbc.queryForMap("SELECT notice_version, notice_accepted_at FROM practice_session WHERE id = ?::uuid",
-				id(session)).get("notice_version")).isEqualTo("v1");
+				id(session)).get("notice_version")).isEqualTo("v2");
 		assertThat(jdbc.queryForList("SELECT kind FROM interview_event WHERE session_id = ?::uuid", String.class,
 				id(session))).containsExactly("NOTICE_ACCEPTED");
 		assertThat(jdbc.queryForList("SELECT basis_ref FROM practice_question WHERE session_id = ?::uuid", String.class,

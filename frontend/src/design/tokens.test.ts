@@ -6,6 +6,7 @@ import {
   avatarTones,
   blueTones,
   brandColors,
+  controlColor,
   breakpoints,
   durations,
   neutralColors,
@@ -34,6 +35,10 @@ function remValue(name: string): number {
 }
 
 describe('Design tokens', () => {
+  it('keeps the control outline separate from decorative dividers', () => {
+    expect(cssValue('--color-control')).toBe(controlColor)
+    expect(cssValue('--color-border')).not.toBe(cssValue('--color-control'))
+  })
   // 003-01
   it('define exactly the three brand colors in CSS and in TypeScript', () => {
     expect(cssValue('--color-brand-navy')).toBe(brandColors.navy)
@@ -119,8 +124,8 @@ describe('Design tokens', () => {
   })
 
   it('declare the self-hosted font families with a fallback stack', () => {
-    expect(cssValue('--font-family-base')).toContain("'FIGTREE VARIABLE'")
-    expect(cssValue('--font-family-heading')).toContain("'BRICOLAGE GROTESQUE VARIABLE'")
+    expect(cssValue('--font-family-base')).toContain("'HANKEN GROTESK'")
+    expect(cssValue('--font-family-heading')).toContain("'HANKEN GROTESK'")
     expect(cssValue('--font-family-base')).toContain('SANS-SERIF')
     expect(cssValue('--font-family-heading')).toContain('SANS-SERIF')
   })

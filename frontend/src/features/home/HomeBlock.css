@@ -1,8 +1,7 @@
-.card.home-block {
+.home-block {
   display: grid;
   align-content: start;
-  gap: var(--space-5);
-  box-shadow: var(--shadow-sm);
+  gap: var(--space-4);
 }
 
 .home-block__head {

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.talenti.practice.service.DoraErrors;
 import com.talenti.practice.service.DoraService;
+import com.talenti.practice.service.RealtimeService;
 import com.talenti.practice.service.Views;
 
 /** 012-15: p50 y p95 del tiempo hasta el primer audio de los últimos N turnos (rol ADMIN), sin contenido. */
@@ -16,12 +17,16 @@ class DoraAdminController {
 
 	private final DoraService service;
 
-	DoraAdminController(DoraService service) {
+	private final RealtimeService realtime;
+
+	DoraAdminController(DoraService service, RealtimeService realtime) {
 		this.service = service;
+		this.realtime = realtime;
 	}
 
+	/** {@code ?channel=REALTIME} (012-55): la latencia que mide el navegador en tiempo real; si no, la de los turnos. */
 	@GetMapping("/latency")
-	Views.Latency latency(@RequestParam(required = false) String last) {
+	Views.Latency latency(@RequestParam(required = false) String last, @RequestParam(required = false) String channel) {
 		int count = 100;
 		if (last != null && !last.isBlank()) {
 			try {
@@ -32,6 +37,15 @@ class DoraAdminController {
 			}
 			if (count < 1 || count > 1000) {
 				throw DoraErrors.invalid("last", "out-of-range", 1, 1000);
+			}
+		}
+		if (channel != null && !channel.isBlank()) {
+			String value = channel.strip().toUpperCase(java.util.Locale.ROOT);
+			if (value.equals("REALTIME")) {
+				return realtime.latency(count);
+			}
+			if (!value.equals("TURN_BASED")) {
+				throw DoraErrors.invalid("channel", "invalid");
 			}
 		}
 		return service.latency(count);

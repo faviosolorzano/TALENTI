@@ -81,13 +81,13 @@ export function RequireSession({ children }: { children: ReactNode }) {
       <Navigate
         to={loginPathWithReturn(here)}
         replace
-        state={session.notice ? { notice: session.notice } : undefined}
+        state={{ ...location.state, ...(session.notice ? { notice: session.notice } : {}) }}
       />
     )
   }
 
   if (session.legalAcceptancePending) {
-    return <Navigate to={acceptDocumentsPath(here)} replace />
+    return <Navigate to={acceptDocumentsPath(here)} state={location.state} replace />
   }
 
   return children

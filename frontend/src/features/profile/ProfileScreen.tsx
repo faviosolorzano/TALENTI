@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router'
+import { ProfileSavingContext } from './profileSavingContext'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Navigate, useSearchParams, useBlocker, useLocation, useNavigate } from 'react-router'
+import { Dialog } from '../../components/Dialog'
+import { Button } from '../../components/Button'
+import { safeReturnTo } from '../../session/returnTo'
 import { ApiError } from '../../api/client'
 import { fetchProfile, type Profile } from '../../api/profile'
 import { useApiResource } from '../../hooks/useApiResource'
@@ -9,10 +13,7 @@ import { ErrorNotice } from '../vacancies/ErrorNotice'
 import { AboutForm, AboutSummary } from './AboutSection'
 import { AcademicForm, AcademicSummary } from './AcademicSection'
 import { AvailabilityForm, AvailabilitySummary } from './AvailabilitySection'
-import { CvCard } from './CvCard'
-import { GithubCard } from './GithubCard'
 import { ProfileSkeleton } from './ProfileSkeleton'
-import { ProfileSummary } from './ProfileSummary'
 import { ProjectsEditor, ProjectsSummary } from './ProjectsSection'
 import { SectionCard } from './SectionCard'
 import { SkillsForm, SkillsSummary } from './SkillsSection'
@@ -26,7 +27,6 @@ import {
 import './ProfileScreen.css'
 
 /** How long "Guardado" stays next to the title of a card. */
-const SAVED_VISIBLE_MS = 4000
 
 const TITLES: Record<SectionKey, string> = {
   about: es.profile.about.title,
@@ -42,6 +42,9 @@ const TITLES: Record<SectionKey, string> = {
  * server answers (percentage included).
  */
 export function ProfileScreen() {
+  const [query] = useSearchParams()
+  const githubOutcome = query.get('github')
+
   const { refresh } = useSession()
   const resource = useApiResource('profile', async (signal) => {
     try {
@@ -53,6 +56,8 @@ export function ProfileScreen() {
     }
   })
 
+  if (githubOutcome === 'linked' || githubOutcome === 'error')
+    return <Navigate replace to={'/perfil/github?github=' + githubOutcome} />
   if (resource.state.status === 'loading') return <ProfileSkeleton />
 
   if (resource.state.status === 'error') {
@@ -71,10 +76,20 @@ export function ProfileScreen() {
 
 function ProfileView({ initial }: { initial: Profile }) {
   const [params] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const returnTo = safeReturnTo(params.get('returnTo'))
+  const editorRef = useRef<HTMLDivElement>(null)
+  const tabsRef = useRef<HTMLElement>(null)
+
   // `?seccion=` opens a card at the start; an unknown value is ignored (006-20).
   const fromAddress = sectionFromParam(params.get('seccion'))
 
   const [profile, setProfile] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const [selected, setSelected] = useState<SectionKey>(fromAddress ?? 'about')
+  const [promptHidden, setPromptHidden] = useState(false)
+  const [pendingSection, setPendingSection] = useState<SectionKey | 'cancel' | null>(null)
   const [openKey, setOpenKey] = useState<SectionKey | null>(fromAddress)
   const [bringKey, setBringKey] = useState<SectionKey | null>(fromAddress)
   // Cards with unsaved changes stay open when the person opens another one.
@@ -82,10 +97,19 @@ function ProfileView({ initial }: { initial: Profile }) {
   const [savedKey, setSavedKey] = useState<SectionKey | null>(null)
 
   useEffect(() => {
-    if (savedKey === null) return
-    const timer = setTimeout(() => setSavedKey(null), SAVED_VISIBLE_MS)
-    return () => clearTimeout(timer)
-  }, [savedKey])
+    const revealSelected = () => {
+      const nav = tabsRef.current
+      const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+      if (!nav || !tab) return
+      const region = nav.getBoundingClientRect()
+      const item = tab.getBoundingClientRect()
+      if (item.left < region.left) nav.scrollLeft -= region.left - item.left
+      else if (item.right > region.right) nav.scrollLeft += item.right - region.right
+    }
+    revealSelected()
+    window.addEventListener('resize', revealSelected)
+    return () => window.removeEventListener('resize', revealSelected)
+  }, [selected])
 
   const reportDirty = useCallback((section: SectionKey, value: boolean) => {
     setDirty((current) => {
@@ -109,9 +133,30 @@ function ProfileView({ initial }: { initial: Profile }) {
     [reportDirty],
   )
 
-  const isOpen = (section: SectionKey) => openKey === section || dirty.has(section)
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty.size > 0 &&
+      currentLocation.pathname + currentLocation.search !==
+        nextLocation.pathname + nextLocation.search,
+  )
+  useEffect(() => {
+    if (!dirty.size) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty.size])
+  const isOpen = (section: SectionKey) => openKey === section
 
   function openSection(section: SectionKey, bring = false) {
+    setPromptHidden(false)
+    if (dirty.size && section !== selected) {
+      setPendingSection(section)
+      return
+    }
+    setSelected(section)
     setOpenKey(section)
     setBringKey(bring ? section : null)
   }
@@ -128,6 +173,25 @@ function ProfileView({ initial }: { initial: Profile }) {
   function saved(section: SectionKey, next: Profile, keepOpen = false) {
     setProfile(next)
     setSavedKey(section)
+    reportDirty(section, false)
+    if (blocker.state === 'blocked') {
+      blocker.proceed()
+      return
+    }
+    if (pendingSection) {
+      const target = pendingSection
+      setPendingSection(null)
+      if (target === 'cancel') closeSection(section)
+      else {
+        setSelected(target)
+        setOpenKey(target)
+      }
+      return
+    }
+    if (returnTo && !keepOpen) {
+      navigate(returnTo, { state: location.state })
+      return
+    }
     if (!keepOpen) closeSection(section)
   }
 
@@ -158,7 +222,9 @@ function ProfileView({ initial }: { initial: Profile }) {
       <AboutForm
         profile={profile}
         onSaved={(next) => saved('about', next)}
-        onCancel={() => closeSection('about')}
+        onCancel={() =>
+          dirty.size ? (setPromptHidden(false), setPendingSection('cancel')) : closeSection('about')
+        }
         onDirtyChange={dirtyReporters.about}
       />,
     ),
@@ -168,7 +234,11 @@ function ProfileView({ initial }: { initial: Profile }) {
       <AcademicForm
         profile={profile}
         onSaved={(next) => saved('academic', next)}
-        onCancel={() => closeSection('academic')}
+        onCancel={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('academic')
+        }
         onDirtyChange={dirtyReporters.academic}
       />,
     ),
@@ -178,7 +248,11 @@ function ProfileView({ initial }: { initial: Profile }) {
       <SkillsForm
         profile={profile}
         onSaved={(next) => saved('skills', next)}
-        onCancel={() => closeSection('skills')}
+        onCancel={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('skills')
+        }
         onDirtyChange={dirtyReporters.skills}
       />,
     ),
@@ -188,7 +262,11 @@ function ProfileView({ initial }: { initial: Profile }) {
       <AvailabilityForm
         profile={profile}
         onSaved={(next) => saved('availability', next)}
-        onCancel={() => closeSection('availability')}
+        onCancel={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('availability')
+        }
         onDirtyChange={dirtyReporters.availability}
       />,
     ),
@@ -198,32 +276,120 @@ function ProfileView({ initial }: { initial: Profile }) {
       <ProjectsEditor
         profile={profile}
         onChanged={(next) => saved('projects', next, true)}
-        onClose={() => closeSection('projects')}
+        onClose={() =>
+          dirty.size
+            ? (setPromptHidden(false), setPendingSection('cancel'))
+            : closeSection('projects')
+        }
         onDirtyChange={dirtyReporters.projects}
       />,
     ),
   }
 
   return (
-    <div className="container profile">
-      <div className="profile__head">
-        <h1 className="profile__title">{es.profile.title}</h1>
-        <p className="profile__lead">{es.profile.lead}</p>
-      </div>
-
-      <div className="profile__layout">
-        <div className="profile__aside">
-          <ProfileSummary
-            completeness={completeness}
-            onOpenSection={(section) => openSection(section, true)}
-          />
-          <div className="profile__soon">
-            <CvCard />
-            <GithubCard />
+    <ProfileSavingContext value={setSaving}>
+      <div className="container profile">
+        <div className="profile__head">
+          {returnTo && (
+            <Button
+              disabled={saving}
+              variant="quiet"
+              size="sm"
+              to={returnTo}
+              state={location.state}
+            >
+              {es.redesign.backVacancy}
+            </Button>
+          )}
+          <h1 className="profile__title">{openKey ? TITLES[selected] : es.profile.title}</h1>
+          <p className="profile__lead">{es.redesign.profileChoice}</p>
+          <div className="profile__tools">
+            <Button
+              disabled={saving}
+              to={returnTo ? `/perfil/cv?returnTo=${encodeURIComponent(returnTo)}` : '/perfil/cv'}
+            >
+              {es.redesign.useCv}
+            </Button>
+            <Button disabled={saving} variant="quiet" to="/perfil/github">
+              {es.redesign.github}
+            </Button>
           </div>
         </div>
-        <div className="profile__sections">{SECTION_ORDER.map((section) => cards[section])}</div>
+        <nav className="profile-tabs" aria-label={es.profile.title} ref={tabsRef}>
+          {SECTION_ORDER.map((section) => (
+            <button
+              key={section}
+              type="button"
+              disabled={saving}
+              aria-current={section === selected ? 'page' : undefined}
+              onClick={() => openSection(section, true)}
+            >
+              {TITLES[section]}
+            </button>
+          ))}
+        </nav>
+        <div className="profile__sections" ref={editorRef}>
+          {savedKey && <p role="status">{es.profile.actions.saved}</p>}
+          {dirty.size > 0 && (
+            <p className="profile__dirty" role="status">
+              {es.redesign.unsaved}
+            </p>
+          )}
+          {cards[selected]}
+        </div>
+        {!promptHidden && (pendingSection || blocker.state === 'blocked') && (
+          <Dialog
+            busy={saving}
+            title={es.redesign.leaveTitle}
+            onClose={() => {
+              setPendingSection(null)
+              if (blocker.state === 'blocked') blocker.reset()
+            }}
+          >
+            <p>{es.redesign.leaveBody}</p>
+            <div className="profile__tools">
+              <Button
+                disabled={saving}
+                onClick={() => {
+                  setPromptHidden(true)
+                  requestAnimationFrame(() =>
+                    editorRef.current?.querySelector<HTMLFormElement>('form')?.requestSubmit(),
+                  )
+                }}
+              >
+                {es.redesign.saveLeave}
+              </Button>
+              <Button
+                disabled={saving}
+                variant="quiet"
+                onClick={() => {
+                  const target = pendingSection
+                  setPendingSection(null)
+                  setDirty(new Set())
+                  if (blocker.state === 'blocked') blocker.proceed()
+                  else if (target === 'cancel') setOpenKey(null)
+                  else if (target) {
+                    setSelected(target)
+                    setOpenKey(target)
+                  }
+                }}
+              >
+                {es.redesign.discard}
+              </Button>
+              <Button
+                disabled={saving}
+                variant="quiet"
+                onClick={() => {
+                  setPendingSection(null)
+                  if (blocker.state === 'blocked') blocker.reset()
+                }}
+              >
+                {es.redesign.stay}
+              </Button>
+            </div>
+          </Dialog>
+        )}
       </div>
-    </div>
+    </ProfileSavingContext>
   )
 }

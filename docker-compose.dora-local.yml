@@ -1,0 +1,18 @@
+# Activación OPTATIVA para la prueba local D-64/D-65. Sin claves ni cambios en .env.
+# Usar scripts/iniciar-dora-local.ps1; el Compose normal conserva sus valores por defecto.
+services:
+  backend:
+    environment:
+      TALENTI_AI_DORA_ENABLED: "true"
+      TALENTI_AI_DORA_MODELS_DIALOG: ${TALENTI_AI_DORA_MODELS_DIALOG:-gpt-4.1-mini}
+      TALENTI_AI_DORA_MODELS_STT: ${TALENTI_AI_DORA_MODELS_STT:-gpt-4o-mini-transcribe}
+      TALENTI_AI_DORA_MODELS_TTS: ${TALENTI_AI_DORA_MODELS_TTS:-gpt-4o-mini-tts}
+      TALENTI_AI_DORA_VOICE: ${TALENTI_AI_DORA_VOICE:-coral}
+      TALENTI_AI_DORA_REALTIME_ENABLED: "true"
+      TALENTI_AI_DORA_REALTIME_SIMULATED: "false"
+      TALENTI_AI_DORA_REALTIME_MODEL: gpt-realtime-2.1
+      TALENTI_AI_DORA_REALTIME_VOICE: marin
+      TALENTI_AI_DORA_REALTIME_TRANSCRIPTION_MODEL: gpt-4o-mini-transcribe
+      TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE: "0.30"
+      # Límite ESTIMADO del mes, compartido con las otras funciones de IA; D-64.
+      TALENTI_AI_LIMITS_MONTHLY_SPEND: "2"

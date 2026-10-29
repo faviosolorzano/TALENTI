@@ -14,7 +14,60 @@ public final class Views {
 	}
 
 	public record Versions(String llmAdapter, String llmModel, String sttModel, String ttsModel, String ttsVoice,
-			String promptVersion, String rubricVersion, String bankVersion) {
+			String promptVersion, String rubricVersion, String bankVersion, String realtimeModel, String realtimeVoice,
+			String transcriptionModel) {
+	}
+
+	/**
+	 * Una intervención de la conversación en tiempo real (012-44, 012-48). Las de DORA llevan {@code generatedBy = AI}
+	 * y todas {@code reportedBy = CLIENT}: las reporta el navegador, solo para mostrar.
+	 */
+	public record Utterance(String speaker, String text, String phase, Integer position, String inputMode,
+			String generatedBy, String reportedBy, Instant occurredAt) {
+
+		@Override
+		public String toString() {
+			return "Utterance[speaker=" + speaker + ", phase=" + phase + "]";
+		}
+
+	}
+
+	/** 012-54: el resumen de la sesión abierta de la persona (en el 409 {@code session-open} y en {@code /open}). */
+	public record OpenSession(UUID id, String mode, String status, String channel, UUID applicationId) {
+	}
+
+	/** 012-39: la llamada abierta. {@code toString} no muestra el SDP (lleva direcciones IP). */
+	public record RealtimeCall(UUID callId, String sdp, Instant endsAt, Instant warnAt, String startPhase,
+			Integer startPosition, RealtimeEvents events) {
+
+		@Override
+		public String toString() {
+			return "RealtimeCall[callId=" + callId + "]";
+		}
+
+	}
+
+	/** Nombres del canal de datos y de los eventos del proveedor que el navegador escucha (configuración). */
+	public record RealtimeEvents(String channel, String personTranscript, String doraTranscript,
+			String doraTranscriptDelta, String speechStarted, String speechStopped, String outputAudioStarted,
+			String outputAudioStopped, String functionCall, String responseDone, String itemCreate,
+			String responseCreate) {
+	}
+
+	/** 012-44: cuántos eventos se guardaron, cuántos ya estaban y cuántos se rechazaron. */
+	public record EventsResult(int accepted, int duplicates, int rejected) {
+	}
+
+	/** 012-53: la sesión tras colgar y la primera pregunta sin respuesta. */
+	public record Hangup(Session session, Integer nextPosition) {
+	}
+
+	/** 012-38: si DORA usa OpenAI o simulados y si el tiempo real está disponible (con el motivo si no). */
+	public record Dora(String provider, Realtime realtime) {
+	}
+
+	/** @param reason {@code DISABLED}, {@code NOT_CONFIGURED} o {@code SPEND_LIMIT}; nulo si está disponible */
+	public record Realtime(boolean available, String reason) {
 	}
 
 	public record Criterion(String criterion, String name, int level, String comment, List<String> quotes) {
@@ -57,10 +110,15 @@ public final class Views {
 
 	}
 
+	/**
+	 * @param channel      {@code TURN_BASED} o {@code REALTIME} (enmienda 2)
+	 * @param endsAt       fin decidido por el servidor para el tiempo real; nulo por turnos
+	 * @param conversation lo dicho en tiempo real (persona y DORA, rotulada IA), en orden; vacío por turnos
+	 */
 	public record Session(UUID id, String mode, String basis, UUID vacancyId, UUID applicationId, String topic,
 			int questionCount, boolean voice, String status, int attempt, List<String> degraded, Instant createdAt,
 			Instant startedAt, Instant endedAt, Integer nextPosition, int answered, List<Question> questions,
-			Versions versions) {
+			Versions versions, String channel, Instant endsAt, List<Utterance> conversation) {
 
 		@Override
 		public String toString() {
@@ -131,7 +189,7 @@ public final class Views {
 	 * @param topics temas del perfil (habilidades confirmadas); los de cada vacante van dentro de su base
 	 */
 	public record Options(List<BasisOption> bases, List<Topic> topics, int maxQuestions, Quota quota,
-			boolean voiceAvailable, Notice interviewNotice) {
+			boolean voiceAvailable, Notice interviewNotice, Dora dora) {
 
 		@Override
 		public String toString() {
@@ -155,7 +213,7 @@ public final class Views {
 
 	public record InterviewView(UUID applicationId, UUID sessionId, String status, int attempt, int maxAttempts,
 			boolean canRetry, String noticeVersion, Instant noticeAcceptedAt, Integer nextPosition,
-			List<InterviewQuestion> questions) {
+			List<InterviewQuestion> questions, String channel, List<Utterance> conversation) {
 
 		@Override
 		public String toString() {

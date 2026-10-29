@@ -1,10 +1,10 @@
-import { useEffect, useId } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
+import { DemoNotice } from '../../components/DemoNotice'
 import { fetchVacancy, type Requirement, type VacancyDetail } from '../../api/vacancies'
 import { ApiError } from '../../api/client'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
-import { Card } from '../../components/Card'
 import { useApiResource } from '../../hooks/useApiResource'
 import { es } from '../../i18n/es'
 import { useSession } from '../../session/useSession'
@@ -82,52 +82,66 @@ function RequirementList({
 
 function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back: string }) {
   const session = useSession()
+  const location = useLocation()
+  const [tab, setTab] = useState(location.hash.startsWith('#requisito-') ? 'fit' : 'description')
   const open = vacancy.status === 'OPEN'
   const { required, desirable } = vacancy.requirements
   const returnTo = encodeURIComponent(`/oportunidades/${vacancy.id}`)
-  const soonId = useId()
   // While the session is still being checked "Postular" is shown disabled, so a signed-in
   // person never sees the "Inicia sesión" link for a moment.
   const signedIn = session.status === 'authenticated'
   const checkingSession = session.status === 'loading'
 
+  const requirementsView = (
+    <section aria-labelledby="detail-requirements">
+      <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
+      {required.length > 0 && (
+        <>
+          <h3>{es.vacancyDetail.required}</h3>
+          <RequirementList items={required} kind="required" />
+        </>
+      )}
+      {desirable.length > 0 && (
+        <>
+          <h3>{es.vacancyDetail.desirable}</h3>
+          <RequirementList items={desirable} kind="desirable" />
+        </>
+      )}
+    </section>
+  )
   return (
     <div className="container vacancy-detail">
-      <Link className="vacancy-detail__back" to={back}>
+      <Link
+        className="vacancy-detail__back"
+        to={back}
+        state={{ restoreVacancy: vacancy.id, ...location.state }}
+      >
         <span aria-hidden="true">←</span>
         {es.vacancyDetail.back}
       </Link>
-
+      <DemoNotice />
       <header className="vacancy-detail__header">
-        <div className="vacancy-detail__company">
-          <CompanyAvatar name={vacancy.company.name} size="lg" />
-          <p>
-            <strong>{vacancy.company.name}</strong>
-            <span>{vacancy.company.city}</span>
-          </p>
-        </div>
-        {/* 004-34: the entry point of the company profile. It leads nowhere yet, so it is not a
-            link: a button marked aria-disabled (it stays reachable so its note is read). */}
-        <div className="vacancy-detail__profile">
-          <Button
-            variant="quiet"
-            size="sm"
-            aria-disabled="true"
-            aria-describedby={soonId}
-            onClick={(event) => event.preventDefault()}
-          >
-            {es.vacancyDetail.companyProfile}
-          </Button>
-          <span id={soonId} className="vacancy-detail__profile-note">
-            {es.vacancyDetail.companyProfileSoon}
-          </span>
-        </div>
-        <h1 className="vacancy-detail__title">{vacancy.title}</h1>
-        <p className="vacancy-detail__summary">{vacancy.summary}</p>
-      </header>
-
-      <div className="vacancy-detail__grid">
-        <Card as="section" className="vacancy-detail__apply" aria-label={es.vacancyDetail.apply}>
+        <div className="vacancy-detail__heading">
+          {' '}
+          <h1 className="vacancy-detail__title">{vacancy.title}</h1>{' '}
+          <div className="vacancy-detail__company">
+            <CompanyAvatar name={vacancy.company.name} size="lg" />
+            <p>
+              <strong>{vacancy.company.name}</strong>
+              <span>{vacancy.company.city}</span>
+            </p>
+          </div>
+          <ul className="vacancy-detail__headline-facts">
+            <li>
+              {es.vacancies.modality[vacancy.modality]}
+              {vacancy.location ? ' · ' + vacancy.location : ''}
+            </li>
+            <li>{es.vacancies.hoursPerWeek(vacancy.hoursPerWeek)}</li>
+            <li>{publishedLabel(vacancy.publishedAt)}</li>
+          </ul>
+          <p className="vacancy-detail__summary">{vacancy.summary}</p>
+        </div>{' '}
+        <section className="vacancy-detail__apply" aria-label={es.vacancyDetail.apply}>
           {open ? (
             session.isStudent ? (
               <ApplyCard
@@ -141,7 +155,9 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
               <Button disabled>{es.vacancyDetail.apply}</Button>
             ) : (
               <>
-                <Button to={`/ingresar?returnTo=${returnTo}`}>{es.vacancyDetail.apply}</Button>
+                <Button state={location.state} to={`/ingresar?returnTo=${returnTo}`}>
+                  {es.vacancyDetail.applyVisitor}
+                </Button>
                 <p className="vacancy-detail__notice">{es.vacancyDetail.applyLoginNotice}</p>
               </>
             )
@@ -154,29 +170,36 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
               </Button>
             </>
           )}
-        </Card>
+        </section>
+      </header>
 
-        <div className="vacancy-detail__main">
-          {open && session.isStudent && <VacancyCompatibilityPanel vacancyId={vacancy.id} />}
+      <div className="vacancy-detail__grid">
+        <nav className="vacancy-detail__tabs" aria-label={es.redesign.vacancySections}>
+          <button
+            type="button"
+            aria-current={tab === 'description' ? 'page' : undefined}
+            onClick={() => setTab('description')}
+          >
+            {es.redesign.descriptionTab}
+          </button>
+          <button
+            type="button"
+            aria-current={tab === 'fit' ? 'page' : undefined}
+            onClick={() => setTab('fit')}
+          >
+            {es.redesign.fitTab}
+          </button>
+        </nav>
+        <div className="vacancy-detail__main" hidden={tab !== 'fit'}>
+          {open && session.isStudent && (
+            <VacancyCompatibilityPanel vacancyId={vacancy.id} fallback={requirementsView} />
+          )}
+          {(!open || !session.isStudent) && requirementsView}
+        </div>
+        <div className="vacancy-detail__main" hidden={tab !== 'description'}>
           <section aria-labelledby="detail-about">
             <h2 id="detail-about">{es.vacancyDetail.about}</h2>
             <p className="vacancy-detail__description">{vacancy.description}</p>
-          </section>
-
-          <section aria-labelledby="detail-requirements">
-            <h2 id="detail-requirements">{es.vacancyDetail.requirements}</h2>
-            {required.length > 0 && (
-              <>
-                <h3>{es.vacancyDetail.required}</h3>
-                <RequirementList items={required} kind="required" />
-              </>
-            )}
-            {desirable.length > 0 && (
-              <>
-                <h3>{es.vacancyDetail.desirable}</h3>
-                <RequirementList items={desirable} kind="desirable" />
-              </>
-            )}
           </section>
 
           <section aria-labelledby="detail-company">
@@ -187,7 +210,7 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
           </section>
         </div>
 
-        <div className="vacancy-detail__side">
+        <div className="vacancy-detail__side" hidden={tab !== 'description'}>
           <section aria-labelledby="detail-conditions" className="vacancy-detail__panel">
             <h2 id="detail-conditions">{es.vacancyDetail.conditions}</h2>
             <dl className="vacancy-detail__conditions">
@@ -209,24 +232,6 @@ function VacancyDetailContent({ vacancy, back }: { vacancy: VacancyDetail; back:
               </div>
             </dl>
           </section>
-
-          {open && (
-            <section aria-labelledby="detail-process" className="vacancy-detail__panel">
-              <h2 id="detail-process">{es.vacancyDetail.process}</h2>
-              <ol className="vacancy-detail__stages">
-                <li data-state="now">
-                  <span>{es.applications.stages.SUBMITTED}</span>
-                </li>
-                {es.applications.stages.next.map((stage) => (
-                  <li key={stage} data-state="soon">
-                    <span>{stage}</span>
-                    <small>{es.applications.stages.soon}</small>
-                  </li>
-                ))}
-              </ol>
-              <p className="vacancy-detail__notice">{es.vacancyDetail.processNote}</p>
-            </section>
-          )}
         </div>
       </div>
     </div>

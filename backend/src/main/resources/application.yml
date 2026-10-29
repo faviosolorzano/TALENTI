@@ -166,6 +166,51 @@ talenti:
         stt: ${TALENTI_AI_DORA_MODELS_STT:}         # voz a texto; a confirmar
         tts: ${TALENTI_AI_DORA_MODELS_TTS:}         # texto a voz; a confirmar
       voice: ${TALENTI_AI_DORA_VOICE:}              # voz femenina de DORA (D-14); a confirmar
+      realtime:
+        # DORA EN TIEMPO REAL (spec 012, enmienda 2). APAGADA: con false no se abre ninguna llamada real. Con true hacen
+        # falta talenti.ai.dora.enabled=true y OPENAI_API_KEY (si falta algo, no arranca). TODO lo de abajo está A
+        # CONFIRMAR en la prueba 012-69; si algo difiere, se cambia aquí, no en el código. La clave nunca sale del servidor.
+        enabled: ${TALENTI_AI_DORA_REALTIME_ENABLED:false}
+        # SOLO pruebas y recorridos locales: ofrece el tiempo real con el adaptador SIMULADO (sin red ni voz real).
+        simulated: ${TALENTI_AI_DORA_REALTIME_SIMULATED:false}
+        base-url: ${TALENTI_AI_DORA_REALTIME_BASE_URL:https://api.openai.com/v1}
+        calls-path: /realtime/calls
+        hangup-path: /realtime/calls/{callId}/hangup
+        model: ${TALENTI_AI_DORA_REALTIME_MODEL:gpt-realtime-2.1}             # D-63
+        voice: ${TALENTI_AI_DORA_REALTIME_VOICE:marin}                        # D-14, duda E2-2
+        transcription-model: ${TALENTI_AI_DORA_REALTIME_TRANSCRIPTION_MODEL:gpt-4o-mini-transcribe}   # duda E2-3
+        transcription-language: es
+        turn-detection: ${TALENTI_AI_DORA_REALTIME_TURN_DETECTION:semantic_vad}   # con interrupción (duda E2-4)
+        connect-timeout: 8s         # después, 503 realtime-unavailable y el modo por turnos (012-42)
+        max-sdp: 32KB               # 012-43
+        price-per-minute: ${TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE:0.30}   # ESTIMADO en dólares (duda E2-6)
+        min-minutes: 3              # con menos minutos de gasto restante, no se conecta (012-49)
+        max-duration:
+          practice: 15m             # duda E2-5
+          interview: 20m
+        warn-before: 2m
+        grace: 30s
+        max-reconnects: 2           # 012-52
+        follow-ups-per-question: 1  # 012-45
+        connects-per-minute: 5      # por persona (012-43)
+        events-per-minute: 120      # envíos de eventos por persona
+        max-events-per-request: 50  # 012-44
+        max-text: 4000
+        max-answer: 8000            # respuesta + repregunta (duda E2-11)
+        sweep-interval: PT10S       # cada cuánto se cuelgan las llamadas pasadas de su tiempo
+        events:                     # nombres del canal y de los eventos del proveedor (duda E2-1)
+          channel: oai-events
+          person-transcript: conversation.item.input_audio_transcription.completed
+          dora-transcript: response.output_audio_transcript.done
+          dora-transcript-delta: response.output_audio_transcript.delta
+          speech-started: input_audio_buffer.speech_started
+          speech-stopped: input_audio_buffer.speech_stopped
+          output-audio-started: output_audio_buffer.started
+          output-audio-stopped: output_audio_buffer.stopped
+          function-call: response.function_call_arguments.done
+          response-done: response.done
+          item-create: conversation.item.create      # el navegador envía texto escrito y avisos a DORA
+          response-create: response.create           # el navegador pide que DORA hable (saludo, retomar)
       prices:
         # Precios en dólares para ESTIMAR el costo (012-30). A CONFIRMAR con la página de precios del proveedor antes
         # de la prueba 012-34; no son una factura. Tokens estimados como caracteres / 4.
@@ -219,7 +264,7 @@ talenti:
       enabled: true             # entrevista evaluada para postulaciones enviadas (duda 9)
       max-attempts: 2           # intentos tras desconexión o falla (duda 10)
       question-count: 5
-      notice-version: v1        # classpath:practice/interview-notice-v1.md (borrador, revisión legal pendiente)
+      notice-version: v2        # classpath:practice/interview-notice-v2.md (tiempo real, D-64; revisión legal pendiente)
   github:
     # GitHub (spec 013, sección 5). Ninguna clave vive aquí: llegan solo por variables de entorno (vacías por defecto).
     base-url: https://api.github.com

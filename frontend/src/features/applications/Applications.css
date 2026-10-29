@@ -129,3 +129,30 @@
     font-size: var(--font-size-4xl);
   }
 }
+
+/* Flat application records follow the same reading order as vacancy results. */
+.card.application-item,
+.card.applications__empty,
+.card.applications__panel {
+  border: 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--color-bg);
+  padding: var(--space-6) 0;
+}
+.applications {
+  max-width: var(--page-max-width);
+}
+.applications__list {
+  gap: 0;
+}
+.applications__title {
+  font-size: var(--font-size-task-title);
+}
+.application-item__status {
+  padding-inline: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}

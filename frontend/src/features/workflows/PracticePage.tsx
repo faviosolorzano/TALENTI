@@ -1,0 +1,930 @@
+import { ConversationOrb, CallIcon } from './ConversationOrb'
+import { DeviceCheck } from './DeviceCheck'
+import { es } from '../../i18n/es'
+import './doraCall.css'
+import { AudioQueue } from './audioQueue'
+import { useWorkflowAction } from './useWorkflowAction'
+import { t } from './workflowLabels'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router'
+import { ApiError } from '../../api/client'
+import {
+  workflowApi as api,
+  streamDora,
+  type PracticeOptions,
+  type DoraSession,
+  type DoraSessionPage,
+  type DoraAnswer,
+} from '../../api/workflows'
+import { useWorkflowResource as useApiResource } from './useWorkflowResource'
+import { Button } from '../../components/Button'
+import { Dialog } from '../../components/Dialog'
+import { WorkflowFrame, StudentWorkflow, Loading, ActionError, Source } from './shared'
+import { realtimeApi, type DoraAvailability, type OpenSession } from '../../api/realtime'
+import { chooseChannel, type TurnReason } from './realtime/channel'
+import { realtimeSupported, type TranscriptEntry } from './realtime/doraCall'
+import { LiveTranscript, RealtimeConversation } from './realtime/RealtimeConversation'
+
+const c = es.doraCall
+const r = es.doraRealtime
+
+/** A 409 `session-open` carries the open session (012-54); an older answer is asked for once. */
+async function openSessionOf(error: unknown): Promise<OpenSession | null | undefined> {
+  if (!(error instanceof ApiError) || error.problem?.code !== 'session-open') return undefined
+  const open = error.problem.openSession as OpenSession | undefined
+  if (open?.id) return open
+  return realtimeApi.openSession().catch(() => null)
+}
+
+export function PracticePage() {
+  return (
+    <StudentWorkflow>
+      <PracticeSetup />
+    </StudentWorkflow>
+  )
+}
+function PracticeSetup() {
+  const options = useApiResource('practice-options', (signal) =>
+    api<PracticeOptions>('/practice/options', { signal }),
+  )
+  const history = useApiResource('practice-history', (signal) =>
+    api<DoraSessionPage>('/practice/sessions?size=20', { signal }),
+  )
+  const [params] = useSearchParams()
+  const [basis, setBasis] = useState(params.get('vacante') ? 'VACANCY' : 'PROFILE')
+  const [vacancy, setVacancy] = useState(params.get('vacante') ?? '')
+  const [topic, setTopic] = useState('')
+  const [count, setCount] = useState(3)
+  const [voiceChoice, setVoice] = useState<boolean | null>(null)
+  const navigate = useNavigate()
+  const action = useWorkflowAction()
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [openSession, setOpenSession] = useState<OpenSession | null>(null)
+  const data = options.state.status === 'success' ? options.state.data : null
+  const voice = voiceChoice ?? Boolean(data?.voiceAvailable)
+  const selected = data?.bases.find((item) => item.basis === basis)
+  const create = () =>
+    api<DoraSession>('/practice/sessions', {
+      method: 'POST',
+      json: {
+        basis,
+        vacancyId: basis === 'VACANCY' ? vacancy : undefined,
+        topic: topic || undefined,
+        questionCount: count,
+        voice,
+      },
+    })
+  const topics =
+    basis === 'VACANCY'
+      ? (selected?.vacancies.find((item) => item.id === vacancy)?.topics ?? [])
+      : (data?.topics ?? [])
+  return (
+    <WorkflowFrame title={t.practice}>
+      <section className="dora-prepare">
+        <h2>{c.prepare}</h2>
+        <p>{c.tips}</p>
+        <small>{c.practiceHelp}</small>
+        <DeviceCheck />
+      </section>
+      <ActionError message={action.error} />
+      {options.state.status === 'loading' ? (
+        <Loading />
+      ) : options.state.status === 'error' ? (
+        <>
+          <ActionError message={t.error} />
+          <Button onClick={options.retry}>{t.retry}</Button>
+        </>
+      ) : (
+        data && (
+          <form
+            className="workflow__form workflow__setup"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void action.perform(async () => {
+                try {
+                  navigate('/practicar/' + (await create()).id)
+                } catch (error) {
+                  const open = await openSessionOf(error)
+                  if (!open) throw error
+                  setOpenSession(open)
+                }
+              })
+            }}
+          >
+            <h2>{t.configure}</h2>
+            {data.dora?.provider === 'SIMULATED' && (
+              <p className="dora-call__notice" role="note">
+                {r.reasons.simulated}
+              </p>
+            )}
+            <p>
+              {t.quota}: {data.quota.used} / {data.quota.limit}
+            </p>
+            <label>
+              {t.basis}
+              <select
+                value={basis}
+                onChange={(event) => {
+                  setBasis(event.target.value)
+                  setTopic('')
+                }}
+              >
+                {data.bases.map((item) => (
+                  <option key={item.basis} value={item.basis} disabled={!item.available}>
+                    {item.basis === 'PROFILE' ? t.profile : t.vacancy}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {basis === 'VACANCY' && (
+              <label>
+                {t.chooseVacancy}
+                <select
+                  required
+                  value={vacancy}
+                  onChange={(event) => {
+                    setVacancy(event.target.value)
+                    setTopic('')
+                  }}
+                >
+                  <option value="">—</option>
+                  {selected?.vacancies.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title} · {item.company}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label>
+              {t.topic}
+              <select value={topic} onChange={(event) => setTopic(event.target.value)}>
+                <option value="">{t.allTopics}</option>
+                {topics.map((item) => (
+                  <option key={item.slug} value={item.slug}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t.questions}
+              <select value={count} onChange={(event) => setCount(Number(event.target.value))}>
+                {Array.from({ length: data.maxQuestions }, (_, i) => (
+                  <option key={i} value={i + 1}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="workflow__choice">
+              <input
+                type="checkbox"
+                checked={voice}
+                disabled={!data.voiceAvailable}
+                onChange={(event) => setVoice(event.target.checked)}
+              />
+              {t.voice}
+            </label>
+            {!selected?.available && <p>{t.noBasis}</p>}
+            <Button
+              type="submit"
+              disabled={action.busy || !selected?.available || data.quota.used >= data.quota.limit}
+            >
+              {action.busy ? t.working : t.start}
+            </Button>
+          </form>
+        )
+      )}
+      <details className="dora-history">
+        <summary>{c.history}</summary>
+        {history.state.status === 'loading' ? (
+          <Loading />
+        ) : history.state.status === 'error' ? (
+          <Button onClick={history.retry}>{t.retry}</Button>
+        ) : (
+          <ul className="workflow__list">
+            {history.state.data.items.length === 0 && <li>{t.emptySessions}</li>}
+            {history.state.data.items.map((item) => (
+              <li className="workflow__row" key={item.id}>
+                <Link to={'/practicar/' + item.id}>
+                  {new Date(item.createdAt).toLocaleString('es-PE')} · {item.answered}/
+                  {item.questionCount}
+                </Link>
+                <p>{t.statuses[item.status as keyof typeof t.statuses] ?? item.status}</p>
+                <div>
+                  <Button size="sm" variant="quiet" onClick={() => setDeleting(item.id)}>
+                    {t.deleteSession}
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
+      {openSession && (
+        <Dialog busy={action.busy} title={r.openTitle} onClose={() => setOpenSession(null)}>
+          <p>{openSession.mode === 'INTERVIEW' ? r.openInterview : r.openPractice}</p>
+          <div className="workflow__actions">
+            {openSession.mode === 'INTERVIEW' ? (
+              openSession.applicationId && (
+                <Button to={'/postulaciones/' + openSession.applicationId + '/entrevista'}>
+                  {r.goInterview}
+                </Button>
+              )
+            ) : (
+              <>
+                <Button to={'/practicar/' + openSession.id}>{r.continue}</Button>
+                <Button
+                  variant="quiet"
+                  disabled={action.busy}
+                  onClick={() =>
+                    void action.perform(async () => {
+                      // One close and one new attempt; a second 409 is shown, never looped.
+                      await realtimeApi.finish(openSession.id)
+                      const session = await create()
+                      setOpenSession(null)
+                      navigate('/practicar/' + session.id)
+                    })
+                  }
+                >
+                  {action.busy ? t.working : r.closeAndStart}
+                </Button>
+              </>
+            )}
+            <Button variant="quiet" disabled={action.busy} onClick={() => setOpenSession(null)}>
+              {t.cancel}
+            </Button>
+          </div>
+          <ActionError message={action.error} />
+        </Dialog>
+      )}
+      {deleting && (
+        <Dialog title={t.deleteSession} onClose={() => setDeleting(null)}>
+          <p>{t.deleteSessionBody}</p>
+          <div className="workflow__actions">
+            <Button
+              variant="danger"
+              disabled={action.busy}
+              onClick={() =>
+                void action.perform(async () => {
+                  await api('/practice/sessions/' + deleting, { method: 'DELETE' })
+                  setDeleting(null)
+                  history.retry()
+                })
+              }
+            >
+              {t.delete}
+            </Button>
+            <Button variant="quiet" onClick={() => setDeleting(null)}>
+              {t.cancel}
+            </Button>
+          </div>
+          <ActionError message={action.error} />
+        </Dialog>
+      )}
+    </WorkflowFrame>
+  )
+}
+
+export function PracticeSessionPage() {
+  const { id = '' } = useParams()
+  return (
+    <StudentWorkflow>
+      <PracticeSession key={id} id={id} />
+    </StudentWorkflow>
+  )
+}
+function PracticeSession({ id }: { id: string }) {
+  const resource = useApiResource(
+    'practice-session:' + id,
+    (signal) => api<DoraSession>('/practice/sessions/' + id, { signal }),
+    { keepPrevious: true },
+  )
+  const options = useApiResource('practice-options', (signal) =>
+    api<PracticeOptions>('/practice/options', { signal }),
+  )
+  return (
+    <WorkflowFrame title={t.session} back="/practicar">
+      {resource.state.status === 'loading' || options.state.status === 'loading' ? (
+        <Loading />
+      ) : resource.state.status === 'error' ? (
+        <>
+          <ActionError message={t.error} />
+          <Button onClick={resource.retry}>{t.retry}</Button>
+        </>
+      ) : (
+        <DoraSessionView
+          session={resource.state.data}
+          refresh={resource.retry}
+          dora={options.state.status === 'success' ? options.state.data.dora : undefined}
+        />
+      )}
+    </WorkflowFrame>
+  )
+}
+
+/**
+ * Chooses the channel of a session (012-58): real time when the backend and the browser allow
+ * it, otherwise the turn-based conversation, with the reason in plain words. After a fallback
+ * (012-63) the turn-based screen keeps what was said in the call.
+ */
+export function DoraSessionView({
+  session,
+  refresh,
+  dora,
+  interview = false,
+  onTranscript,
+}: {
+  session: DoraSession
+  refresh: () => void
+  dora: DoraAvailability | undefined
+  interview?: boolean
+  onTranscript?: (position: number, turnId: string) => void
+}) {
+  const [supported] = useState(realtimeSupported)
+  const [fallback, setFallback] = useState<{
+    log: TranscriptEntry[]
+    reason: TurnReason | null
+  } | null>(null)
+  const choice = chooseChannel(dora, session, supported)
+  if (!fallback && choice.channel === 'REALTIME')
+    return (
+      <RealtimeConversation
+        key={session.id}
+        session={session}
+        interview={interview}
+        onEnded={refresh}
+        onFallback={(log, reason) => {
+          setFallback({ log, reason })
+          refresh()
+        }}
+      />
+    )
+  const reason = fallback ? fallback.reason : choice.channel === 'TURN_BASED' ? choice.reason : null
+  return (
+    <DoraConversation
+      session={session}
+      refresh={refresh}
+      interview={interview}
+      onTranscript={onTranscript}
+      notice={reason ? r.reasons[reason] : ''}
+      textFirst={reason === 'mic-denied'}
+      liveLog={fallback?.log}
+    />
+  )
+}
+
+export function DoraConversation({
+  session,
+  refresh,
+  interview = false,
+  onTranscript,
+  notice = '',
+  textFirst = false,
+  liveLog,
+}: {
+  session: DoraSession
+  refresh: () => void
+  interview?: boolean
+  onTranscript?: (position: number, turnId: string) => void
+  /** Why the session goes by turns (012-58), in plain words. */
+  notice?: string
+  /** The microphone was denied: the written answer opens first. */
+  textFirst?: boolean
+  /** What was said in a real-time call before the fallback (012-63). */
+  liveLog?: TranscriptEntry[]
+}) {
+  const action = useWorkflowAction()
+  const [text, setText] = useState('')
+  const [writeMode, setWriteMode] = useState(!session.voice || textFirst)
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [reply, setReply] = useState('')
+  const [replySource, setReplySource] = useState('')
+  const [recording, setRecording] = useState(false)
+  const [micStarting, setMicStarting] = useState(false)
+  const micPending = useRef(false)
+  const mounted = useRef(true)
+  const hasDraft = Boolean(text.trim()) || recording
+  const blocker = useBlocker(hasDraft)
+  useEffect(() => {
+    if (!hasDraft) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [hasDraft])
+  const [playing, setPlaying] = useState(false)
+  const [audioBlocked, setAudioBlocked] = useState(false)
+  const playbackRef = useRef<AudioQueue | null>(null)
+  useEffect(() => {
+    const queue = new AudioQueue((playing, blocked) => {
+      setPlaying(playing)
+      setAudioBlocked(blocked)
+    })
+    playbackRef.current = queue
+    return () => queue.stop()
+  }, [])
+  const [confirmFinish, setConfirmFinish] = useState(false)
+  const [degraded, setDegraded] = useState(false)
+  const controller = useRef<AbortController | null>(null)
+  const recorder = useRef<MediaRecorder | null>(null)
+  const media = useRef<MediaStream | null>(null)
+  const chunks = useRef<Blob[]>([])
+  const recordTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingTurn = useRef<{ id: string; position: number; value: string } | null>(null)
+  const position = session.nextPosition ?? 1
+  const question = session.questions.find((item) => item.position === position)
+  const ended = ['COMPLETED', 'ABANDONED', 'FAILED'].includes(session.status)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      controller.current?.abort()
+      if (recordTimer.current) clearTimeout(recordTimer.current)
+      if (recorder.current?.state === 'recording') {
+        recorder.current.onstop = null
+        recorder.current.stop()
+      }
+      media.current?.getTracks().forEach((track) => track.stop())
+      playbackRef.current?.stop()
+    }
+  }, [])
+  const feedbackPending =
+    !interview && session.questions.some((item) => item.answer?.feedback?.status === 'PENDING')
+  useEffect(() => {
+    if (!feedbackPending) return
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') refresh()
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [feedbackPending, refresh])
+  const enqueue = (mime: string, data: string) => {
+    if (!mime.startsWith('audio/')) return
+    const blob = new Blob([Uint8Array.from(atob(data), (letter) => letter.charCodeAt(0))], {
+      type: mime,
+    })
+    playbackRef.current?.enqueue(blob)
+  }
+
+  async function stream(path: string, body: { json?: unknown; form?: FormData }) {
+    controller.current?.abort()
+    controller.current = new AbortController()
+    setReply('')
+    setDegraded(false)
+    await streamDora(path, { ...body, signal: controller.current.signal }, (name, data) => {
+      if (name === 'transcript' && typeof data.turnId === 'string')
+        onTranscript?.(position, data.turnId)
+      if (name === 'reply.text') {
+        setReply(
+          (value) =>
+            value +
+            (value && !/\s$/.test(value) && !/^[,.;?!:\s]/.test(String(data.text ?? ''))
+              ? ' '
+              : '') +
+            String(data.text ?? ''),
+        )
+        setReplySource(String(data.source ?? data.generatedBy ?? ''))
+      }
+      if (name === 'reply.audio' && session.voice)
+        enqueue(String(data.mime ?? ''), String(data.data ?? ''))
+      if (name === 'degraded') setDegraded(true)
+      if (name === 'error') throw new ApiError(409, { code: data.code })
+    })
+    refresh()
+  }
+  async function sendText() {
+    if (!text.trim()) return
+    const value = text.trim()
+    if (
+      !pendingTurn.current ||
+      pendingTurn.current.value !== value ||
+      pendingTurn.current.position !== position
+    )
+      pendingTurn.current = { id: crypto.randomUUID(), position, value }
+    await stream('/dora/sessions/' + session.id + '/turns', {
+      json: { text: value, questionPosition: position, clientTurnId: pendingTurn.current.id },
+    })
+    pendingTurn.current = null
+    setText('')
+  }
+  async function startRecording() {
+    if (micPending.current || recorder.current?.state === 'recording') return
+    micPending.current = true
+    setMicStarting(true)
+    playbackRef.current?.stop()
+    try {
+      const input = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!mounted.current) {
+        input.getTracks().forEach((track) => track.stop())
+        return
+      }
+      playbackRef.current?.stop()
+      media.current = input
+      const recording = new MediaRecorder(input)
+      recorder.current = recording
+      chunks.current = []
+      recording.ondataavailable = (event) => {
+        if (event.data.size) chunks.current.push(event.data)
+      }
+      recording.onstop = () => {
+        if (recordTimer.current) clearTimeout(recordTimer.current)
+        input.getTracks().forEach((track) => track.stop())
+        setRecording(false)
+        const blob = new Blob(chunks.current, { type: recording.mimeType })
+        chunks.current = []
+        if (!blob.size || blob.size > 3 * 1024 * 1024) {
+          action.setError(t.invalid)
+          return
+        }
+        const form = new FormData()
+        form.append(
+          'audio',
+          blob,
+          recording.mimeType.includes('mp4')
+            ? 'respuesta.mp4'
+            : recording.mimeType.includes('ogg')
+              ? 'respuesta.ogg'
+              : 'respuesta.webm',
+        )
+        form.append('questionPosition', String(position))
+        form.append('clientTurnId', crypto.randomUUID())
+        void action.perform(() => stream('/dora/sessions/' + session.id + '/turns', { form }))
+      }
+      recording.start()
+      setRecording(true)
+      recordTimer.current = setTimeout(
+        () => recording.state === 'recording' && recording.stop(),
+        120000,
+      )
+    } catch {
+      media.current?.getTracks().forEach((track) => track.stop())
+      if (mounted.current) action.setError(t.noMicrophone)
+    } finally {
+      micPending.current = false
+      if (mounted.current) setMicStarting(false)
+    }
+  }
+  return (
+    <>
+      {blocker.state === 'blocked' && (
+        <Dialog busy={action.busy} title={t.unsaved} onClose={() => blocker.reset()}>
+          <Button disabled={action.busy} onClick={() => blocker.proceed()}>
+            {t.leaveWithoutSaving}
+          </Button>
+          <Button disabled={action.busy} variant="quiet" onClick={() => blocker.reset()}>
+            {t.cancel}
+          </Button>
+        </Dialog>
+      )}
+      <section className="dora-call" aria-label={interview ? t.interview : t.session}>
+        <div className="dora-call__heading">
+          <div>
+            <span>{interview ? c.interviewPrivacy : c.practicePrivacy}</span>
+            {session.versions?.llmAdapter.includes('simulated') &&
+              notice !== r.reasons.simulated && <small>{t.simulated}</small>}
+            {notice && (
+              <small className="dora-call__notice" role="status">
+                {notice}
+              </small>
+            )}
+          </div>
+          <div className="dora-call__toolbar">
+            <Button
+              variant="quiet"
+              aria-label={c.transcript}
+              onClick={() => setTranscriptOpen(true)}
+            >
+              <CallIcon kind="transcript" />
+              <span>{c.transcriptButton}</span>
+            </Button>
+            <Button
+              className="dora-call__help-button"
+              variant="quiet"
+              title={c.help}
+              aria-label={c.help}
+              onClick={() => setHelpOpen(true)}
+            >
+              <CallIcon kind="help" />
+              <span>{c.helpButton}</span>
+            </Button>
+            {!ended && (
+              <Button
+                variant="quiet"
+                disabled={action.busy || recording || micStarting}
+                aria-label={t.finish}
+                onClick={() => setConfirmFinish(true)}
+              >
+                <CallIcon kind="close" />
+                <span>{c.endShort}</span>
+              </Button>
+            )}
+          </div>
+        </div>
+        <ActionError message={action.error} />
+        {(degraded || session.degraded?.length > 0) && <p role="status">{t.degraded}</p>}
+        <div className="dora-call__actors">
+          <ConversationOrb
+            mode={
+              recording ? 'listening' : playing ? 'speaking' : action.busy ? 'thinking' : 'idle'
+            }
+          />
+        </div>
+        <span className="visually-hidden">
+          {c.assistant} · {c.assistantNote}
+        </span>
+        <p className="dora-call__status" role="status">
+          {ended
+            ? t.closedSession
+            : recording
+              ? c.listening
+              : playing
+                ? c.speaking
+                : action.busy
+                  ? c.thinking
+                  : question
+                    ? c.yourTurn
+                    : c.ready}
+        </p>
+        {session.status === 'CREATED' && (
+          <Button
+            disabled={action.busy}
+            onClick={() =>
+              void action.perform(() => stream('/dora/sessions/' + session.id + '/start', {}))
+            }
+          >
+            {action.busy ? t.working : t.start}
+          </Button>
+        )}
+        {question && session.nextPosition !== null && !ended && session.status !== 'CREATED' && (
+          <section className="dora-call__question">
+            <h2>
+              {t.question} {position}
+              {session.questionCount !== null ? '/' + session.questionCount : ''}
+            </h2>
+            <p className="workflow__question">{question.text}</p>
+            <Source value={question.generatedBy} />
+            <div className="dora-call__controls">
+              {session.voice && (
+                <Button
+                  variant="quiet"
+                  disabled={action.busy || recording || micStarting}
+                  className="dora-call__sound"
+                  title={t.listen}
+                  aria-label={t.listen}
+                  onClick={() =>
+                    void action.perform(async () => {
+                      const response = await api<Response>(
+                        `/dora/sessions/${session.id}/questions/${position}/audio`,
+                        { rawResponse: true },
+                      )
+                      playbackRef.current?.stop()
+                      playbackRef.current?.enqueue(await response.blob())
+                    })
+                  }
+                >
+                  <span className="dora-call__disc">
+                    <CallIcon kind="sound" />
+                  </span>
+                  <span className="dora-call__control-label">{c.listenShort}</span>
+                </Button>
+              )}
+              {session.voice && (
+                <Button
+                  disabled={action.busy || micStarting}
+                  className="dora-call__mic"
+                  aria-pressed={recording}
+                  title={recording ? t.stopRecording : t.record}
+                  aria-label={recording ? t.stopRecording : t.record}
+                  onClick={() => (recording ? recorder.current?.stop() : void startRecording())}
+                >
+                  <span className="dora-call__disc">
+                    <CallIcon kind="mic" />
+                  </span>
+                  <span className="dora-call__control-label">
+                    {recording ? c.sendVoiceShort : c.speakShort}
+                  </span>
+                </Button>
+              )}
+              {
+                <Button
+                  variant="quiet"
+                  disabled={recording || micStarting}
+                  className="dora-call__keyboard"
+                  title={writeMode ? c.hideText : c.write}
+                  aria-label={writeMode ? c.hideText : c.write}
+                  aria-expanded={writeMode}
+                  aria-controls="dora-text-answer"
+                  onClick={() => setWriteMode(!writeMode)}
+                >
+                  <span className="dora-call__disc">
+                    <CallIcon kind="keyboard" />
+                  </span>
+                  <span className="dora-call__control-label">
+                    {writeMode ? c.hideTextShort : c.writeShort}
+                  </span>
+                </Button>
+              }
+            </div>
+            <form
+              id="dora-text-answer"
+              hidden={!writeMode}
+              className="workflow__form dora-call__write"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void action.perform(sendText)
+              }}
+            >
+              <label>
+                {t.answer}
+                <textarea
+                  className="workflow__editor"
+                  maxLength={4000}
+                  value={text}
+                  disabled={action.busy || recording || micStarting}
+                  onChange={(event) => setText(event.target.value)}
+                />
+              </label>
+              <Button
+                type="submit"
+                disabled={action.busy || recording || micStarting || !text.trim()}
+              >
+                {action.busy ? t.working : t.send}
+              </Button>
+            </form>
+          </section>
+        )}
+        {audioBlocked && (
+          <Button variant="quiet" onClick={() => playbackRef.current?.resume()}>
+            {t.playAudio}
+          </Button>
+        )}
+        {!ended && session.nextPosition === null && session.status !== 'CREATED' && (
+          <p role="status">{t.allAnswered}</p>
+        )}
+      </section>
+      <Dialog
+        open={transcriptOpen}
+        title={c.transcriptButton}
+        onClose={() => setTranscriptOpen(false)}
+      >
+        <Button variant="quiet" onClick={() => setTranscriptOpen(false)}>
+          {c.closeTranscript}
+        </Button>
+        {recording && <Button onClick={() => recorder.current?.stop()}>{t.stopRecording}</Button>}
+        <div className="dora-call__transcript">
+          {liveLog && liveLog.length > 0 && (
+            <section className="workflow__row">
+              <h3>{r.realtimeLog}</h3>
+              <LiveTranscript entries={liveLog} />
+            </section>
+          )}
+          {reply && (
+            <section className="workflow__row" aria-live="polite">
+              <Source value={replySource} />
+              <p>{reply}</p>
+            </section>
+          )}
+          {!session.questions.some((item) => item.answer) && <p>{c.transcriptEmpty}</p>}
+          {session.questions
+            .filter((item) => item.answer)
+            .map((item) => (
+              <section className="workflow__row" key={item.position}>
+                <h3>
+                  {t.question} {item.position}
+                </h3>
+                <p>{item.text}</p>
+                <Transcript answer={item.answer!} sessionId={session.id} refresh={refresh} />
+              </section>
+            ))}
+        </div>
+      </Dialog>
+      {helpOpen && (
+        <Dialog title={c.help} onClose={() => setHelpOpen(false)}>
+          <Button variant="quiet" onClick={() => setHelpOpen(false)}>
+            {c.closeHelp}
+          </Button>
+          <p>{interview ? c.interviewHelp : c.practiceHelp}</p>
+          <p>{c.voiceHint}</p>
+          <p>{t.voicePrivacy}</p>
+        </Dialog>
+      )}
+      {confirmFinish && (
+        <Dialog title={t.finish} onClose={() => setConfirmFinish(false)}>
+          <p>{t.finishBody}</p>
+          <div className="workflow__actions">
+            <Button
+              disabled={action.busy}
+              onClick={() =>
+                void action.perform(async () => {
+                  await api('/dora/sessions/' + session.id + '/finish', { method: 'POST' })
+                  setConfirmFinish(false)
+                  refresh()
+                })
+              }
+            >
+              {t.finish}
+            </Button>
+            <Button variant="quiet" onClick={() => setConfirmFinish(false)}>
+              {t.cancel}
+            </Button>
+          </div>
+          <ActionError message={action.error} />
+        </Dialog>
+      )}
+    </>
+  )
+}
+function Transcript({
+  answer,
+  sessionId,
+  refresh,
+}: {
+  answer: DoraAnswer
+  sessionId: string
+  refresh: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [text, setText] = useState(answer.transcriptFinal ?? answer.transcriptRaw ?? '')
+  const action = useWorkflowAction()
+  return (
+    <>
+      <p className="workflow__transcript">{answer.transcriptFinal ?? answer.transcriptRaw}</p>
+      {answer.turnId && (
+        <Button variant="quiet" size="sm" onClick={() => setEditing(!editing)}>
+          {t.correct}
+        </Button>
+      )}
+      {editing && (
+        <form
+          className="workflow__form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void action.perform(async () => {
+              await api(`/dora/sessions/${sessionId}/turns/${answer.turnId}`, {
+                method: 'PATCH',
+                json: { transcript: text },
+              })
+              setEditing(false)
+              refresh()
+            })
+          }}
+        >
+          <label>
+            {t.transcript}
+            <textarea
+              className="workflow__editor"
+              maxLength={4000}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
+          </label>
+          <Button type="submit" disabled={action.busy}>
+            {t.save}
+          </Button>
+          <ActionError message={action.error} />
+        </form>
+      )}
+      {answer.feedback && (
+        <section>
+          <h3>{t.feedback}</h3>
+          <Source value={answer.feedback.generatedBy} />
+          {answer.feedback.status === 'PENDING' ? (
+            <p role="status">{t.feedbackPending}</p>
+          ) : (
+            answer.feedback.criteria?.map((item) => (
+              <div key={item.criterion}>
+                <strong>
+                  {item.name} · {item.level}
+                </strong>
+                <p>{item.comment}</p>
+                {item.quotes.map((quote, index) => (
+                  <blockquote key={index}>{quote}</blockquote>
+                ))}
+              </div>
+            ))
+          )}
+          {answer.feedback.retryable && (
+            <Button
+              variant="quiet"
+              disabled={action.busy}
+              onClick={() =>
+                void action.perform(async () => {
+                  await api(`/dora/sessions/${sessionId}/turns/${answer.turnId}/feedback`, {
+                    method: 'POST',
+                  })
+                  refresh()
+                })
+              }
+            >
+              {t.retry}
+            </Button>
+          )}
+        </section>
+      )}
+    </>
+  )
+}

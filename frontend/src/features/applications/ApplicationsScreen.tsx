@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { fetchApplications } from '../../api/applications'
 import { ApiError } from '../../api/client'
 import { Button } from '../../components/Button'
@@ -26,6 +26,7 @@ function pageFrom(value: string | null): number {
 /** Page /postulaciones (008-18): every application of the student, newest first. */
 export function ApplicationsScreen() {
   const { refresh } = useSession()
+  const location = useLocation()
   const [params] = useSearchParams()
   const page = pageFrom(params.get('pagina'))
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -84,7 +85,12 @@ export function ApplicationsScreen() {
               <li key={item.id}>
                 <Card className="application-item">
                   <h2 className="application-item__title">
-                    <Link to={`${sessionPaths.applications}/${item.id}`}>{item.vacancy.title}</Link>
+                    <Link
+                      state={{ applicationList: location.pathname + location.search }}
+                      to={`${sessionPaths.applications}/${item.id}`}
+                    >
+                      {item.vacancy.title}
+                    </Link>
                   </h2>
                   <p className="application-item__company">
                     {item.vacancy.company.name} · {item.vacancy.company.city}
