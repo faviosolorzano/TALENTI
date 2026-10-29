@@ -156,15 +156,15 @@ describe('014-37: aviso v2', () => {
   it('informa cámara, qué se detecta en el equipo, fotos, quién las ve, 90 días, sin IA y que ningún aviso reprueba', () => {
     for (const fragment of [
       'Cámara obligatoria',
-      'sin enviar la imagen',
+      'la imagen no se envía para analizarla',
       'una cada 60 segundos',
-      'solo la empresa de esta vacante',
+      'Solo las ve la empresa de esta vacante',
       'nunca se envían a una inteligencia artificial',
       '90 días',
       'marca de agua',
       'pantalla completa',
       'tecla de captura',
-      'Ningún aviso de cámara reprueba',
+      'Ningún aviso de cámara te reprueba',
     ])
       expect(client).toContain(fragment)
   })

@@ -264,6 +264,13 @@ describe('014-46: umbrales desde el servidor', () => {
     })
   })
 
+  it('acepta las claves que entrega el backend (episodeEndMs para el cierre de episodios)', () => {
+    expect(parseThresholds({ episodeEndMs: 1500, noticeCooldownMs: 20000 })).toMatchObject({
+      clearHoldMs: 1500,
+      noticeCooldownMs: 20000,
+    })
+  })
+
   it('nunca baja de 3 y 1 cuadros por segundo', () => {
     expect(parseThresholds({ degradedFaceFps: 1, degradedObjectFps: 0 })).toMatchObject({
       degradedFaceFps: 3,
