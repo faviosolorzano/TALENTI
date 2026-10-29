@@ -177,3 +177,42 @@ it('012-F03: cancelling a permission and retrying cannot let the old stream repl
   await user.click(screen.getByRole('button', { name: c.close }))
   expect(latest.stop).toHaveBeenCalledTimes(1)
 })
+it('elegir cámara: con varias cámaras se puede cambiar y la elección queda guardada', async () => {
+  window.localStorage.removeItem('talenti.media.camera')
+  const first = stream('camara-telefono')
+  const second = stream('camara-laptop')
+  const media = vi.fn(async (constraints: MediaStreamConstraints) => {
+    const video = constraints.video as { deviceId?: { exact?: string } }
+    const chosen = video.deviceId?.exact === 'laptop' ? second : first
+    const deviceId = chosen === second ? 'laptop' : 'telefono'
+    return {
+      ...chosen.value,
+      getTracks: () => [{ stop: chosen.stop, getSettings: () => ({ deviceId }) }],
+    } as unknown as MediaStream
+  })
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: {
+      getUserMedia: media,
+      enumerateDevices: async () => [
+        { kind: 'videoinput', deviceId: 'telefono', label: 'Cámara del teléfono' },
+        { kind: 'videoinput', deviceId: 'laptop', label: 'Cámara integrada' },
+        { kind: 'audioinput', deviceId: 'mic', label: 'Micrófono' },
+      ],
+    },
+  })
+  const { user } = await open()
+  await user.click(screen.getByRole('button', { name: c.cameraStart }))
+  const picker = await screen.findByRole('combobox', { name: c.cameraPick })
+  expect(picker).toHaveValue('telefono')
+  await user.selectOptions(picker, 'laptop')
+  await waitFor(() =>
+    expect(media).toHaveBeenLastCalledWith({
+      video: { deviceId: { exact: 'laptop' } },
+      audio: false,
+    }),
+  )
+  expect(first.stop).toHaveBeenCalled()
+  expect(window.localStorage.getItem('talenti.media.camera')).toBe('laptop')
+  window.localStorage.removeItem('talenti.media.camera')
+})

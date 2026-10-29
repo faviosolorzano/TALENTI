@@ -1,4 +1,5 @@
 import { ApiError } from '../../../api/client'
+import { deviceConstraint } from '../mediaPreferences'
 import {
   DEFAULT_EVENT_NAMES,
   realtimeApi,
@@ -240,7 +241,12 @@ export class DoraCall {
     let stream: MediaStream
     try {
       stream = await this.deps.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          ...deviceConstraint('microphone'),
+        },
       })
     } catch {
       if (!this.disposed && mediaAttempt === this.mediaAttempt) this.fail('mic-denied')

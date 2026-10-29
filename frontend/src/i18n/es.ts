@@ -82,6 +82,8 @@ export const es = {
     listenShort: 'Escuchar',
     endShort: 'Terminar',
     cameraStop: 'Apagar cámara',
+    cameraPick: 'Elige tu cámara',
+    micPick: 'Elige tu micrófono',
     micStop: 'Detener micrófono',
     closeTranscript: 'Cerrar transcripción',
     closeHelp: 'Cerrar ayuda',
