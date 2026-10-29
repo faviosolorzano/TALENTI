@@ -1,0 +1,11 @@
+Modelos de MediaPipe usados por la supervisión del examen de Talenti (spec 014, Enmienda 1).
+Se sirven desde este mismo origen; no se descargan de terceros en tiempo de ejecución.
+
+face_landmarker.task      Face Landmarker, float16, versión 1 (Google, licencia Apache 2.0)
+                          sha256 64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff
+efficientdet_lite0.tflite Object Detector EfficientDet-Lite0, int8, versión 1 (Google, licencia Apache 2.0)
+                          sha256 0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb
+
+Origen: el almacenamiento público de modelos de MediaPipe (mediapipe-models), rutas
+face_landmarker/face_landmarker/float16/1/ y object_detector/efficientdet_lite0/int8/1/.
+El motor WASM sale del paquete npm @mediapipe/tasks-vision 1.2.0 (Apache 2.0) al construir.
