@@ -53,10 +53,11 @@ class ArchitectureTests {
 			.ignoreDependency(resideInAPackage("com.talenti.application.."),
 					belongToAnyOf(CurrentUser.class, Role.class, VacancyLookup.class, VacancyInfo.class))
 			// matching (spec 007) usa el usuario de la sesión, ProfileReader con su snapshot y VacancyLookup con su información;
-			// nada más (lo vigila MatchingArchitectureTests).
+			// la explicación de DORA (spec 015) suma el catálogo de habilidades con sus sinónimos; nada más (lo vigila
+			// MatchingArchitectureTests).
 			.ignoreDependency(resideInAPackage("com.talenti.matching.."), belongToAnyOf(CurrentUser.class, Role.class,
 					ProfileReader.class, ProfileSnapshot.class, WorkModality.class, SkillEvidence.class, VacancyLookup.class,
-					VacancyInfo.class))
+					VacancyInfo.class, SkillCatalog.class, SkillInfo.class))
 			// github (spec 013) usa el usuario de la sesión, el catálogo de habilidades y SkillEvidenceWriter con el perfil
 			// que devuelve (lo vigila GithubArchitectureTests); nada más.
 			.ignoreDependency(resideInAPackage("com.talenti.github.."), belongToAnyOf(CurrentUser.class, Role.class,

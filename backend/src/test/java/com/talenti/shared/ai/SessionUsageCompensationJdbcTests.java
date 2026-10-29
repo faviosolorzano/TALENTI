@@ -49,7 +49,7 @@ class SessionUsageCompensationJdbcTests {
 		jdbc.update("INSERT INTO app_user(id,email,password_hash,role) VALUES (?,?,'x','STUDENT')", user,
 				user + "@ejemplo.test");
 		usage = new JdbcAiUsage(JdbcClient.create(dataSource), CLOCK,
-				new AiLimitsProperties(Map.of("practice-session", 1), 1, 1, ZoneId.of("America/Lima"), BigDecimal.ONE));
+				new AiLimitsProperties(Map.of("practice-session", 1), 1, 1, ZoneId.of("America/Lima"), BigDecimal.ONE, Map.of()));
 	}
 
 	@AfterEach

@@ -14,10 +14,11 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 
 /**
- * 007-17 y T5: el módulo matching solo usa la interfaz pública de profile ({@code ProfileReader}), de vacancy
- * ({@code VacancyLookup}) y de identity ({@code CurrentUser}); no usa nada de practice; nadie más usa sus clases
- * internas; el motor de reglas no conoce a ningún otro módulo, ni a Spring, ni a la base de datos, ni a la IA
- * (007-08); y ninguna clase de matching toca JDBC.
+ * 007-17, 015-18 y T5: el módulo matching solo usa la interfaz pública de profile ({@code ProfileReader}), de vacancy
+ * ({@code VacancyLookup}, {@code SkillCatalog}), de identity ({@code CurrentUser}) y {@code shared.ai}; no usa nada de
+ * practice; nadie más usa sus clases internas; el motor de reglas no conoce a ningún otro módulo, ni a Spring, ni a la
+ * base de datos, ni a la IA (007-08); solo su paquete {@code persistence} toca JDBC; y el cupo de IA solo lo usa el
+ * servicio de la explicación.
  */
 @AnalyzeClasses(packages = "com.talenti", importOptions = ImportOption.DoNotIncludeTests.class)
 class MatchingArchitectureTests {
@@ -33,7 +34,9 @@ class MatchingArchitectureTests {
 			"com.talenti.vacancy.VacancyLookup", "com.talenti.vacancy.VacancyInfo",
 			"com.talenti.vacancy.VacancyInfo$Modality", "com.talenti.vacancy.VacancyInfo$Status",
 			"com.talenti.vacancy.VacancyInfo$RequirementKind", "com.talenti.vacancy.VacancyInfo$Company",
-			"com.talenti.vacancy.VacancyInfo$Requirement");
+			"com.talenti.vacancy.VacancyInfo$Requirement",
+			// 015-07: el catálogo con sinónimos para validar qué habilidades menciona la IA.
+			"com.talenti.vacancy.SkillCatalog", "com.talenti.vacancy.SkillInfo");
 
 	@ArchTest
 	static void matchingOnlyUsesPublicApiOfOtherModules(JavaClasses classes) {
@@ -95,12 +98,21 @@ class MatchingArchitectureTests {
 	}
 
 	@ArchTest
-	static void matchingDoesNotUseJdbcOrAiPorts(JavaClasses classes) {
+	static void onlyPersistenceUsesJdbc(JavaClasses classes) {
+		noClasses().that().resideInAPackage(MATCHING).and().resideOutsideOfPackage("com.talenti.matching.persistence..")
+				.should().dependOnClassesThat().resideInAnyPackage("org.springframework.jdbc..", "javax.sql..")
+				.as("en matching solo persistence usa JDBC (su tabla compatibility_explanation, V14)").check(classes);
+	}
+
+	/** 015-18: el cupo y el consumo de IA ({@code shared.ai}) solo los usa el servicio; ningún otro puerto de IA. */
+	@ArchTest
+	static void onlyServiceUsesSharedAi(JavaClasses classes) {
+		noClasses().that().resideInAPackage(MATCHING).and().resideOutsideOfPackage("com.talenti.matching.service..")
+				.should().dependOnClassesThat().resideInAnyPackage("com.talenti.shared.ai..")
+				.as("en matching solo el servicio usa shared.ai").check(classes);
 		noClasses().that().resideInAPackage(MATCHING).should().dependOnClassesThat()
-				.resideInAnyPackage("org.springframework.jdbc..", "javax.sql..", "com.talenti..ai..",
-						"com.talenti.shared.ai..")
-				.as("matching no usa JDBC (lee por interfaces públicas) ni puertos de IA (la similitud está apagada hasta S12)")
-				.check(classes);
+				.resideInAnyPackage("com.talenti.practice..", "com.talenti.cv..", "com.talenti.exam..")
+				.as("matching tiene su propio puerto de IA: no usa los de practice, cv ni exam (T5)").check(classes);
 	}
 
 }

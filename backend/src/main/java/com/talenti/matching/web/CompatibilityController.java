@@ -6,6 +6,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +16,7 @@ import com.talenti.matching.service.CompatibilityService;
 import com.talenti.matching.service.CompatibilityService.Detail;
 import com.talenti.matching.service.CompatibilityService.Recommended;
 import com.talenti.matching.service.CompatibilityService.Summaries;
+import com.talenti.matching.service.DoraExplanationService;
 
 /**
  * Compatibilidad del estudiante con las vacantes (spec 007, sección 6). El id de la persona sale siempre de la
@@ -27,8 +29,11 @@ class CompatibilityController {
 
 	private final CompatibilityService compatibility;
 
-	CompatibilityController(CompatibilityService compatibility) {
+	private final DoraExplanationService explanations;
+
+	CompatibilityController(CompatibilityService compatibility, DoraExplanationService explanations) {
 		this.compatibility = compatibility;
+		this.explanations = explanations;
 	}
 
 	@GetMapping("/vacancies/{vacancyId}")
@@ -36,7 +41,16 @@ class CompatibilityController {
 		Detail detail = compatibility.forVacancy(user.id(), vacancyId);
 		UUID id = detail.evaluated().vacancy().id();
 		return Responses.Compatibility.of(id, detail.evaluated().result(), detail.explanation(),
-				compatibility.calculator().parameters(), detail.evidence());
+				compatibility.calculator().parameters(), detail.evidence(), explanations.available());
+	}
+
+	/**
+	 * 015-01: "DORA te explica", solo a pedido. Genera (o devuelve del caché) la explicación con los datos actuales; si
+	 * la IA está apagada, falla o se alcanzó un límite, responde la plantilla (nunca 5xx por la IA).
+	 */
+	@PostMapping("/vacancies/{vacancyId}/explanation")
+	Responses.DoraExplanationBody explain(@AuthenticationPrincipal CurrentUser user, @PathVariable String vacancyId) {
+		return Responses.DoraExplanationBody.of(explanations.explain(user.id(), vacancyId));
 	}
 
 	@GetMapping("/recommended")

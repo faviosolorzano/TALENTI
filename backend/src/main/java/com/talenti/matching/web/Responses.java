@@ -18,6 +18,7 @@ import com.talenti.matching.domain.CompatibilityResult.RequirementItem;
 import com.talenti.matching.domain.Explanation;
 import com.talenti.matching.domain.MatchingParameters;
 import com.talenti.matching.service.CompatibilityService.Evaluated;
+import com.talenti.matching.service.DoraExplanationService.DoraExplanation;
 import com.talenti.vacancy.VacancyInfo;
 
 /** Cuerpos de las respuestas de {@code /compatibility} (spec 007, sección 6). */
@@ -71,11 +72,16 @@ final class Responses {
 
 	}
 
+	/** 015-02: si se ofrece la explicación con IA (encendida y sin el tope mensual de gasto). */
+	record DoraAvailability(boolean available) {
+	}
+
 	/** El resultado completo de una vacante: el resumen más las razones, listas, explicación y fórmula. */
 	record Compatibility(UUID vacancyId, String status, Integer percent, String level, boolean capped,
 			List<String> reasons, Integer informationBasis, List<ComponentBody> components,
 			List<Map<String, Object>> matches, List<Map<String, Object>> gaps,
-			List<Map<String, Object>> missingInfo, ExplanationBody explanation, Formula formula) {
+			List<Map<String, Object>> missingInfo, ExplanationBody explanation, Formula formula,
+			DoraAvailability doraExplanation) {
 
 		/** Lleva datos del perfil (por ejemplo su ubicación): no se imprime en registros. */
 		@Override
@@ -84,13 +90,55 @@ final class Responses {
 		}
 
 		static Compatibility of(UUID vacancyId, CompatibilityResult result, Explanation explanation,
-				MatchingParameters parameters, Map<String, String> evidence) {
+				MatchingParameters parameters, Map<String, String> evidence, boolean doraAvailable) {
 			return new Compatibility(vacancyId, result.status().name(), result.percent(),
 					result.level() == null ? null : result.level().name(), result.capped(),
 					result.reasons().stream().map(Enum::name).toList(), result.informationBasis(),
 					result.components().stream().map(ComponentBody::of).toList(), items(result.matches(), evidence),
 					items(result.gaps(), evidence), items(result.missingInfo(), evidence), ExplanationBody.of(explanation),
-					Formula.of(parameters));
+					Formula.of(parameters), new DoraAvailability(doraAvailable));
+		}
+
+	}
+
+	// -- DORA te explica (spec 015, sección 6) -------------------------------------------------------------------
+
+	record Sections(String fit, String gaps, String unknown) {
+	}
+
+	record PracticeBody(SkillRef skill, String requirementKind, String outcome, List<String> actions) {
+	}
+
+	record VersionsBody(String formula, String prompt, String template, String model, String adapter) {
+	}
+
+	/**
+	 * {@code vacancyId, percent, level, source, fallbackReason, cached, sections, practice, versions, generatedAt}.
+	 * Lleva texto para la persona: no se imprime en registros.
+	 */
+	record DoraExplanationBody(UUID vacancyId, int percent, String level, String source, String fallbackReason,
+			boolean cached, Sections sections, List<PracticeBody> practice, VersionsBody versions, Instant generatedAt) {
+
+		static DoraExplanationBody of(DoraExplanation explanation) {
+			return new DoraExplanationBody(explanation.vacancyId(), explanation.percent(), explanation.level().name(),
+					explanation.source().name(),
+					explanation.fallbackReason() == null ? null : explanation.fallbackReason().name(),
+					explanation.cached(),
+					new Sections(explanation.content().fit(), explanation.content().gaps(),
+							explanation.content().unknown()),
+					explanation.practice().stream()
+							.map(p -> new PracticeBody(new SkillRef(p.slug(), p.name()), p.requirementKind().name(),
+									p.outcome().name(), p.actions()))
+							.toList(),
+					new VersionsBody(explanation.versions().formula(), explanation.versions().prompt(),
+							explanation.versions().template(), explanation.versions().model(),
+							explanation.versions().adapter()),
+					explanation.generatedAt());
+		}
+
+		@Override
+		public String toString() {
+			return "DoraExplanationBody[vacancyId=" + vacancyId + ", source=" + source + "]";
 		}
 
 	}

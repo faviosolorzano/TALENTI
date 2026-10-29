@@ -72,6 +72,14 @@ class JdbcAiUsage implements AiUsageRecorder, AiUsageQuota {
 		if (personalLimit != null && used >= personalLimit) {
 			return new QuotaStatus(QuotaStatus.Block.PERSONAL, used, limit, nextMonth);
 		}
+		// Tope diario por persona (015-15): el día calendario de la zona configurada.
+		Integer dailyLimit = limits.perUserDaily().get(function.configKey());
+		if (dailyLimit != null) {
+			int usedToday = successes(userId, function, dayStart, nextDay);
+			if (usedToday >= dailyLimit) {
+				return new QuotaStatus(QuotaStatus.Block.PERSONAL, usedToday, dailyLimit, nextDay);
+			}
+		}
 		if (successes(null, function, dayStart, nextDay) >= limits.globalDaily()
 				|| successes(null, function, monthStart, nextMonth) >= limits.globalMonthly()) {
 			return new QuotaStatus(QuotaStatus.Block.GLOBAL, used, limit, nextMonth);

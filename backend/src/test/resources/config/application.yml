@@ -21,6 +21,11 @@ talenti:
     # Las pruebas barren la inactividad a mano con reloj simulado (012-14).
     sweep-interval: PT999H
   ai:
+    explanation:
+      # "DORA te explica" (spec 015): las pruebas usan el adaptador SIMULADO (ninguna sale a la red). Producción sigue
+      # apagada por defecto. Las pruebas de tiempo agotado no esperan los 8 s de producción.
+      simulated: true
+      timeout: 1500ms
     dora:
       realtime:
         # Las pruebas cierran por tiempo a mano con reloj simulado (012-49). Ninguna prueba sale a la red: el adaptador

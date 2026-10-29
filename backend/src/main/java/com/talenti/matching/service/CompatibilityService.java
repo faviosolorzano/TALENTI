@@ -76,6 +76,16 @@ public class CompatibilityService {
 		return calculator;
 	}
 
+	/**
+	 * La vacante abierta y el resultado con los datos ACTUALES del perfil (lo usa la explicación de DORA, 015-01: si el
+	 * perfil cambió, recalcula). 404 si la vacante no existe, está cerrada o el id no es un UUID.
+	 */
+	public Evaluated evaluateOpen(UUID userId, String rawVacancyId) {
+		UUID id = parse(rawVacancyId);
+		VacancyInfo vacancy = vacancies.findOpenForMatching(id).orElseThrow(VacancyNotFoundException::new);
+		return new Evaluated(vacancy, evaluate(facts(profiles.snapshot(userId)), vacancy));
+	}
+
 	/** 404 si la vacante no existe, está cerrada o el id no es un UUID. */
 	public Detail forVacancy(UUID userId, String rawVacancyId) {
 		UUID id = parse(rawVacancyId);
