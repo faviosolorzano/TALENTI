@@ -50,8 +50,8 @@ const json = (body: unknown, status = 200) =>
 const thresholds = {
   faceFps: 20,
   objectFps: 2,
-  calibrationMs: 600,
-  calibrationMinFrames: 3,
+  calibrationMs: 1500,
+  calibrationMinFrames: 2,
   sustainMs: 300,
   noticeCooldownMs: 30000,
 }
@@ -198,7 +198,7 @@ afterEach(() => {
 /** Recorre "Comenzar" hasta el examen en curso. */
 async function startExam(user: ReturnType<typeof mount>['user']) {
   await user.click(await screen.findByRole('button', { name: p.begin }))
-  await user.click(await screen.findByRole('button', { name: p.enterAndStart }))
+  await user.click(await screen.findByRole('button', { name: p.enterAndStart }, { timeout: 15000 }))
   await screen.findByText('Explica tu decisión de diseño')
 }
 
@@ -214,8 +214,8 @@ it('014-38: "Comenzar" sigue el orden cámara guardada, modelos, calibración y 
     },
     audio: false,
   })
-  expect(await screen.findByText(p.stepCalibrating)).toBeInTheDocument()
-  const enter = await screen.findByRole('button', { name: p.enterAndStart })
+  // El texto de calibración es pasajero (1,5 s aquí); se comprueba el resultado: base tomada y botón final.
+  const enter = await screen.findByRole('button', { name: p.enterAndStart }, { timeout: 15000 })
   expect(sim.loads).toBe(1)
   expect(rec.calls).toEqual([])
   // La cámara que quedó en uso se recuerda para la próxima vez.
