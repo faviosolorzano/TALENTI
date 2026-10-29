@@ -307,9 +307,23 @@ export function ProctoredStart({
   }
   async function enter() {
     setError('')
+    if (!session.hasCamera) {
+      setError(p.cameraNeeded)
+      setStage('idle')
+      return
+    }
     try {
       await document.documentElement.requestFullscreen()
     } catch {
+      setError(p.fullscreenFailed)
+      return
+    }
+    if (!session.hasCamera) {
+      setError(p.cameraNeeded)
+      setStage('idle')
+      return
+    }
+    if (!document.fullscreenElement) {
       setError(p.fullscreenFailed)
       return
     }

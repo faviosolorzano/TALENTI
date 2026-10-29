@@ -325,6 +325,20 @@ it('014-42: al salir de pantalla completa se envía SCREEN_LEFT y las preguntas 
   expect(rec.events.filter((e) => e.kind === 'SCREEN_LEFT')).toHaveLength(1)
 })
 
+it('014-38: perder cámara mientras se prepara permite reintentar sin enviar un inicio inválido', async () => {
+  const { user, rec } = mount(attempt())
+  await user.click(await screen.findByRole('button', { name: p.begin }))
+  const enter = await screen.findByRole('button', { name: p.enterAndStart }, { timeout: 15000 })
+  act(() => tracks[0]!.fire('ended'))
+  await user.click(enter)
+  expect(await screen.findByText(p.cameraNeeded)).toBeVisible()
+  expect(rec.start).toHaveLength(0)
+  await user.click(screen.getByRole('button', { name: p.begin }))
+  await user.click(await screen.findByRole('button', { name: p.enterAndStart }, { timeout: 15000 }))
+  expect(await screen.findByText('Explica tu decisión de diseño')).toBeVisible()
+  expect(rec.start).toHaveLength(1)
+})
+
 it('014-41: si la cámara se corta se registra CAMERA_LOST, se tapan las preguntas y "Reconectar" las devuelve', async () => {
   const { user, rec } = mount(attempt())
   await startExam(user)

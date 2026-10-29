@@ -76,6 +76,12 @@ test('014: cámara falsa y servidor real conservan respuestas, fotos, eventos y 
   await page.goto(`/postulaciones/${app.id}/examen`)
   const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
   if (await reject.count()) await reject.click()
+  await page.bringToFront()
+  expect(
+    await page.evaluate(
+      () => document.fullscreenEnabled && Boolean(navigator.mediaDevices?.getUserMedia),
+    ),
+  ).toBe(true)
   await page.getByRole('button', { name: p.begin, exact: true }).click()
   await expect(page.getByText(p.detectionUnavailable)).toBeVisible({ timeout: 60000 })
   const starting = page.waitForResponse(
@@ -85,6 +91,10 @@ test('014: cámara falsa y servidor real conservan respuestas, fotos, eventos y 
   const started = await starting
   expect(started.request().postDataJSON()).toMatchObject({ cameraReady: true, fullscreen: true })
   expect(started.status()).toBe(200)
+  // La cámara de Chrome puede silenciarse al cambiar de vista. Se verifica el recorrido
+  // de recuperación real; no se fuerza el estado de la cámara ni se destapan las preguntas.
+  const reconnect = page.getByRole('button', { name: p.reconnect, exact: true })
+  if (await reconnect.isVisible()) await reconnect.click()
   await expect(page.getByRole('radio').first()).toBeVisible()
   await expect
     .poll(async () => (await (await page.request.get(route + '/snapshots')).json()).length)
@@ -94,6 +104,8 @@ test('014: cámara falsa y servidor real conservan respuestas, fotos, eventos y 
   expect(photo.headers()['cache-control']).toBe('no-store')
   expect(photo.headers()['content-type']).toContain('image/jpeg')
   expect((await photo.body()).length).toBeLessThanOrEqual(150 * 1024)
+  if (await reconnect.isVisible()) await reconnect.click()
+  await expect(page.getByRole('radio').first()).toBeVisible({ timeout: 10000 })
   await page.getByRole('radio').first().check()
   await page.getByRole('button', { name: t.save, exact: true }).click()
   await expect(page.getByText(t.answerSaved, { exact: true })).toBeVisible()
@@ -102,6 +114,7 @@ test('014: cámara falsa y servidor real conservan respuestas, fotos, eventos y 
   await expect(page.getByRole('radio').first()).toBeChecked()
   for (const width of [1280, 768, 360]) {
     await page.setViewportSize({ width, height: 900 })
+    if (await reconnect.isVisible()) await reconnect.click()
     await page.evaluate(() => {
       window.scrollTo({ top: 0, behavior: 'instant' })
     })

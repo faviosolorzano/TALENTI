@@ -117,6 +117,7 @@ test('014-45: MediaPipe y sus modelos cargan con la CSP real; sin rostro, la cal
   })
   await mockBackend(page)
   await page.goto('/postulaciones/app-e2e/examen')
+  await page.bringToFront()
   await page.getByRole('button', { name: p.begin }).click()
   await expect(page.getByText(p.stepCalibrating)).toBeVisible({ timeout: 60000 })
   await expect(page.getByText(p.calibrationFrames)).toBeVisible({ timeout: 30000 })
@@ -138,6 +139,12 @@ test('014-38, 014-40, 014-42, 014-44, 014-53: empezar, foto inicial, bloqueos y 
     await page.setViewportSize({ width, height: 900 })
     await page.screenshot({ path: `${output}/inicio-${width}.png`, fullPage: true })
   }
+  await page.bringToFront()
+  expect(
+    await page.evaluate(
+      () => document.fullscreenEnabled && Boolean(navigator.mediaDevices?.getUserMedia),
+    ),
+  ).toBe(true)
   await page.getByRole('button', { name: p.begin }).click()
   await expect(page.getByText(p.detectionUnavailable)).toBeVisible({ timeout: 60000 })
   // 360 px de ancho se considera computadora aquí: el agente de usuario es de escritorio.
