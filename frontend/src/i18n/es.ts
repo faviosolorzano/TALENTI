@@ -358,7 +358,8 @@ export const es = {
         'El navegador no dio permiso para usar la cámara. Permítelo desde el candado de la barra de direcciones y vuelve a intentar.',
       cameraBusy:
         'No se pudo abrir la cámara. Cierra otras apps que la estén usando o elige otra cámara.',
-      newNotice: 'Las reglas del examen cambiaron. Lee el aviso actualizado y acéptalo para empezar.',
+      newNotice:
+        'Las reglas del examen cambiaron. Lee el aviso actualizado y acéptalo para empezar.',
       acceptNotice: 'Aceptar el aviso',
       beforeStart:
         'Al comenzar encenderemos tu cámara, tomaremos tu posición de referencia y pasaremos a pantalla completa.',
