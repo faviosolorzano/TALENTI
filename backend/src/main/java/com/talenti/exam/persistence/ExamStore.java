@@ -24,7 +24,8 @@ public class ExamStore {
 	public record AttemptRow(UUID id, UUID applicationId, UUID userId, UUID versionId, long shuffleSeed,
 			AttemptStatus status, String gradingStatus, String noticeVersion, Instant noticeAcceptedAt,
 			Instant startedAt, Instant deadlineAt, Instant endedAt, String closedReason, int screenLeftCount,
-			BigDecimal score100, BigDecimal score20, String scoringVersion, Instant createdAt) { }
+			BigDecimal score100, BigDecimal score20, String scoringVersion, Instant createdAt,
+			String proctoringVersion, String proctoringConfig, String detectionStatus, String calibration) { }
 	public record AnswerRow(UUID id, UUID attemptId, UUID questionId, String choiceId, String text, String code,
 			long revision, int runCount, String gradeStatus, BigDecimal points, String gradeDetail,
 			int gradingAttempts, Instant nextRetryAt, Instant updatedAt) {
@@ -44,7 +45,8 @@ public class ExamStore {
 				r.getObject("version_id",UUID.class),r.getLong("shuffle_seed"),AttemptStatus.valueOf(r.getString("status")),r.getString("grading_status"),
 				r.getString("notice_version"),instant(r,"notice_accepted_at"),instant(r,"started_at"),instant(r,"deadline_at"),instant(r,"ended_at"),
 				r.getString("closed_reason"),r.getInt("screen_left_count"),r.getBigDecimal("score_100"),r.getBigDecimal("score_20"),
-				r.getString("scoring_version"),instant(r,"created_at"));
+				r.getString("scoring_version"),instant(r,"created_at"),r.getString("proctoring_version"),r.getString("proctoring_config"),
+				r.getString("detection_status"),r.getString("calibration"));
 	}
 	private static AnswerRow answer(ResultSet r,int n) throws SQLException {
 		return new AnswerRow(r.getObject("id",UUID.class),r.getObject("attempt_id",UUID.class),r.getObject("question_id",UUID.class),
@@ -128,9 +130,26 @@ public class ExamStore {
 	public Optional<AttemptRow> forApplication(UUID application) {
 		return jdbc.sql("SELECT * FROM exam_attempt WHERE application_id=:application").param("application",application).query(ExamStore::attempt).optional();
 	}
-	public void start(UUID id,Instant now,Instant deadline) {
-		jdbc.sql("UPDATE exam_attempt SET status='IN_PROGRESS',started_at=:now,deadline_at=:deadline WHERE id=:id AND status='NOT_STARTED'")
-				.param("id",id).param("now",utc(now)).param("deadline",utc(deadline)).update();
+	public void start(UUID id,Instant now,Instant deadline) { start(id,now,deadline,null,null,null,null); }
+	/** 014-38: guarda la configuración entregada al navegador y la base de calibración (principio 11). */
+	public void start(UUID id,Instant now,Instant deadline,String proctoringVersion,Object proctoringConfig,String detection,Object calibration) {
+		jdbc.sql("""
+				UPDATE exam_attempt SET status='IN_PROGRESS',started_at=:now,deadline_at=:deadline,proctoring_version=:version,
+				proctoring_config=CAST(:config AS jsonb),detection_status=:detection,calibration=CAST(:calibration AS jsonb)
+				WHERE id=:id AND status='NOT_STARTED'""")
+				.param("id",id).param("now",utc(now)).param("deadline",utc(deadline)).param("version",proctoringVersion)
+				.param("config",proctoringConfig==null?null:json(proctoringConfig)).param("detection",detection)
+				.param("calibration",calibration==null?null:json(calibration)).update();
+	}
+	/** 014-37: un intento sin empezar acepta el aviso vigente. */
+	public boolean acceptNotice(UUID id,String version,Instant now) {
+		return jdbc.sql("UPDATE exam_attempt SET notice_version=:version,notice_accepted_at=:now WHERE id=:id AND status='NOT_STARTED'")
+				.param("id",id).param("version",version).param("now",utc(now)).update()==1;
+	}
+	/** 014-51: eventos enviados por el cliente desde {@code since} (hora del servidor). */
+	public int clientEventsSince(UUID attempt,Instant since) {
+		return jdbc.sql("SELECT count(*) FROM exam_event WHERE attempt_id=:attempt AND client_event_id IS NOT NULL AND occurred_at>:since")
+				.param("attempt",attempt).param("since",utc(since)).query(Integer.class).single();
 	}
 	public boolean close(UUID id,AttemptStatus status,String reason,Instant now) {
 		return jdbc.sql("""

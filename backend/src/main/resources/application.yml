@@ -231,6 +231,49 @@ talenti:
   exam:
     enabled: true
     time-limit: 60m
+    # Aviso v2 (enmienda 1 de la spec 014): cámara, detección en el equipo, fotos, marca de agua y bloqueos.
+    notice-version: v2
+    proctoring:
+      enabled: true
+      snapshot-interval: 60s        # una foto cada minuto, más una al empezar y una por aviso (014-53)
+      snapshot-max-bytes: 150KB     # 413 si pesa más (014-54)
+      snapshot-max-side: 640
+      max-snapshots-per-attempt: 150
+      retention: 90d                # borrado desde el fin del intento (014-56)
+      events-per-minute: 30         # eventos del cliente por intento (014-51)
+      purge-interval: 24h           # tarea diaria de borrado y barrido de archivos sin ficha
+      storage:
+        type: local                 # disco en el volumen Docker exam-snapshots; S3 al desplegar
+        path: ${TALENTI_EXAM_SNAPSHOTS_PATH:/var/lib/talenti/exam-snapshots}
+      # Umbrales que usa el navegador (014-46 a 014-50); ajustables tras la prueba manual de Favio (duda E1).
+      thresholds-version: thresholds-v1
+      thresholds:
+        face-fps: 5
+        object-fps: 2
+        degraded-face-fps: 3
+        degraded-object-fps: 1
+        frame-budget: 60ms
+        calibration: 3s
+        calibration-min-frames: 10
+        max-base-deg: 35
+        smoothing-alpha: 0.3
+        yaw-deg: 30
+        pitch-up-deg: 25
+        pitch-down-deg: 35
+        sustain: 2s
+        abrupt-deg: 45
+        abrupt-window: 500ms
+        abrupt-sustain: 1s
+        hysteresis-deg: 5
+        end-hold: 500ms
+        face-missing: 3s
+        multi-face: 2s
+        episode-end: 1s
+        face-score: 0.6
+        phone-score: 0.6
+        phone-hits: 5
+        phone-window: 8
+        notice-cooldown: 30s
     runner:
       mode: volume
       jobs: /var/lib/talenti/exam-jobs

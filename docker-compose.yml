@@ -100,6 +100,8 @@ services:
       TALENTI_EXAM_SQL_READER_PASSWORD: ${EXAM_SQL_READER_PASSWORD:?define contraseña propia de exam-sql}
     volumes:
       - exam-jobs:/var/lib/talenti/exam-jobs
+      # Fotos del examen (014-54): solo el backend las ve; se borran a los 90 días (014-56).
+      - exam-snapshots:/var/lib/talenti/exam-snapshots
     networks:
       - default
       - exam-net
@@ -186,6 +188,7 @@ volumes:
   pgdata:
   exam-jobs:
   exam-sql-data:
+  exam-snapshots:
 
 networks:
   exam-net:

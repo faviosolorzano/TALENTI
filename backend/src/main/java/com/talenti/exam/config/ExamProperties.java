@@ -14,7 +14,7 @@ public record ExamProperties(@DefaultValue("true") boolean enabled, @DefaultValu
 		@DefaultValue("2") int visibleCases, @DefaultValue("3") int hiddenCases,
 		@DefaultValue("2") int maxRegenerations, @DefaultValue("15") int maxRunsPerQuestion,
 		@DefaultValue("30s") Duration gradingTimeout, @DefaultValue("24h") Duration gradingRetryWindow,
-		@DefaultValue("1h") Duration runnerRetryWindow, @DefaultValue("v1") String noticeVersion,
+		@DefaultValue("1h") Duration runnerRetryWindow, @DefaultValue("v2") String noticeVersion,
 		@DefaultValue Map<String, Language> languageMap, @DefaultValue Weights weights,
 		@DefaultValue Scoring scoring, @DefaultValue Runner runner, @DefaultValue Sql sql) {
 	public ExamProperties {

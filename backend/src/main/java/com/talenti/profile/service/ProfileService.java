@@ -21,6 +21,7 @@ import com.talenti.profile.ConfirmedChanges;
 import com.talenti.profile.ProfileCompleteness;
 import com.talenti.profile.ProfileEditor;
 import com.talenti.profile.ProfileFirstName;
+import com.talenti.profile.ProfileWatermarkName;
 import com.talenti.profile.ProfileReader;
 import com.talenti.profile.ProfileSnapshot;
 import com.talenti.profile.ProfileView;
@@ -47,7 +48,8 @@ import com.talenti.vacancy.SkillInfo;
  * (006-12). Las habilidades se resuelven solo por {@link SkillCatalog}, nunca leyendo la tabla del catálogo.
  */
 @Service
-public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirstName, SkillEvidenceWriter {
+public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirstName, ProfileWatermarkName,
+		SkillEvidenceWriter {
 
 	/** Largo máximo del primer nombre que sale hacia la conversación con DORA. */
 	private static final int MAX_FIRST_NAME = 30;
@@ -99,6 +101,24 @@ public class ProfileService implements ProfileReader, ProfileEditor, ProfileFirs
 				.map(String::strip).filter(names -> !names.isEmpty())
 				.map(names -> names.split("\\s+")[0])
 				.map(first -> first.length() > MAX_FIRST_NAME ? first.substring(0, MAX_FIRST_NAME) : first);
+	}
+
+	/** 014-43: primer nombre y primer apellido para la marca de agua del examen; nada más del perfil. */
+	@Override
+	@Transactional(readOnly = true)
+	public java.util.Optional<String> watermarkName(UUID userId) {
+		return repository.findProfile(userId).map(profile -> java.util.stream.Stream
+				.of(firstWord(profile.firstNames()), firstWord(profile.lastNames())).filter(word -> !word.isEmpty())
+				.collect(java.util.stream.Collectors.joining(" "))).filter(name -> !name.isEmpty());
+	}
+
+	private static String firstWord(String names) {
+		String stripped = names == null ? "" : names.strip();
+		if (stripped.isEmpty()) {
+			return "";
+		}
+		String first = stripped.split("\\s+")[0];
+		return first.length() > MAX_FIRST_NAME ? first.substring(0, MAX_FIRST_NAME) : first;
 	}
 
 	@Override

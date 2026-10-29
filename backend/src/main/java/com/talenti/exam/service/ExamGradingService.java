@@ -21,7 +21,7 @@ import com.talenti.exam.port.*;
 import com.talenti.shared.ai.AiFunction;
 
 @Service
-public class ExamGradingService implements ExamResults {
+public class ExamGradingService {
 	private final ExamStore store;
 	private final OpenAnswerGraderPort grader;
 	private final CodeExecutionPort execution;
@@ -94,7 +94,8 @@ public class ExamGradingService implements ExamResults {
 		boolean pending=answers.stream().anyMatch(a->a.gradeStatus().equals("PENDING")||a.gradeStatus().equals("UNAVAILABLE"));
 		store.total(attempt.id(),pending?"PROVISIONAL":"DONE",total,ExamScoring.score20(total));
 	}
-	@Override public Optional<ExamResults.Result> forApplication(UUID applicationId) {
+	/** Resultado calificado sin la supervisión: la agrega {@link ExamResultsService} (esta clase usa la IA y no ve fotos). */
+	public Optional<ExamResults.Result> graded(UUID applicationId) {
 		return store.forApplication(applicationId).map(a->{
 			Map<UUID,ExamQuestion> questions=new HashMap<>(); store.questions(a.versionId()).forEach(q->questions.put(q.id(),q));
 			List<AnswerRow> answers=store.answers(a.id());
@@ -102,7 +103,7 @@ public class ExamGradingService implements ExamResults {
 			return new ExamResults.Result(a.id(),a.versionId(),a.status().name(),a.gradingStatus(),a.closedReason(),a.score100(),a.score20(),pending,a.scoringVersion(),
 					answers.stream().map(r->{var q=questions.get(r.questionId()); return new ExamResults.Question(q.id(),q.type().name(),q.prompt(),r.choiceId(),r.text(),r.code(),r.gradeStatus(),r.points(),r.gradeDetail());}).toList(),
 					store.events(a.id()).stream().map(e->new ExamResults.Event(e.kind(),e.occurredAt(),e.clientOccurredAt(),e.dataJson())).toList(),
-					answers.stream().anyMatch(r->r.gradeStatus().equals("UNANSWERED")));
+					answers.stream().anyMatch(r->r.gradeStatus().equals("UNANSWERED")),null);
 		});
 	}
 }

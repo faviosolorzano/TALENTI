@@ -12,7 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
 import com.talenti.exam.service.ExamNotice;
 
 @Configuration(proxyBeanMethods=false)
-@EnableConfigurationProperties({ExamProperties.class,ExamAiProperties.class,ExamOpenAiAccess.class})
+@EnableConfigurationProperties({ExamProperties.class,ExamAiProperties.class,ExamOpenAiAccess.class,ProctoringProperties.class})
 @EnableScheduling
 public class ExamConfig {
 	@Bean(name="examExecutor",destroyMethod="shutdownNow")
@@ -20,11 +20,18 @@ public class ExamConfig {
 	@Bean ExamBank examBank(ResourceLoader loader,JsonMapper json) throws IOException {
 		try(var in=loader.getResource("classpath:exam/bank-v1.json").getInputStream()) { return new ExamBank(json.readTree(in),json); }
 	}
-	@Bean ExamNotice examNotice(ResourceLoader loader,ExamProperties p) throws IOException {
+	@Bean ExamNotice examNotice(ResourceLoader loader,ExamProperties p,ProctoringProperties proctoring) throws IOException {
 		try(var in=loader.getResource("classpath:exam/notice-"+p.noticeVersion()+".md").getInputStream()) {
 			return new ExamNotice(p.noticeVersion(),new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)
-					.replace("60 minutos",p.timeLimit().toMinutes()+" minutos"));
+					.replace("60 minutos",p.timeLimit().toMinutes()+" minutos")
+					.replace("cada 60 segundos","cada "+proctoring.snapshotInterval().toSeconds()+" segundos")
+					.replace("90 días",proctoring.retention().toDays()+" días"));
 		}
+	}
+	/** 014-54: disco en el volumen exam-snapshots; memoria solo para pruebas. */
+	@Bean com.talenti.exam.snapshot.ExamSnapshotStorage examSnapshotStorage(ProctoringProperties p,java.time.Clock clock) {
+		return p.storage().type().equals("memory")?new com.talenti.exam.snapshot.MemorySnapshotStorage(clock)
+				:new com.talenti.exam.snapshot.LocalSnapshotStorage(java.nio.file.Path.of(p.storage().path()));
 	}
 	@Bean ExamAuthoringPort examAuthor(ExamAiProperties ai,ExamOpenAiAccess access,ExamProperties p,ExamBank bank,JsonMapper json) {
 		return ai.enabled()?new OpenAiExam(ai.model(),ExamAiTransport.http(access.baseUrl(),access.apiKey()),json,p.gradingTimeout()):new SimulatedExamAuthoring(bank);

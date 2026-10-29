@@ -16,6 +16,8 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests \
 # ---------- Etapa 2: ejecutar con JRE 21 y usuario sin privilegios ----------
 FROM eclipse-temurin:21.0.12.1_1-jre-alpine
 RUN addgroup -S -g 10001 talenti && adduser -S -u 10001 -G talenti -H -s /sbin/nologin talenti
+# Carpeta de las fotos del examen (spec 014, enmienda 1): el volumen exam-snapshots hereda este dueño y permiso al crearse.
+RUN mkdir -p /var/lib/talenti/exam-snapshots && chown 10001:10001 /var/lib/talenti/exam-snapshots     && chmod 700 /var/lib/talenti/exam-snapshots
 WORKDIR /app
 COPY --from=build --chown=talenti:talenti /build/app.jar /app/app.jar
 

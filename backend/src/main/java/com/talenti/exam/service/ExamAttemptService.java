@@ -16,6 +16,9 @@ import org.springframework.transaction.event.*;
 import org.springframework.transaction.support.TransactionTemplate;
 import com.talenti.application.ApplicationStages;
 import com.talenti.exam.config.ExamProperties;
+import com.talenti.exam.config.ProctoringProperties;
+import com.talenti.exam.snapshot.ExamSnapshotService;
+import com.talenti.profile.ProfileWatermarkName;
 import com.talenti.exam.domain.*;
 import com.talenti.exam.persistence.ExamStore;
 import com.talenti.exam.persistence.ExamStore.*;
@@ -32,15 +35,24 @@ public class ExamAttemptService {
 	private final CodeExecutionPort execution;
 	private final ExamProperties properties;
 	private final ExamNotice notice;
+	private final ProctoringProperties proctoring;
+	private final ExamSnapshotService snapshots;
+	private final ProfileWatermarkName names;
+	private final tools.jackson.databind.json.JsonMapper json;
 	private final Clock clock;
 	private final TransactionTemplate tx;
 	private final SecureRandom random=new SecureRandom();
 	private final Set<UUID> running=ConcurrentHashMap.newKeySet();
 	public ExamAttemptService(ExamStore store,ApplicationStages stages,ExamAuthoringService authoring,ExamGradingService grading,
-			CodeExecutionPort execution,ExamProperties properties,ExamNotice notice,Clock clock,PlatformTransactionManager manager) {
+			CodeExecutionPort execution,ExamProperties properties,ExamNotice notice,ProctoringProperties proctoring,
+			ExamSnapshotService snapshots,ProfileWatermarkName names,tools.jackson.databind.json.JsonMapper json,Clock clock,
+			PlatformTransactionManager manager) {
 		this.store=store; this.stages=stages; this.authoring=authoring; this.grading=grading; this.execution=execution;
-		this.properties=properties; this.notice=notice; this.clock=clock; this.tx=new TransactionTemplate(manager);
+		this.properties=properties; this.notice=notice; this.proctoring=proctoring; this.snapshots=snapshots; this.names=names;
+		this.json=json; this.clock=clock; this.tx=new TransactionTemplate(manager);
 	}
+	/** Cuerpo de {@code start} (014-38). La comprobación es del navegador: el servidor no ve la cámara. */
+	public record StartCommand(Boolean cameraReady,Boolean fullscreen,String detection,Map<String,Object> calibration) { }
 	public record Creation(ExamViews.Attempt attempt,ExamViews.Preparation preparing) { }
 	public record AnswerCommand(String choiceId,String text,String code,Long revision) {
 		@Override public String toString() { return "ExamAnswerCommand[...]"; }
@@ -53,7 +65,7 @@ public class ExamAttemptService {
 		if(store.forApplication(application,user).isPresent()) throw ExamErrors.conflict("exam-exists");
 		if(owned.stage()!=ApplicationStages.Stage.SUBMITTED) throw ExamErrors.conflict("exam-not-allowed");
 		if(!accepted) throw ExamErrors.invalid("noticeAccepted","exam-notice-required");
-		if(!notice.version().equals(version)) throw ExamErrors.conflict("exam-notice-outdated");
+		if(!notice.version().equals(version)) throw ExamErrors.conflict("notice-version-outdated");
 		var set=authoring.ensure(owned.vacancyId());
 		if(!set.status().equals("READY")) return new Creation(null,new ExamViews.Preparation("PREPARING",2));
 		try {
@@ -72,13 +84,56 @@ public class ExamAttemptService {
 		return store.forApplication(application,user).map(a->get(user,a.id()));
 	}
 	public ExamViews.Attempt get(UUID user,UUID id) { return owned(user,id,false,this::view); }
-	public ExamViews.Attempt start(UUID user,UUID id) {
+	/** 014-37: un intento sin empezar que aceptó un aviso anterior acepta el vigente antes de {@code start}. */
+	public ExamViews.Attempt acceptNotice(UUID user,UUID id,boolean accepted,String version) {
 		return owned(user,id,true,a->{
+			if(!accepted) throw ExamErrors.invalid("noticeAccepted","exam-notice-required");
 			if(a.status()!=AttemptStatus.NOT_STARTED) throw ExamErrors.conflict("exam-already-started");
-			Instant now=clock.instant(); store.start(id,now,now.plus(properties.timeLimit()));
-			store.event(id,"STARTED",null,null,now,Map.of());
+			if(!notice.version().equals(version)) throw ExamErrors.conflict("notice-version-outdated");
+			if(!version.equals(a.noticeVersion())) {
+				Instant now=clock.instant(); store.acceptNotice(id,version,now);
+				store.event(id,"NOTICE_ACCEPTED",null,null,now,Map.of("version",version));
+			}
 			return view(store.findAttempt(id).orElseThrow());
 		});
+	}
+	public ExamViews.Attempt start(UUID user,UUID id,StartCommand command) {
+		return owned(user,id,true,a->{
+			if(a.status()!=AttemptStatus.NOT_STARTED) throw ExamErrors.conflict("exam-already-started");
+			if(!notice.version().equals(a.noticeVersion())) throw ExamErrors.conflict("notice-version-outdated");
+			Instant now=clock.instant(), deadline=now.plus(properties.timeLimit());
+			if(!supervised(a)) {
+				store.start(id,now,deadline);
+				store.event(id,"STARTED",null,null,now,Map.of());
+				return view(store.findAttempt(id).orElseThrow());
+			}
+			if(command==null||!Boolean.TRUE.equals(command.cameraReady())||!Boolean.TRUE.equals(command.fullscreen()))
+				throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,"proctoring-required");
+			ProctoringRules.Detection detection;
+			try { detection=ProctoringRules.Detection.valueOf(Objects.requireNonNull(command.detection())); }
+			catch(RuntimeException e) { throw ExamErrors.invalid("detection","invalid-detection"); }
+			ProctoringRules.Calibration calibration=null;
+			if(command.calibration()!=null) {
+				if(!Set.of("baseYawDeg","basePitchDeg").containsAll(command.calibration().keySet())) throw ExamErrors.invalid("calibration","invalid-calibration");
+				try { calibration=ProctoringRules.calibration(command.calibration().get("baseYawDeg"),command.calibration().get("basePitchDeg"),proctoring.thresholds().maxBaseDeg()); }
+				catch(ProctoringRules.InvalidData e) { throw ExamErrors.invalid(e.field(),"invalid-calibration"); }
+			}
+			if(detection==ProctoringRules.Detection.AVAILABLE&&calibration==null) throw ExamErrors.invalid("calibration","required");
+			store.start(id,now,deadline,proctoring.thresholdsVersion(),deliveredConfig(),detection.name(),calibration);
+			store.event(id,"STARTED",null,null,now,Map.of());
+			if(detection==ProctoringRules.Detection.UNAVAILABLE) store.event(id,"DETECTION_UNAVAILABLE",null,null,now,Map.of("source","start"));
+			return view(store.findAttempt(id).orElseThrow());
+		});
+	}
+	/** El intento se rinde con cámara si el aviso aceptado la informa y la supervisión está encendida. */
+	private boolean supervised(AttemptRow a) { return proctoring.enabled()&&ProctoringRules.noticeIncludesCamera(a.noticeVersion()); }
+	/** Lo que se entrega al navegador y se guarda en el intento al empezar (principio 11). */
+	private Map<String,Object> deliveredConfig() {
+		var m=new LinkedHashMap<String,Object>();
+		m.put("snapshotInterval",proctoring.snapshotInterval().toSeconds()); m.put("snapshotMaxBytes",proctoring.snapshotMaxBytes().toBytes());
+		m.put("snapshotMaxSide",proctoring.snapshotMaxSide()); m.put("maxSnapshots",proctoring.maxSnapshotsPerAttempt());
+		m.put("thresholds",proctoring.clientThresholds());
+		return m;
 	}
 	public ExamViews.Save save(UUID user,UUID id,UUID questionId,AnswerCommand command) {
 		return owned(user,id,true,a->{
@@ -102,7 +157,14 @@ public class ExamAttemptService {
 		grading.schedule(id); return result;
 	}
 	public ExamViews.EventReply event(UUID user,UUID id,AttemptRules.EventKind kind,UUID clientEvent,Instant clientAt) {
+		return event(user,id,kind,clientEvent,clientAt,Map.of());
+	}
+	/** 014-14, 014-15, 014-51 y 014-52. Solo SCREEN_LEFT aplica la regla; los demás tipos solo se guardan. */
+	public ExamViews.EventReply event(UUID user,UUID id,AttemptRules.EventKind kind,UUID clientEvent,Instant clientAt,Map<String,?> rawData) {
 		if(kind==null||clientEvent==null||clientAt==null) throw ExamErrors.invalid("event","required");
+		Map<String,Object> data;
+		try { data=ProctoringRules.eventData(kind,rawData); }
+		catch(ProctoringRules.InvalidData e) { throw ExamErrors.invalid(e.field().equals("data")?"data":"data."+e.field(),"invalid-event-data"); }
 		var result=owned(user,id,true,a->{
 			var duplicate=store.events(id).stream().filter(e->clientEvent.equals(e.clientEventId())).findFirst();
 			if(duplicate.isPresent()) {
@@ -110,9 +172,12 @@ public class ExamAttemptService {
 				return reply(a.status().closed()?AttemptRules.ScreenRule.CLOSED:kind==AttemptRules.EventKind.SCREEN_LEFT?AttemptRules.ScreenRule.WARNING:AttemptRules.ScreenRule.NONE,a.status());
 			}
 			requireRunning(a);
-			var rule=AttemptRules.screenRule(kind,a.screenLeftCount());
 			Instant now=clock.instant();
-			store.event(id,kind.name(),clientEvent,clientAt,now,Map.of());
+			// 014-51: tope por minuto y por intento. SCREEN_LEFT nunca se rechaza: aplica la regla y ocurre dos veces como máximo.
+			if(!ProctoringRules.changesAttempt(kind)&&store.clientEventsSince(id,now.minusSeconds(60))>=proctoring.eventsPerMinute())
+				throw new TooManyRequestsException(60);
+			var rule=AttemptRules.screenRule(kind,a.screenLeftCount());
+			store.event(id,kind.name(),clientEvent,clientAt,now,data);
 			if(kind==AttemptRules.EventKind.SCREEN_LEFT) store.incrementScreenLeft(id);
 			if(rule==AttemptRules.ScreenRule.WARNING) store.event(id,"WARNING_ISSUED",null,null,now,Map.of("screenLeftCount",1));
 			if(rule==AttemptRules.ScreenRule.CLOSED) {
@@ -172,6 +237,7 @@ public class ExamAttemptService {
 	private void closeLocked(AttemptRow attempt,AttemptStatus status,String reason) {
 		if(status!=AttemptStatus.CLOSED_WITHDRAWN&&!stages.completeExam(attempt.applicationId(),attempt.userId())) throw ExamErrors.conflict("exam-application-state");
 		store.close(attempt.id(),status,reason,clock.instant());
+		if(status!=AttemptStatus.CLOSED_WITHDRAWN) snapshots.scheduleFromEnd(attempt.id(),clock.instant());
 		if(status==AttemptStatus.SUBMITTED||status==AttemptStatus.TIMED_OUT) store.event(attempt.id(),status.name(),null,null,clock.instant(),Map.of());
 	}
 	private static void requireRunning(AttemptRow a) { if(a.status()!=AttemptStatus.IN_PROGRESS) throw ExamErrors.conflict("exam-closed"); }
@@ -197,8 +263,28 @@ public class ExamAttemptService {
 					!code?List.of():q.cases().stream().filter(ExamQuestion.Case::visible).map(c->new ExamViews.VisibleCase(c.id(),c.input(),c.expectedOutput(),c.setupSql(),c.tables(),c.expectedTable())).toList());
 		}).toList();
 		long seconds=a.status()==AttemptStatus.IN_PROGRESS?Math.max(0,Duration.between(clock.instant(),a.deadlineAt()).toSeconds()):0;
-		return new ExamViews.Attempt(a.id(),a.applicationId(),a.status().name(),a.gradingStatus(),a.noticeVersion(),notice.text(),a.startedAt(),a.deadlineAt(),seconds,questions,
+		return new ExamViews.Attempt(a.id(),a.applicationId(),a.status().name(),a.gradingStatus(),a.noticeVersion(),notice.version(),notice.text(),
+				a.startedAt(),a.deadlineAt(),seconds,questions,
 				store.answers(a.id()).stream().map(r->new ExamViews.Answer(r.questionId(),r.choiceId(),r.text(),r.code(),r.revision(),r.runCount(),r.updatedAt())).toList(),
-				store.events(a.id()).stream().map(e->new ExamViews.Event(e.kind(),e.clientEventId(),e.clientOccurredAt(),e.occurredAt())).toList());
+				store.events(a.id()).stream().map(e->new ExamViews.Event(e.kind(),e.clientEventId(),e.clientOccurredAt(),e.occurredAt())).toList(),
+				proctoringView(a),new ExamViews.Watermark(names.watermarkName(a.userId()).orElse(null),watermarkCode(a.applicationId())));
+	}
+	/** Duda E4: "T-" y los 6 primeros caracteres del id de la postulación, en mayúsculas. */
+	static String watermarkCode(UUID application) { return "T-"+application.toString().substring(0,6).toUpperCase(Locale.ROOT); }
+	@SuppressWarnings("unchecked")
+	private ExamViews.Proctoring proctoringView(AttemptRow a) {
+		boolean outdated=a.status()==AttemptStatus.NOT_STARTED&&!notice.version().equals(a.noticeVersion());
+		if(a.proctoringVersion()!=null) {
+			Map<String,Object> config=json.readValue(a.proctoringConfig(),Map.class);
+			Map<String,Object> calibration=a.calibration()==null?null:json.readValue(a.calibration(),Map.class);
+			return new ExamViews.Proctoring(true,false,a.proctoringVersion(),a.detectionStatus(),calibration,
+					((Number)config.get("snapshotInterval")).longValue(),((Number)config.get("snapshotMaxBytes")).longValue(),
+					((Number)config.get("snapshotMaxSide")).intValue(),((Number)config.get("maxSnapshots")).intValue(),
+					(Map<String,Object>)config.get("thresholds"));
+		}
+		boolean upcoming=a.status()==AttemptStatus.NOT_STARTED&&proctoring.enabled()&&ProctoringRules.noticeIncludesCamera(notice.version());
+		if(!upcoming) return new ExamViews.Proctoring(false,outdated,null,null,null,0,0,0,0,null);
+		return new ExamViews.Proctoring(true,outdated,proctoring.thresholdsVersion(),null,null,proctoring.snapshotInterval().toSeconds(),
+				proctoring.snapshotMaxBytes().toBytes(),proctoring.snapshotMaxSide(),proctoring.maxSnapshotsPerAttempt(),proctoring.clientThresholds());
 	}
 }
