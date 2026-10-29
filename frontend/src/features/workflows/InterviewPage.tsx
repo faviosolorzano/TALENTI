@@ -9,11 +9,13 @@ import { Button } from '../../components/Button'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError } from './shared'
 import { useWorkflowAction } from './useWorkflowAction'
 import { t } from './workflowLabels'
-import { DoraConversation } from './PracticePage'
+import { DoraSessionView } from './PracticePage'
 interface InterviewView {
   applicationId: string
   sessionId: string
   status: string
+  /** `TURN_BASED` or `REALTIME`; needed to resume a real-time interview (012-52). */
+  channel?: string
   attempt: number
   maxAttempts: number
   canRetry: boolean
@@ -59,6 +61,7 @@ function Interview({ id }: { id: string }) {
         voice: true,
         versions: created?.id === view.sessionId ? created.versions : undefined,
         status: view.status,
+        channel: view.channel,
         nextPosition: view.nextPosition,
         answered: view.questions.filter((q) => q.transcriptFinal != null).length,
         degraded: [],
@@ -93,10 +96,12 @@ function Interview({ id }: { id: string }) {
         </>
       ) : (
         <>
-          {session && (
-            <DoraConversation
+          {session && options.state.status === 'loading' && <Loading />}
+          {session && options.state.status !== 'loading' && (
+            <DoraSessionView
               session={session}
               refresh={resource.retry}
+              dora={options.state.status === 'success' ? options.state.data.dora : undefined}
               interview
               onTranscript={(position, turnId) =>
                 setTurnIds((current) => ({ ...current, [position]: turnId }))
