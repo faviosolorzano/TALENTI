@@ -1,4 +1,5 @@
 import { apiFetch } from './client'
+import type { DoraAvailability } from './realtime'
 export interface PracticeOptions {
   bases: {
     basis: string
@@ -15,6 +16,8 @@ export interface PracticeOptions {
   quota: { used: number; limit: number; resetsAt: string }
   voiceAvailable: boolean
   interviewNotice: { version: string; text: string }
+  /** Provider and real-time availability (012-38). Missing on an older backend. */
+  dora?: DoraAvailability
 }
 export interface DoraFeedback {
   status: string
@@ -41,6 +44,8 @@ export interface DoraSession {
   questionCount: number | null
   voice: boolean
   status: string
+  /** `TURN_BASED` (default) or `REALTIME` (012-39, 012-53). */
+  channel?: string
   nextPosition: number | null
   answered: number
   degraded: string[]

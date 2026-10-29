@@ -20,8 +20,21 @@ import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
 import { Dialog } from '../../components/Dialog'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError, Source } from './shared'
+import { realtimeApi, type DoraAvailability, type OpenSession } from '../../api/realtime'
+import { chooseChannel, type TurnReason } from './realtime/channel'
+import { realtimeSupported, type TranscriptEntry } from './realtime/doraCall'
+import { LiveTranscript, RealtimeConversation } from './realtime/RealtimeConversation'
 
 const c = es.doraCall
+const r = es.doraRealtime
+
+/** A 409 `session-open` carries the open session (012-54); an older answer is asked for once. */
+async function openSessionOf(error: unknown): Promise<OpenSession | null | undefined> {
+  if (!(error instanceof ApiError) || error.problem?.code !== 'session-open') return undefined
+  const open = error.problem.openSession as OpenSession | undefined
+  if (open?.id) return open
+  return realtimeApi.openSession().catch(() => null)
+}
 
 export function PracticePage() {
   return (
@@ -46,9 +59,21 @@ function PracticeSetup() {
   const navigate = useNavigate()
   const action = useWorkflowAction()
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [openSession, setOpenSession] = useState<OpenSession | null>(null)
   const data = options.state.status === 'success' ? options.state.data : null
   const voice = voiceChoice ?? Boolean(data?.voiceAvailable)
   const selected = data?.bases.find((item) => item.basis === basis)
+  const create = () =>
+    api<DoraSession>('/practice/sessions', {
+      method: 'POST',
+      json: {
+        basis,
+        vacancyId: basis === 'VACANCY' ? vacancy : undefined,
+        topic: topic || undefined,
+        questionCount: count,
+        voice,
+      },
+    })
   const topics =
     basis === 'VACANCY'
       ? (selected?.vacancies.find((item) => item.id === vacancy)?.topics ?? [])
@@ -76,21 +101,22 @@ function PracticeSetup() {
             onSubmit={(event) => {
               event.preventDefault()
               void action.perform(async () => {
-                const session = await api<DoraSession>('/practice/sessions', {
-                  method: 'POST',
-                  json: {
-                    basis,
-                    vacancyId: basis === 'VACANCY' ? vacancy : undefined,
-                    topic: topic || undefined,
-                    questionCount: count,
-                    voice,
-                  },
-                })
-                navigate('/practicar/' + session.id)
+                try {
+                  navigate('/practicar/' + (await create()).id)
+                } catch (error) {
+                  const open = await openSessionOf(error)
+                  if (!open) throw error
+                  setOpenSession(open)
+                }
               })
             }}
           >
             <h2>{t.configure}</h2>
+            {data.dora?.provider === 'SIMULATED' && (
+              <p className="dora-call__notice" role="note">
+                {r.reasons.simulated}
+              </p>
+            )}
             <p>
               {t.quota}: {data.quota.used} / {data.quota.limit}
             </p>
@@ -196,6 +222,43 @@ function PracticeSetup() {
           </ul>
         )}
       </details>
+      {openSession && (
+        <Dialog busy={action.busy} title={r.openTitle} onClose={() => setOpenSession(null)}>
+          <p>{openSession.mode === 'INTERVIEW' ? r.openInterview : r.openPractice}</p>
+          <div className="workflow__actions">
+            {openSession.mode === 'INTERVIEW' ? (
+              openSession.applicationId && (
+                <Button to={'/postulaciones/' + openSession.applicationId + '/entrevista'}>
+                  {r.goInterview}
+                </Button>
+              )
+            ) : (
+              <>
+                <Button to={'/practicar/' + openSession.id}>{r.continue}</Button>
+                <Button
+                  variant="quiet"
+                  disabled={action.busy}
+                  onClick={() =>
+                    void action.perform(async () => {
+                      // One close and one new attempt; a second 409 is shown, never looped.
+                      await realtimeApi.finish(openSession.id)
+                      const session = await create()
+                      setOpenSession(null)
+                      navigate('/practicar/' + session.id)
+                    })
+                  }
+                >
+                  {action.busy ? t.working : r.closeAndStart}
+                </Button>
+              </>
+            )}
+            <Button variant="quiet" disabled={action.busy} onClick={() => setOpenSession(null)}>
+              {t.cancel}
+            </Button>
+          </div>
+          <ActionError message={action.error} />
+        </Dialog>
+      )}
       {deleting && (
         <Dialog title={t.deleteSession} onClose={() => setDeleting(null)}>
           <p>{t.deleteSessionBody}</p>
@@ -238,9 +301,12 @@ function PracticeSession({ id }: { id: string }) {
     (signal) => api<DoraSession>('/practice/sessions/' + id, { signal }),
     { keepPrevious: true },
   )
+  const options = useApiResource('practice-options', (signal) =>
+    api<PracticeOptions>('/practice/options', { signal }),
+  )
   return (
     <WorkflowFrame title={t.session} back="/practicar">
-      {resource.state.status === 'loading' ? (
+      {resource.state.status === 'loading' || options.state.status === 'loading' ? (
         <Loading />
       ) : resource.state.status === 'error' ? (
         <>
@@ -248,9 +314,64 @@ function PracticeSession({ id }: { id: string }) {
           <Button onClick={resource.retry}>{t.retry}</Button>
         </>
       ) : (
-        <DoraConversation session={resource.state.data} refresh={resource.retry} />
+        <DoraSessionView
+          session={resource.state.data}
+          refresh={resource.retry}
+          dora={options.state.status === 'success' ? options.state.data.dora : undefined}
+        />
       )}
     </WorkflowFrame>
+  )
+}
+
+/**
+ * Chooses the channel of a session (012-58): real time when the backend and the browser allow
+ * it, otherwise the turn-based conversation, with the reason in plain words. After a fallback
+ * (012-63) the turn-based screen keeps what was said in the call.
+ */
+export function DoraSessionView({
+  session,
+  refresh,
+  dora,
+  interview = false,
+  onTranscript,
+}: {
+  session: DoraSession
+  refresh: () => void
+  dora: DoraAvailability | undefined
+  interview?: boolean
+  onTranscript?: (position: number, turnId: string) => void
+}) {
+  const [supported] = useState(realtimeSupported)
+  const [fallback, setFallback] = useState<{
+    log: TranscriptEntry[]
+    reason: TurnReason | null
+  } | null>(null)
+  const choice = chooseChannel(dora, session, supported)
+  if (!fallback && choice.channel === 'REALTIME')
+    return (
+      <RealtimeConversation
+        key={session.id}
+        session={session}
+        interview={interview}
+        onEnded={refresh}
+        onFallback={(log, reason) => {
+          setFallback({ log, reason })
+          refresh()
+        }}
+      />
+    )
+  const reason = fallback ? fallback.reason : choice.channel === 'TURN_BASED' ? choice.reason : null
+  return (
+    <DoraConversation
+      session={session}
+      refresh={refresh}
+      interview={interview}
+      onTranscript={onTranscript}
+      notice={reason ? r.reasons[reason] : ''}
+      textFirst={reason === 'mic-denied'}
+      liveLog={fallback?.log}
+    />
   )
 }
 
@@ -259,15 +380,24 @@ export function DoraConversation({
   refresh,
   interview = false,
   onTranscript,
+  notice = '',
+  textFirst = false,
+  liveLog,
 }: {
   session: DoraSession
   refresh: () => void
   interview?: boolean
   onTranscript?: (position: number, turnId: string) => void
+  /** Why the session goes by turns (012-58), in plain words. */
+  notice?: string
+  /** The microphone was denied: the written answer opens first. */
+  textFirst?: boolean
+  /** What was said in a real-time call before the fallback (012-63). */
+  liveLog?: TranscriptEntry[]
 }) {
   const action = useWorkflowAction()
   const [text, setText] = useState('')
-  const [writeMode, setWriteMode] = useState(!session.voice)
+  const [writeMode, setWriteMode] = useState(!session.voice || textFirst)
   const [transcriptOpen, setTranscriptOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [reply, setReply] = useState('')
@@ -454,7 +584,13 @@ export function DoraConversation({
         <div className="dora-call__heading">
           <div>
             <span>{interview ? c.interviewPrivacy : c.practicePrivacy}</span>
-            {session.versions?.llmAdapter.includes('simulated') && <small>{t.simulated}</small>}
+            {session.versions?.llmAdapter.includes('simulated') &&
+              notice !== r.reasons.simulated && <small>{t.simulated}</small>}
+            {notice && (
+              <small className="dora-call__notice" role="status">
+                {notice}
+              </small>
+            )}
           </div>
           <div className="dora-call__toolbar">
             <Button
@@ -640,6 +776,12 @@ export function DoraConversation({
         </Button>
         {recording && <Button onClick={() => recorder.current?.stop()}>{t.stopRecording}</Button>}
         <div className="dora-call__transcript">
+          {liveLog && liveLog.length > 0 && (
+            <section className="workflow__row">
+              <h3>{r.realtimeLog}</h3>
+              <LiveTranscript entries={liveLog} />
+            </section>
+          )}
           {reply && (
             <section className="workflow__row" aria-live="polite">
               <Source value={replySource} />

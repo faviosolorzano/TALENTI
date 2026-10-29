@@ -1,13 +1,28 @@
 import { useId } from 'react'
 import type { DoraMode } from '../dora/modes'
 /** Decorative state visual. Does not measure or classify the person's voice. */
-export function ConversationOrb({ mode }: { mode: DoraMode }) {
+/**
+ * `levelDriven`: the waves and the core follow `--dora-level` (0 to 1), the real volume set by
+ * the real-time call, instead of the looping animation.
+ */
+export function ConversationOrb({
+  mode,
+  levelDriven = false,
+}: {
+  mode: DoraMode
+  levelDriven?: boolean
+}) {
   const id = 'dora-light-' + useId().replace(/:/g, '')
   const shape =
     'M160 38 C205 27 224 66 244 102 C270 135 278 172 253 201 C224 240 211 268 171 266 C133 273 94 257 71 229 C41 204 43 170 51 138 C55 104 69 71 106 59 C128 50 139 40 160 38Z'
   const bars = [8, 16, 28, 48, 78, 104, 72, 44, 24, 12]
   return (
-    <div className="conversation-orb" data-mode={mode} aria-hidden="true">
+    <div
+      className="conversation-orb"
+      data-mode={mode}
+      data-level-driven={levelDriven || undefined}
+      aria-hidden="true"
+    >
       <svg viewBox="0 0 640 440" fill="none">
         <defs>
           <radialGradient id={id + '-halo'}>
@@ -132,7 +147,7 @@ export function ConversationOrb({ mode }: { mode: DoraMode }) {
 export function CallIcon({
   kind,
 }: {
-  kind: 'mic' | 'sound' | 'keyboard' | 'transcript' | 'close' | 'help'
+  kind: 'mic' | 'micOff' | 'sound' | 'keyboard' | 'transcript' | 'close' | 'help'
 }) {
   return (
     <svg
@@ -148,6 +163,11 @@ export function CallIcon({
         <>
           <rect x="9" y="2" width="6" height="13" rx="3" />
           <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />
+        </>
+      ) : kind === 'micOff' ? (
+        <>
+          <path d="M9 9v3a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.9-.8" />
+          <path d="M5 10v2a7 7 0 0 0 11.9 5M19 10v2c0 .8-.1 1.5-.4 2.2M12 19v3M8 22h8M3 3l18 18" />
         </>
       ) : kind === 'sound' ? (
         <>

@@ -307,9 +307,56 @@
     font-size: var(--font-size-md);
   }
 }
+.conversation-orb[data-level-driven] svg {
+  transform: scale(calc(1 + var(--dora-level, 0) * 0.06));
+  transition: transform var(--duration-fast) linear;
+}
+.conversation-orb[data-level-driven] .conversation-orb__wave {
+  animation: none;
+  transform: scaleY(calc(0.35 + var(--dora-level, 0) * 0.9));
+}
+.dora-call__timer {
+  font-variant-numeric: tabular-nums;
+}
+.dora-call__warning {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+.dora-call__hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+.dora-call__problem {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  max-width: var(--auth-form-width);
+  text-align: center;
+}
+.dora-call__notice {
+  width: 100%;
+  max-width: var(--profile-editor-width);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+.dora-call__controls .dora-call__hangup {
+  order: 0;
+  color: var(--color-danger);
+}
+.dora-call__live {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .conversation-orb * {
     animation: none !important;
+  }
+  .conversation-orb[data-level-driven] svg,
+  .conversation-orb[data-level-driven] .conversation-orb__wave {
+    transform: none;
+    transition: none;
   }
 }
 .device-check {
