@@ -36,10 +36,16 @@ test('014: cámara falsa y servidor real conservan respuestas, fotos, eventos y 
   const list = await (await page.request.get('/api/v1/vacancies?size=24')).json()
   const vacancy = list.items[0].id as string
   // Permite repetir tras una interrupción sin reutilizar un examen ni tocar otras cuentas.
-  const previous = await (await page.request.get(`/api/v1/applications?size=100&vacancyId=${vacancy}`)).json()
+  const previousResponse = await page.request.get(
+    `/api/v1/applications?size=20&vacancyId=${vacancy}`,
+  )
+  expect(previousResponse.status()).toBe(200)
+  const previous = await previousResponse.json()
   for (const item of previous.items) {
     if (item.status === 'WITHDRAWN' || item.status === 'EXPIRED') continue
-    const cleanup = await page.request.post(`/api/v1/applications/${item.id}/withdraw`, { headers: await csrf(page) })
+    const cleanup = await page.request.post(`/api/v1/applications/${item.id}/withdraw`, {
+      headers: await csrf(page),
+    })
     expect(cleanup.status()).toBe(200)
   }
   const application = await page.request.post('/api/v1/applications', {
@@ -72,7 +78,13 @@ test('014: cámara falsa y servidor real conservan respuestas, fotos, eventos y 
   if (await reject.count()) await reject.click()
   await page.getByRole('button', { name: p.begin, exact: true }).click()
   await expect(page.getByText(p.detectionUnavailable)).toBeVisible({ timeout: 60000 })
+  const starting = page.waitForResponse(
+    (response) => response.url().endsWith('/start') && response.request().method() === 'POST',
+  )
   await page.getByRole('button', { name: p.enterAndStart, exact: true }).click()
+  const started = await starting
+  expect(started.request().postDataJSON()).toMatchObject({ cameraReady: true, fullscreen: true })
+  expect(started.status()).toBe(200)
   await expect(page.getByRole('radio').first()).toBeVisible()
   await expect
     .poll(async () => (await (await page.request.get(route + '/snapshots')).json()).length)
