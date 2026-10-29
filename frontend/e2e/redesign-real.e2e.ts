@@ -184,7 +184,7 @@ test('E3–E7, 012–014: real CV, DORA voice, application, code execution, exam
   await page.getByRole('checkbox', { name: t.voice, exact: true }).check()
   await page.getByRole('button', { name: t.start, exact: true }).click()
   await expect(page).toHaveURL(/\/practicar\//)
-  await expect(page.getByText(t.simulated, { exact: true })).toBeVisible()
+  await expect(page.getByText(es.doraRealtime.reasons.simulated, { exact: true })).toBeVisible()
   await page.getByRole('button', { name: t.start, exact: true }).click()
   await expect(page.getByRole('button', { name: t.record, exact: true })).toBeVisible()
   await expect(page.getByLabel(t.answer, { exact: true })).toBeHidden()
