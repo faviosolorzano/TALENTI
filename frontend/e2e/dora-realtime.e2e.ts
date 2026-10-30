@@ -220,6 +220,10 @@ for (const interview of [false, true]) {
     page,
   }) => {
     await page.addInitScript(fakeWebRtc)
+    // Also intercept the bootstrap request before the session fixtures are installed.
+    await page.route('**/api/v1/**', (route) =>
+      route.fulfill({ status: 401, json: { code: 'unauthenticated' } }),
+    )
     await page.goto('/ingresar')
     const backend = await simulatedBackend(page, interview)
     const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })

@@ -21,7 +21,7 @@
 .layout--soft .card:is(.application-item, .applications__empty, .applications__panel),
 .layout--soft :is(.vacancy-detail__header, .filters__panel, .opportunities__empty),
 .layout--soft :is(.cv-reader__card, .auth__form, .legal__sections, .accept__form),
-.layout--soft .dashboard > .notice {
+.layout--soft .dashboard > .notice--info {
   min-width: 0;
   padding: var(--space-5);
   border: var(--border-width) solid var(--color-glass-line);
