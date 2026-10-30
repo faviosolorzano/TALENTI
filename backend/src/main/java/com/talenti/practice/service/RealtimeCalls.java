@@ -259,9 +259,9 @@ public class RealtimeCalls {
 		if (!repository.closeCall(call.id(), reason, end, seconds)) {
 			return false;
 		}
-		RealtimeCallPort.Info info = port.info();
-		usage.realtime(call.id(), session.userId(), info.adapter(), info.model(), seconds,
-				CallBudget.costMicros(seconds, properties.pricePerMinute()));
+		RealtimeCallPort.Info info = port.info(session.mode());
+		usage.realtime(call.id(), session.userId(), info.adapter(), session.realtimeModel(), seconds,
+				CallBudget.costMicros(seconds, properties.pricePerMinute().forMode(session.mode())));
 		hangupQuietly(call.providerCallId());
 		return true;
 	}

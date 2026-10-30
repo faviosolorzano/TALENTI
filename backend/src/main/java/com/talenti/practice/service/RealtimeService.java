@@ -139,7 +139,8 @@ public class RealtimeService {
 	}
 
 	private Views.Realtime realtime(SessionRow session) {
-		boolean simulatedPort = port.info().adapter().endsWith("/simulated");
+		SessionMode mode = session == null ? SessionMode.PRACTICE : session.mode();
+		boolean simulatedPort = port.info(mode).adapter().endsWith("/simulated");
 		if (simulatedPort && !properties.simulated()) {
 			return new Views.Realtime(false, properties.enabled() ? "NOT_CONFIGURED" : "DISABLED");
 		}
@@ -165,11 +166,13 @@ public class RealtimeService {
 			remaining = 0;
 		}
 		long reserved = 0;
-		for (Instant end : repository.openCallEnds(session == null ? new UUID(0, 0) : session.id())) {
-			long seconds = Math.max(0, Duration.between(now, end.plus(properties.grace())).toSeconds());
-			reserved += CallBudget.costMicros(seconds, properties.pricePerMinute());
+		UUID exceptSessionId = session == null ? new UUID(0, 0) : session.id();
+		for (PracticeRepository.OpenCallBudget open : repository.openCallEnds(exceptSessionId)) {
+			long seconds = Math.max(0, Duration.between(now, open.endsAt().plus(properties.grace())).toSeconds());
+			reserved += CallBudget.costMicros(seconds, properties.pricePerMinute().forMode(open.mode()));
 		}
-		return CallBudget.plan(now, max, remaining - reserved, properties.pricePerMinute(),
+		SessionMode mode = session == null ? SessionMode.PRACTICE : session.mode();
+		return CallBudget.plan(now, max, remaining - reserved, properties.pricePerMinute().forMode(mode),
 				Duration.ofMinutes(properties.minMinutes()), properties.warnBefore(),
 				session == null ? null : session.endsAt());
 	}
@@ -239,7 +242,8 @@ public class RealtimeService {
 		}
 		RealtimeCallPort.CreatedCall created;
 		Future<RealtimeCallPort.CreatedCall> future = executor
-				.submit(() -> port.createCall(new RealtimeCallPort.CallRequest(sdp, text)));
+				.submit(() -> port.createCall(new RealtimeCallPort.CallRequest(sdp, text, session.mode(),
+						session.realtimeModel())));
 		try {
 			created = future.get(properties.connectTimeout().toMillis(), TimeUnit.MILLISECONDS);
 		}
@@ -259,8 +263,9 @@ public class RealtimeService {
 		}
 		Instant now = clock.instant();
 		repository.callOpened(callId, created.providerCallId(), now);
-		RealtimeCallPort.Info info = port.info();
-		repository.markRealtime(sessionId, info.model(), info.voice(), info.transcriptionModel(), instructions.version(),
+		RealtimeCallPort.Info info = port.info(session.mode());
+		String model = session.realtimeModel() == null ? info.model() : session.realtimeModel();
+		repository.markRealtime(sessionId, model, info.voice(), info.transcriptionModel(), instructions.version(),
 				plan.endsAt(), now);
 		calls.event(session, resume ? "RESUMED" : "STARTED", Map.of("channel", "REALTIME"));
 		// 012-50: el cupo de práctica se anota al abrir con éxito la primera llamada (idempotente por la sesión).

@@ -82,8 +82,11 @@ class DoraRealtimeConfig {
 			else if (blank(properties.baseUrl())) {
 				missing = "talenti.ai.dora.realtime.base-url";
 			}
-			else if (blank(properties.model())) {
-				missing = "talenti.ai.dora.realtime.model";
+			else if (blank(properties.models().practice())) {
+				missing = "talenti.ai.dora.realtime.models.practice";
+			}
+			else if (blank(properties.models().interview())) {
+				missing = "talenti.ai.dora.realtime.models.interview";
 			}
 			else if (blank(properties.voice())) {
 				missing = "talenti.ai.dora.realtime.voice";
@@ -94,8 +97,9 @@ class DoraRealtimeConfig {
 						+ "TALENTI_AI_DORA_REALTIME_ENABLED=false.");
 			}
 			OpenAiRealtimeCalls.Settings settings = new OpenAiRealtimeCalls.Settings(strip(properties.baseUrl()),
-					properties.callsPath(), properties.hangupPath(), properties.model(), properties.voice(),
-					properties.transcriptionModel(), properties.transcriptionLanguage(), properties.turnDetection(),
+					properties.callsPath(), properties.hangupPath(), properties.models().practice(),
+					properties.models().interview(), properties.voice(), properties.transcriptionModel(),
+					properties.transcriptionLanguage(), properties.turnDetection(),
 					properties.connectTimeout(), eventNames(properties));
 			return new OpenAiRealtimeCalls(settings, RealtimeTransport.http(access.apiKey()), mapper);
 		}

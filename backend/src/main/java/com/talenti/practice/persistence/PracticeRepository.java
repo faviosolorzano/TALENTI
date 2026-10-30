@@ -550,12 +550,16 @@ public class PracticeRepository {
 	}
 
 	/** El fin fijado de las OTRAS sesiones con una llamada abierta: lo que ya está reservado del gasto (012-49). */
-	public List<Instant> openCallEnds(UUID exceptSessionId) {
+	public record OpenCallBudget(Instant endsAt, SessionMode mode) {
+	}
+
+	public List<OpenCallBudget> openCallEnds(UUID exceptSessionId) {
 		return jdbc.sql("""
-				SELECT s.ends_at FROM realtime_call c JOIN practice_session s ON s.id = c.session_id
+				SELECT s.ends_at, s.mode FROM realtime_call c JOIN practice_session s ON s.id = c.session_id
 				WHERE c.status = 'OPEN' AND s.ends_at IS NOT NULL AND s.id <> :sessionId""")
 				.param("sessionId", exceptSessionId)
-				.query((rs, n) -> instant(rs, "ends_at")).list();
+				.query((rs, n) -> new OpenCallBudget(instant(rs, "ends_at"), SessionMode.valueOf(rs.getString("mode"))))
+				.list();
 	}
 
 	/** Sesiones abiertas con una llamada abierta y su fin ya pasado antes de {@code cutoff} (012-49). */

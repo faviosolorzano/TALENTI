@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -16,6 +17,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -26,6 +29,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import com.sun.net.httpserver.HttpServer;
 import com.talenti.matching.MatchingIntegrationTest;
 import com.talenti.practice.port.RealtimeCallPort;
+import com.talenti.practice.domain.SessionMode;
 import com.talenti.practice.service.RealtimeService;
 import com.talenti.practice.service.Views;
 import com.talenti.support.ApiClient;
@@ -45,7 +49,8 @@ import tools.jackson.databind.JsonNode;
 		"talenti.ai.dora.enabled=true", "talenti.ai.dora.models.dialog=modelo-falso",
 		"talenti.ai.dora.models.stt=stt-falso", "talenti.ai.dora.models.tts=tts-falso",
 		"talenti.ai.dora.voice=voz-falsa", "talenti.ai.dora.realtime.enabled=true",
-		"talenti.ai.dora.realtime.price-per-minute=0.001", "talenti.dora.question-timeout=2s",
+		"talenti.ai.dora.realtime.price-per-minute.practice=0.10", "talenti.ai.dora.realtime.price-per-minute.interview=0.30",
+		"talenti.ai.limits.monthly-spend=50", "talenti.dora.question-timeout=2s",
 		"logging.level.com.talenti=TRACE", "logging.level.org.springframework.web=TRACE",
 		"logging.level.org.springframework.security=DEBUG", "logging.level.org.springframework.jdbc=DEBUG",
 		"spring.mvc.log-request-details=true" })
@@ -118,6 +123,48 @@ class RealtimeNeverLeaksTests extends MatchingIntegrationTest {
 		return mark.toString();
 	}
 
+	@ParameterizedTest
+	@EnumSource(SessionMode.class)
+	@DisplayName("012-70/71/72: el modelo enviado al proveedor local coincide con versiones y consumo del modo")
+	void modelAndPriceFollowStoredMode(SessionMode mode) {
+		RegisteredStudent student = registerStudent();
+		ApiClient api = student.api();
+		ok(api.put(PROFILE + "/skills", skills(skill("java", 2))));
+		String endpoint;
+		Response created;
+		if (mode == SessionMode.PRACTICE) {
+			endpoint = "/api/v1/practice/sessions";
+			created = api.post(endpoint, body("basis", "PROFILE", "questionCount", 2, "voice", true));
+		}
+		else {
+			Response application = api.post("/api/v1/applications", body("vacancyId", BACKEND_JAVA));
+			assertThat(application.status()).as(application.body()).isEqualTo(201);
+			endpoint = "/api/v1/applications/" + application.json().get("id").asString() + "/interview";
+			created = api.post(endpoint, body("noticeAccepted", true, "noticeVersion", "v2"));
+		}
+		assertThat(created.status()).as(created.body()).isEqualTo(201);
+		String session = created.json().get("id").asString();
+		String path = "/api/v1/dora/sessions/" + session + "/realtime";
+		Response connected = api.post(path, body("sdp", "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n"));
+		assertThat(connected.status()).as(connected.body()).isEqualTo(201);
+		String expected = mode == SessionMode.PRACTICE ? "gpt-realtime-mini" : "gpt-realtime-2.1";
+		assertThat(BODIES.get(BODIES.size() - 1)).contains("\"model\":\"" + expected + "\"");
+		assertThat(jdbc.queryForObject("SELECT realtime_model FROM practice_session WHERE id = ?::uuid",
+				String.class, session)).isEqualTo(expected);
+		if (mode == SessionMode.PRACTICE) {
+			assertThat(ok(api.get(endpoint + "/" + session)).at("/versions/realtimeModel").asString()).isEqualTo(expected);
+		}
+		clock.advance(Duration.ofSeconds(90));
+		String callId = connected.json().get("callId").asString();
+		ok(api.post(path + "/hangup", body("callId", callId, "reason", "FINISHED")));
+		Map<String, Object> usage = jdbc.queryForMap("SELECT model, input_size, estimated_cost_micros "
+				+ "FROM ai_usage_event WHERE read_id = ?::uuid AND function = 'DORA_REALTIME'", callId);
+		assertThat(usage.get("model")).isEqualTo(expected);
+		assertThat(((Number) usage.get("input_size")).intValue()).isEqualTo(90);
+		assertThat(((Number) usage.get("estimated_cost_micros")).longValue())
+				.isEqualTo(mode == SessionMode.PRACTICE ? 150_000L : 450_000L);
+	}
+
 	private static Map<String, Object> event(Object... keysAndValues) {
 		Map<String, Object> map = new LinkedHashMap<>();
 		for (int i = 0; i < keysAndValues.length; i += 2) {
@@ -163,7 +210,7 @@ class RealtimeNeverLeaksTests extends MatchingIntegrationTest {
 		assertThat(hangup.status()).isEqualTo(200);
 		assertThat(AUTHORIZATIONS).contains("Bearer " + KEY);
 		String sent = BODIES.get(BODIES.size() - 1);
-		assertThat(sent).contains(sdpMark).contains(name).contains("gpt-realtime-2.1").contains("marin");
+		assertThat(sent).contains(sdpMark).contains(name).contains("gpt-realtime-mini").contains("marin");
 		for (Response response : List.of(created, connected, events, hangup)) {
 			assertThat(response.body()).doesNotContain(KEY);
 			assertThat(response.headers().toString()).doesNotContain(KEY);
@@ -182,7 +229,7 @@ class RealtimeNeverLeaksTests extends MatchingIntegrationTest {
 	@DisplayName("012-57: toString de peticiones, filas y vistas del tiempo real no muestra SDP, instrucciones ni lo dicho")
 	void t012_57_toStringHidesContent() {
 		String mark = "marca" + UUID.randomUUID().toString().replace("-", "");
-		List<Object> values = List.of(new RealtimeCallPort.CallRequest(mark, mark),
+		List<Object> values = List.of(new RealtimeCallPort.CallRequest(mark, mark, SessionMode.PRACTICE, null),
 				new RealtimeCallPort.CreatedCall("rtc_1", mark),
 				new Views.RealtimeCall(UUID.randomUUID(), mark, null, null, "GREETING", 1, null),
 				new Views.Utterance("PERSON", mark, "QUESTION", 1, "VOICE", null, "CLIENT", null),

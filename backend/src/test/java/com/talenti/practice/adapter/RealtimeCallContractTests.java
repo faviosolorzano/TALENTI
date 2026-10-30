@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.talenti.practice.domain.SessionMode;
 import com.talenti.practice.port.AiCallException;
 import com.talenti.practice.port.RealtimeCallPort;
 
@@ -42,14 +43,14 @@ abstract class RealtimeCallContractTests {
 	void t012_56_createAndHangup() {
 		RealtimeCallPort port = port(false);
 
-		RealtimeCallPort.CreatedCall call = port.createCall(new RealtimeCallPort.CallRequest(OFFER, "Instrucciones."));
+		RealtimeCallPort.CreatedCall call = port.createCall(new RealtimeCallPort.CallRequest(OFFER, "Instrucciones.", SessionMode.PRACTICE, null));
 		port.hangup(call.providerCallId());
 
 		assertThat(call.sdp()).startsWith("v=0");
 		assertThat(call.providerCallId()).isNotBlank();
-		assertThat(port.info().adapter()).startsWith("realtime/");
-		assertThat(port.info().model()).isNotBlank();
-		assertThat(port.info().voice()).isNotBlank();
+		assertThat(port.info(SessionMode.PRACTICE).adapter()).startsWith("realtime/");
+		assertThat(port.info(SessionMode.PRACTICE).model()).isNotBlank();
+		assertThat(port.info(SessionMode.PRACTICE).voice()).isNotBlank();
 		assertThat(port.events()).isEqualTo(EVENTS);
 	}
 
@@ -59,11 +60,11 @@ abstract class RealtimeCallContractTests {
 		RealtimeCallPort port = port(true);
 		String mark = "marca" + UUID.randomUUID().toString().replace("-", "");
 
-		assertThatThrownBy(() -> port.createCall(new RealtimeCallPort.CallRequest(OFFER + "a=x-" + mark + "\r\n", mark)))
+		assertThatThrownBy(() -> port.createCall(new RealtimeCallPort.CallRequest(OFFER + "a=x-" + mark + "\r\n", mark, SessionMode.PRACTICE, null)))
 				.isInstanceOf(AiCallException.class).message().doesNotContain(mark);
 		assertThatThrownBy(() -> port.hangup("rtc_" + mark.substring(0, 8))).isInstanceOf(AiCallException.class)
 				.message().doesNotContain(mark);
-		assertThat(new RealtimeCallPort.CallRequest(mark, mark).toString()).doesNotContain(mark);
+		assertThat(new RealtimeCallPort.CallRequest(mark, mark, SessionMode.PRACTICE, null).toString()).doesNotContain(mark);
 		assertThat(new RealtimeCallPort.CreatedCall("rtc_1", mark).toString()).doesNotContain(mark);
 	}
 

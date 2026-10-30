@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.talenti.practice.domain.SessionMode;
 import com.talenti.practice.port.AiCallException;
 import com.talenti.practice.port.RealtimeCallPort;
 
@@ -59,12 +60,30 @@ class OpenAiRealtimeCallContractTests extends RealtimeCallContractTests {
 
 	static OpenAiRealtimeCalls.Settings settings(String baseUrl, String callsPath, String hangupPath, String model,
 			String voice) {
-		return new OpenAiRealtimeCalls.Settings(baseUrl, callsPath, hangupPath, model, voice, "gpt-4o-mini-transcribe",
+		return new OpenAiRealtimeCalls.Settings(baseUrl, callsPath, hangupPath, model, model, voice, "gpt-4o-mini-transcribe",
 				"es", "semantic_vad", Duration.ofSeconds(8), EVENTS);
 	}
 
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();
+
+	@Test
+	@DisplayName("012-70/72: modelo según modo y reconexión con el modelo ya guardado")
+	void modelFollowsModeAndReconnectKeepsIt() {
+		FakeTransport transport = new FakeTransport(false);
+		OpenAiRealtimeCalls.Settings settings = new OpenAiRealtimeCalls.Settings("http://proveedor.test/v1",
+				"/realtime/calls", "/realtime/calls/{callId}/hangup", "gpt-realtime-mini", "gpt-realtime-2.1",
+				"marin", "gpt-4o-mini-transcribe", "es", "semantic_vad", Duration.ofSeconds(8), EVENTS);
+		OpenAiRealtimeCalls adapter = new OpenAiRealtimeCalls(settings, transport, JSON);
+		for (SessionMode mode : SessionMode.values()) {
+			adapter.createCall(new RealtimeCallPort.CallRequest(OFFER, "Guion.", mode, null));
+			String payload = transport.bodies.get(transport.bodies.size() - 1).get("session");
+			assertThat(JSON.readTree(payload).get("model").asString()).isEqualTo(mode == SessionMode.PRACTICE
+					? "gpt-realtime-mini" : "gpt-realtime-2.1");
+		}
+		adapter.createCall(new RealtimeCallPort.CallRequest(OFFER, "Reanudar.", SessionMode.PRACTICE, "modelo-ya-usado"));
+		assertThat(JSON.readTree(transport.bodies.get(2).get("session")).get("model").asString()).isEqualTo("modelo-ya-usado");
+	}
 
 	@Override
 	protected RealtimeCallPort port(boolean failing) {
@@ -79,7 +98,7 @@ class OpenAiRealtimeCallContractTests extends RealtimeCallContractTests {
 		OpenAiRealtimeCalls port = new OpenAiRealtimeCalls(settings("https://api.openai.com/v1", "/realtime/calls",
 				"/realtime/calls/{callId}/hangup", "gpt-realtime-2.1", "marin"), transport, JSON);
 
-		RealtimeCallPort.CreatedCall call = port.createCall(new RealtimeCallPort.CallRequest(OFFER, "Guion de DORA."));
+		RealtimeCallPort.CreatedCall call = port.createCall(new RealtimeCallPort.CallRequest(OFFER, "Guion de DORA.", SessionMode.PRACTICE, null));
 		port.hangup(call.providerCallId());
 
 		assertThat(transport.urls).containsExactly("https://api.openai.com/v1/realtime/calls",
@@ -111,7 +130,7 @@ class OpenAiRealtimeCallContractTests extends RealtimeCallContractTests {
 		OpenAiRealtimeCalls port = new OpenAiRealtimeCalls(settings("http://otro.proveedor.test/v9", "/llamadas",
 				"/llamadas/{callId}/colgar", "modelo-x", "voz-y"), transport, JSON);
 
-		RealtimeCallPort.CreatedCall call = port.createCall(new RealtimeCallPort.CallRequest(OFFER, "x"));
+		RealtimeCallPort.CreatedCall call = port.createCall(new RealtimeCallPort.CallRequest(OFFER, "x", SessionMode.PRACTICE, null));
 		port.hangup(call.providerCallId());
 
 		assertThat(transport.urls).containsExactly("http://otro.proveedor.test/v9/llamadas",
@@ -119,7 +138,7 @@ class OpenAiRealtimeCallContractTests extends RealtimeCallContractTests {
 		JsonNode session = JSON.readTree(transport.bodies.get(0).get("session"));
 		assertThat(session.path("model").asString()).isEqualTo("modelo-x");
 		assertThat(session.at("/audio/output/voice").asString()).isEqualTo("voz-y");
-		assertThat(port.info()).isEqualTo(new RealtimeCallPort.Info("realtime/openai", "modelo-x", "voz-y",
+		assertThat(port.info(SessionMode.PRACTICE)).isEqualTo(new RealtimeCallPort.Info("realtime/openai", "modelo-x", "voz-y",
 				"gpt-4o-mini-transcribe"));
 		assertThat(port.events().channel()).isEqualTo("oai-events");
 	}
@@ -136,9 +155,9 @@ class OpenAiRealtimeCallContractTests extends RealtimeCallContractTests {
 		OpenAiRealtimeCalls port = new OpenAiRealtimeCalls(settings("https://api.openai.com/v1", "/realtime/calls",
 				"/realtime/calls/{callId}/hangup", "m", "v"), notSdp, JSON);
 
-		assertThatThrownBy(() -> port.createCall(new RealtimeCallPort.CallRequest(OFFER, "x")))
+		assertThatThrownBy(() -> port.createCall(new RealtimeCallPort.CallRequest(OFFER, "x", SessionMode.PRACTICE, null)))
 				.isInstanceOf(AiCallException.class);
-		assertThatThrownBy(() -> port(true).createCall(new RealtimeCallPort.CallRequest(OFFER, "secreto-guion")))
+		assertThatThrownBy(() -> port(true).createCall(new RealtimeCallPort.CallRequest(OFFER, "secreto-guion", SessionMode.PRACTICE, null)))
 				.isInstanceOf(AiCallException.class).hasMessageContaining("500").message()
 				.doesNotContain("secreto-guion");
 	}

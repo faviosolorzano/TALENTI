@@ -34,7 +34,7 @@ import tools.jackson.databind.JsonNode;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
 		"talenti.demo-data.enabled=true", "talenti.ai.dora.realtime.simulated=true",
-		"talenti.ai.dora.realtime.connect-timeout=1s", "talenti.ai.dora.realtime.price-per-minute=0.001" })
+		"talenti.ai.dora.realtime.connect-timeout=1s", "talenti.ai.dora.realtime.price-per-minute.practice=0.001", "talenti.ai.dora.realtime.price-per-minute.interview=0.001" })
 class RealtimeIntegrationTests extends PracticeIntegrationTest {
 
 	static final String SDP = "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n"
