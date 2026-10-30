@@ -93,6 +93,7 @@ async function fixture(page: Page) {
           { key: 'terms', title: 'Términos y condiciones' },
           { key: 'privacy', title: 'Política de privacidad' },
           { key: 'cookies', title: 'Política de cookies' },
+          { key: 'consent-account', title: 'Consentimiento de cuenta de ejemplo' },
         ].map((document) => ({
           ...document,
           sections: [
@@ -335,6 +336,7 @@ test('D-77: revisión de postulación, acceso, documentos y avisos de roles exis
     ['/recuperar-cuenta', 'recuperar'],
   ]) {
     await open(page, path!)
+    await expect(page.getByRole('alert')).toHaveCount(0)
     await widths(page, name!)
   }
 })
