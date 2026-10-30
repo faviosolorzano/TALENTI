@@ -9,6 +9,7 @@
     .workflow,
     .cv-reader,
     .auth,
+    .accept,
     .legal,
     .dashboard
   ) {
@@ -19,7 +20,8 @@
 .layout--soft :is(.vacancy-card, .home-vacancy),
 .layout--soft .card:is(.application-item, .applications__empty, .applications__panel),
 .layout--soft :is(.vacancy-detail__header, .filters__panel, .opportunities__empty),
-.layout--soft :is(.cv-reader__card, .auth__form, .legal__sections) {
+.layout--soft :is(.cv-reader__card, .auth__form, .legal__sections, .accept__form),
+.layout--soft .dashboard > .notice {
   min-width: 0;
   padding: var(--space-5);
   border: var(--border-width) solid var(--color-glass-line);
@@ -179,7 +181,7 @@
 
   .layout--soft :is(.home-block--wide, .home__side > .home-block, .home-practice-link),
   .layout--soft .vacancy-detail__header,
-  .layout--soft :is(.cv-reader__card, .auth__form, .legal__sections),
+  .layout--soft :is(.cv-reader__card, .auth__form, .legal__sections, .accept__form),
   .layout--soft .workflow > :is(.workflow__form, .workflow__setup, .dora-prepare, .workflow__row),
   .layout--soft [data-testid='exam-questions'] {
     padding: var(--space-7);
@@ -190,7 +192,8 @@
   .layout--soft .layout__main,
   .layout--soft :is(.home-block, .home-practice-link, .vacancy-card, .home-vacancy),
   .layout--soft :is(.vacancy-detail__header, .filters__panel, .opportunities__empty),
-  .layout--soft :is(.cv-reader__card, .auth__form, .legal__sections),
+  .layout--soft :is(.cv-reader__card, .auth__form, .legal__sections, .accept__form),
+  .layout--soft .dashboard > .notice,
   .layout--soft .workflow > :is(.workflow__form, .workflow__setup, .dora-prepare, .workflow__row),
   .layout--soft [data-testid='exam-questions'] {
     background: Canvas;

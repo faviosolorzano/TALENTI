@@ -56,7 +56,13 @@ const application = {
 test.describe.configure({ timeout: 180000 })
 
 async function fixture(page: Page) {
-  const state = { student: true, vacancies: 'ready', applications: true }
+  const state = {
+    student: true,
+    role: 'STUDENT',
+    legalPending: false,
+    vacancies: 'ready',
+    applications: true,
+  }
   await page.route('**/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname.replace('/api/v1', '')
     const json = (data: unknown, status = 200) => route.fulfill({ status, json: data })
@@ -65,8 +71,8 @@ async function fixture(page: Page) {
         ? json({
             id: 'student-demo',
             email: 'ana@example.test',
-            role: 'STUDENT',
-            legalAcceptancePending: false,
+            role: state.role,
+            legalAcceptancePending: state.legalPending,
           })
         : json({ code: 'unauthenticated' }, 401)
     if (path === '/auth/csrf')
@@ -79,6 +85,28 @@ async function fixture(page: Page) {
       return json({ id: 'student-demo', email: 'ana@example.test', role: 'STUDENT' })
     }
     if (path === '/profile') return json(profile)
+    if (path === '/legal/current')
+      return json({
+        version: 'demo-1',
+        publishedAt: '2026-10-30',
+        documents: [
+          { key: 'terms', title: 'Términos y condiciones' },
+          { key: 'privacy', title: 'Política de privacidad' },
+          { key: 'cookies', title: 'Política de cookies' },
+        ].map((document) => ({
+          ...document,
+          sections: [
+            {
+              heading: 'Documento de ejemplo para revisión',
+              body: 'Texto ficticio para comprobar lectura, navegación y distribución. El contenido legal vigente lo entrega el servidor.',
+            },
+            {
+              heading: 'Tus opciones',
+              body: 'Consulta la información antes de continuar. Esta captura no representa un acuerdo real.',
+            },
+          ],
+        })),
+      })
     if (path === '/skills') return json([{ slug: 'java', name: 'Java' }])
     if (path === '/vacancies/filters')
       return json({
@@ -272,4 +300,41 @@ test('D-77: CV, preparación DORA, GitHub, acceso y estados sin resultados', asy
   state.student = false
   await open(page, '/ingresar')
   await widths(page, 'ingresar')
+})
+
+test('D-77: revisión de postulación, acceso, documentos y avisos de roles existentes', async ({
+  page,
+}) => {
+  mkdirSync(output, { recursive: true })
+  const state = await fixture(page)
+  state.applications = false
+  await open(page, '/oportunidades/vacancy-demo/postular')
+  await widths(page, 'revisar-postulacion')
+  for (const [path, name] of [
+    ['/terminos', 'terminos'],
+    ['/privacidad', 'privacidad'],
+    ['/cookies', 'cookies'],
+    ['/transparencia', 'transparencia'],
+    ['/pagina-inexistente', '404'],
+  ]) {
+    await open(page, path!)
+    await widths(page, name!)
+  }
+  state.legalPending = true
+  await open(page, '/aceptar-documentos')
+  await widths(page, 'aceptar-documentos')
+  state.legalPending = false
+  for (const role of ['COMPANY', 'ADMIN']) {
+    state.role = role
+    await open(page, '/panel')
+    await widths(page, 'aviso-' + role.toLowerCase())
+  }
+  state.student = false
+  for (const [path, name] of [
+    ['/registro', 'registro'],
+    ['/recuperar-cuenta', 'recuperar'],
+  ]) {
+    await open(page, path!)
+    await widths(page, name!)
+  }
 })

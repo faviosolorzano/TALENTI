@@ -65,7 +65,7 @@ test('D-75: composición, lectura, edición y protección con respuestas control
   page,
   baseURL,
 }) => {
-  expect(new URL(baseURL!).port).toBe(before ? '3000' : '3094')
+  expect(before ? ['3000'] : ['3094', '3095']).toContain(new URL(baseURL!).port)
   let profile = sample()
   let state = 'full'
   let release = () => {}

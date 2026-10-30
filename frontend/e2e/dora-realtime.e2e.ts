@@ -107,13 +107,13 @@ interface Backend {
   session: Record<string, unknown>
 }
 
-async function simulatedBackend(page: Page): Promise<Backend> {
+async function simulatedBackend(page: Page, interview = false): Promise<Backend> {
   const backend: Backend = {
     requests: [],
     session: {
       id: 'rt',
-      mode: 'PRACTICE',
-      basis: 'PROFILE',
+      mode: interview ? 'INTERVIEW' : 'PRACTICE',
+      basis: interview ? 'VACANCY' : 'PROFILE',
       topic: null,
       questionCount: 3,
       voice: true,
@@ -165,6 +165,24 @@ async function simulatedBackend(page: Page): Promise<Backend> {
         dora: { provider: 'OPENAI', realtime: { available: true } },
       })
     if (path === '/practice/sessions/rt') return json(backend.session)
+    if (path === '/applications/app-rt/interview')
+      return json({
+        applicationId: 'app-rt',
+        sessionId: 'rt',
+        status: backend.session.status,
+        channel: backend.session.channel,
+        attempt: 1,
+        maxAttempts: 2,
+        canRetry: false,
+        nextPosition: backend.session.nextPosition,
+        questions: [1, 2, 3].map((position) => ({
+          position,
+          text: 'Pregunta de prueba ' + position,
+          generatedBy: 'BANK',
+          transcriptRaw: null,
+          transcriptFinal: null,
+        })),
+      })
     if (path === '/dora/sessions/rt/realtime')
       return json(
         {
@@ -197,87 +215,96 @@ async function reflows(page: Page) {
   )
 }
 
-test('012-59/60/61/65/66: real-time call in Chrome at 360, 768 and 1280 px, accessible and released on hang up', async ({
-  page,
-}) => {
-  await page.addInitScript(fakeWebRtc)
-  await page.goto('/ingresar')
-  const backend = await simulatedBackend(page)
-  const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
-  await page.goto('/practicar/rt')
-  if (await reject.count()) await reject.click()
-  const start = page.getByRole('button', { name: r.startCall })
-  await expect(start).toBeVisible()
-  await start.click()
-  const status = page.getByRole('status').filter({ hasText: r.statuses.listening })
-  await expect(status).toBeVisible()
-  expect(backend.requests.find((q) => q.path === '/dora/sessions/rt/realtime')?.body).toEqual({
-    sdp: expect.stringContaining('m=audio'),
-  })
-  await page.evaluate(() => {
-    const dora = (window as unknown as { __dora: { emit: (e: object) => void } }).__dora
-    dora.emit({ type: 'output_audio_buffer.started' })
-    dora.emit({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'd1',
-      transcript: 'Hola, Ana. Soy DORA, una asistente de inteligencia artificial.',
+for (const interview of [false, true]) {
+  test(`012-59/60/61/65/66: ${interview ? 'INTERVIEW' : 'PRACTICE'} real-time call in Chrome at 360, 768 and 1280 px, accessible and released on hang up`, async ({
+    page,
+  }) => {
+    await page.addInitScript(fakeWebRtc)
+    await page.goto('/ingresar')
+    const backend = await simulatedBackend(page, interview)
+    const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
+    await page.goto(interview ? '/postulaciones/app-rt/entrevista' : '/practicar/rt')
+    if (await reject.count()) await reject.click()
+    const start = page.getByRole('button', { name: r.startCall })
+    await expect(start).toBeVisible()
+    await start.click()
+    const status = page.getByRole('status').filter({ hasText: r.statuses.listening })
+    await expect(status).toBeVisible()
+    expect(backend.requests.find((q) => q.path === '/dora/sessions/rt/realtime')?.body).toEqual({
+      sdp: expect.stringContaining('m=audio'),
     })
-  })
-  await expect(page.getByRole('status').filter({ hasText: r.statuses.speaking })).toBeVisible()
-  // The orb follows the real level of DORA's tone (never a looping fake).
-  await expect
-    .poll(() =>
-      page.evaluate(() =>
-        Number(
-          getComputedStyle(document.querySelector('.dora-call__actors')!).getPropertyValue(
-            '--dora-level',
+    await page.evaluate(() => {
+      const dora = (window as unknown as { __dora: { emit: (e: object) => void } }).__dora
+      dora.emit({ type: 'output_audio_buffer.started' })
+      dora.emit({
+        type: 'response.output_audio_transcript.done',
+        item_id: 'd1',
+        transcript: 'Hola, Ana. Soy DORA, una asistente de inteligencia artificial.',
+      })
+    })
+    await expect(page.getByRole('status').filter({ hasText: r.statuses.speaking })).toBeVisible()
+    // The orb follows the real level of DORA's tone (never a looping fake).
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Number(
+            getComputedStyle(document.querySelector('.dora-call__actors')!).getPropertyValue(
+              '--dora-level',
+            ),
           ),
         ),
-      ),
+      )
+      .toBeGreaterThanOrEqual(0)
+
+    mkdirSync(output, { recursive: true })
+    for (const width of [360, 768, 1280]) {
+      await page.setViewportSize({ width, height: width === 360 ? 780 : 900 })
+      await reflows(page)
+      for (const name of [r.hangUp, r.mute, c.write, c.transcript])
+        await expect(page.getByRole('button', { name })).toBeVisible()
+      await page.screenshot({
+        path: resolve(output, `${interview ? 'entrevista' : 'dora'}-tiempo-real-${width}.png`),
+      })
+    }
+    const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
+    expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual(
+      [],
     )
-    .toBeGreaterThanOrEqual(0)
 
-  mkdirSync(output, { recursive: true })
-  for (const width of [360, 768, 1280]) {
-    await page.setViewportSize({ width, height: width === 360 ? 780 : 900 })
-    await reflows(page)
-    for (const name of [r.hangUp, r.mute, c.write, c.transcript])
-      await expect(page.getByRole('button', { name })).toBeVisible()
-    await page.screenshot({ path: resolve(output, `dora-tiempo-real-${width}.png`) })
-  }
-  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
-  expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual(
-    [],
-  )
+    // Keyboard: mute and the floating transcript, with focus coming back.
+    await page.getByRole('button', { name: r.mute }).focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button', { name: r.unmute })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await page.getByRole('button', { name: c.transcript }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByText(/Soy DORA/)).toBeVisible()
+    await expect(dialog.getByText(es.workflows.ai)).toBeVisible()
+    await page.setViewportSize({ width: 360, height: 780 })
+    await page.screenshot({
+      path: resolve(output, `${interview ? 'entrevista' : 'dora'}-transcripcion-360.png`),
+    })
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: c.transcript })).toBeFocused()
 
-  // Keyboard: mute and the floating transcript, with focus coming back.
-  await page.getByRole('button', { name: r.mute }).focus()
-  await page.keyboard.press('Enter')
-  await expect(page.getByRole('button', { name: r.unmute })).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('button', { name: c.transcript }).click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog.getByText(/Soy DORA/)).toBeVisible()
-  await expect(dialog.getByText(es.workflows.ai)).toBeVisible()
-  await page.setViewportSize({ width: 360, height: 780 })
-  await page.screenshot({ path: resolve(output, 'dora-transcripcion-360.png') })
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('button', { name: c.transcript })).toBeFocused()
-
-  await page.getByRole('button', { name: r.hangUp }).click()
-  await page.getByRole('dialog').getByRole('button', { name: r.hangUpShort }).click()
-  await expect(page.getByText(es.workflows.closedSession)).toBeVisible()
-  expect(backend.requests.map((q) => q.path)).toEqual(
-    expect.arrayContaining(['/dora/sessions/rt/realtime/hangup', '/dora/sessions/rt/finish']),
-  )
-  expect(
-    backend.requests.find((q) => q.path === '/dora/sessions/rt/realtime/hangup')?.body,
-  ).toEqual({ callId: 'call-1', reason: 'FINISHED' })
-  expect(
-    await page.evaluate(
-      () => (window as unknown as { __dora: { state: { closed: number } } }).__dora.state.closed,
-    ),
-  ).toBe(1)
-})
+    await page.getByRole('button', { name: r.hangUp }).click()
+    await page.getByRole('dialog').getByRole('button', { name: r.hangUpShort }).click()
+    await expect(page.getByText(es.workflows.closedSession)).toBeVisible()
+    expect(backend.requests.map((q) => q.path)).toEqual(
+      expect.arrayContaining(['/dora/sessions/rt/realtime/hangup', '/dora/sessions/rt/finish']),
+    )
+    expect(
+      backend.requests.find((q) => q.path === '/dora/sessions/rt/realtime/hangup')?.body,
+    ).toEqual({ callId: 'call-1', reason: 'FINISHED' })
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __dora: { state: { closed: number } } }).__dora.state.closed,
+      ),
+    ).toBe(1)
+  })
+}
 
 test('012-46/67: browser events persist in the real isolated backend, including late transcripts', async ({
   page,
