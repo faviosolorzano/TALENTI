@@ -52,7 +52,7 @@ async function open(response = answer(), available = true) {
   })
   return { ...app, button }
 }
-it('015-20,22,24,27: one explicit request, real score refreshed, AI label, fold and restore focus without requesting again', async () => {
+it('D-72, 015-20,22,27: recommendations only, one request, score refreshed and fold restores focus', async () => {
   const { user, button, compatibility } = await open()
   expect(button).toHaveAttribute('aria-expanded', 'false')
   expect(compatibility.requests.filter((p) => p === path)).toHaveLength(0)
@@ -73,7 +73,7 @@ it('015-20,22,24,27: one explicit request, real score refreshed, AI label, fold 
   ).toBeVisible()
   expect(compatibility.requests.filter((p) => p === path)).toHaveLength(1)
 })
-it('015-23: a limited template is never labeled AI and no gaps offers practice for the vacancy', async () => {
+it('D-72, 015-23: a limited template is not AI; no gaps means no study offer or recommendations heading', async () => {
   const { user, button } = await open(
     answer({ source: 'TEMPLATE', fallbackReason: 'PERSONAL_LIMIT', practice: [] }),
     false,
