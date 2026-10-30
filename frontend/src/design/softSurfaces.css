@@ -83,6 +83,19 @@
   background: none;
 }
 
+/* The results are a list of cards, rather than another card enclosing them. */
+.layout--soft .opportunities__results {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.layout--soft .vacancy-card {
+  align-items: start;
+}
+
 .layout--soft .vacancy-detail__header {
   gap: var(--space-6);
 }
@@ -184,6 +197,14 @@
     color: CanvasText;
     border-color: CanvasText;
     box-shadow: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .layout--soft :is(.home-block--wide, .home__side > .home-block, .home-practice-link),
+  .layout--soft .vacancy-detail__header {
+    background: var(--color-soft-surface);
     backdrop-filter: none;
   }
 }
