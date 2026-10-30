@@ -105,6 +105,7 @@ async function mockBackend(page: Page): Promise<Backend> {
 
 test('014-45: MediaPipe y sus modelos cargan con la CSP real; sin rostro, la calibración pide repetir', async ({
   page,
+  baseURL,
 }) => {
   const errors: string[] = []
   page.on('console', (message) => {
@@ -112,8 +113,9 @@ test('014-45: MediaPipe y sus modelos cargan con la CSP real; sin rostro, la cal
       errors.push(message.text())
   })
   const external: string[] = []
+  const origin = new URL(baseURL!).origin
   page.on('request', (request) => {
-    if (!request.url().startsWith('http://localhost')) external.push(request.url())
+    if (new URL(request.url()).origin !== origin) external.push(request.url())
   })
   await mockBackend(page)
   await page.goto('/postulaciones/app-e2e/examen')
