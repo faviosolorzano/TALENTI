@@ -6,10 +6,10 @@ import './ProfileSkeleton.css'
 /** Placeholder of /perfil while the profile loads (006-20). The title is already real. */
 export function ProfileSkeleton() {
   return (
-    <div className="container profile" aria-busy="true">
+    <div className="container profile profile--soft" aria-busy="true">
       <div className="profile__head">
         <h1 className="profile__title">{es.profile.title}</h1>
-        <p className="profile__lead">{es.profile.lead}</p>
+        <p className="profile__lead">{es.profile.overview.lead}</p>
       </div>
       <p className="visually-hidden" role="status">
         {es.profile.loading}
@@ -24,7 +24,7 @@ export function ProfileSkeleton() {
           </Card>
         </div>
         <div className="profile__sections">
-          {[0, 1, 2, 3].map((index) => (
+          {[0, 1, 2, 3, 4].map((index) => (
             <Card key={index} className="profile-skeleton__section">
               <span className="skeleton skeleton--tick" />
               <span className="skeleton skeleton--title" />

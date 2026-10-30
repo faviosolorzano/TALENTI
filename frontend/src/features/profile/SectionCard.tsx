@@ -89,6 +89,7 @@ export function SectionCard({
       aria-labelledby={headingId}
       data-open={open || undefined}
       data-done={done || undefined}
+      data-section={section}
     >
       <div className="section-card__head">
         <span className="section-card__tick" aria-hidden="true" />

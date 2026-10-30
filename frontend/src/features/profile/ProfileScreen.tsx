@@ -62,7 +62,7 @@ export function ProfileScreen() {
 
   if (resource.state.status === 'error') {
     return (
-      <div className="container profile">
+      <div className="container profile profile--soft">
         <div className="profile__head">
           <h1 className="profile__title">{es.profile.title}</h1>
         </div>
@@ -208,7 +208,7 @@ function ProfileView({ initial }: { initial: Profile }) {
       emphasized={nextSection === section}
       justSaved={savedKey === section}
       bringIntoView={bringKey === section}
-      onEdit={() => openSection(section)}
+      onEdit={() => openSection(section, true)}
       summary={summary}
     >
       {form}
@@ -286,9 +286,16 @@ function ProfileView({ initial }: { initial: Profile }) {
     ),
   }
 
+  const personName = [profile.about.firstNames, profile.about.lastNames].filter(Boolean).join(' ')
+  const initials = [profile.about.firstNames, profile.about.lastNames]
+    .filter((part): part is string => Boolean(part?.trim()))
+    .map((part) => Array.from(part.trim())[0])
+    .join('')
+  const overview = es.profile.overview
+
   return (
     <ProfileSavingContext value={setSaving}>
-      <div className="container profile">
+      <div className="container profile profile--soft">
         <div className="profile__head">
           {returnTo && (
             <Button
@@ -301,41 +308,103 @@ function ProfileView({ initial }: { initial: Profile }) {
               {es.redesign.backVacancy}
             </Button>
           )}
-          <h1 className="profile__title">{openKey ? TITLES[selected] : es.profile.title}</h1>
-          <p className="profile__lead">{es.redesign.profileChoice}</p>
-          <div className="profile__tools">
-            <Button
-              disabled={saving}
-              to={returnTo ? `/perfil/cv?returnTo=${encodeURIComponent(returnTo)}` : '/perfil/cv'}
-            >
-              {es.redesign.useCv}
-            </Button>
-            <Button disabled={saving} variant="quiet" to="/perfil/github">
-              {es.redesign.github}
-            </Button>
-          </div>
+          <p className="profile__eyebrow">{overview.eyebrow}</p>
+          <h1 className="profile__title">{es.profile.title}</h1>
+          <p className="profile__lead">{overview.lead}</p>
         </div>
-        <nav className="profile-tabs" aria-label={es.profile.title} ref={tabsRef}>
-          {SECTION_ORDER.map((section) => (
-            <button
-              key={section}
-              type="button"
-              disabled={saving}
-              aria-current={section === selected ? 'page' : undefined}
-              onClick={() => openSection(section, true)}
-            >
-              {TITLES[section]}
-            </button>
-          ))}
-        </nav>
-        <div className="profile__sections" ref={editorRef}>
-          {savedKey && <p role="status">{es.profile.actions.saved}</p>}
-          {dirty.size > 0 && (
-            <p className="profile__dirty" role="status">
-              {es.redesign.unsaved}
+        <section className="profile-identity" aria-label={overview.identity}>
+          <span className="profile-identity__initials" aria-hidden="true">
+            {initials || 'T'}
+          </span>
+          <div className="profile-identity__person">
+            <h2>{personName || overview.noName}</h2>
+            <p>{profile.academic.career || overview.noCareer}</p>
+            {(profile.academic.institute || profile.availability.location) && (
+              <p className="profile-identity__detail">
+                {[profile.academic.institute, profile.availability.location]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
+          </div>
+          <div className="profile-identity__next">
+            <span>{overview.next}</span>
+            <p>
+              {completeness.nextStep ? es.profile.steps[completeness.nextStep] : overview.ready}
             </p>
-          )}
-          {cards[selected]}
+            {nextSection && (
+              <Button
+                disabled={saving}
+                size="sm"
+                variant="quiet"
+                onClick={() => openSection(nextSection, true)}
+              >
+                {overview.review}
+              </Button>
+            )}
+          </div>
+        </section>
+        <div className="profile__workspace">
+          <aside className="profile__rail">
+            <nav className="profile-tabs" aria-label={es.profile.title} ref={tabsRef}>
+              {SECTION_ORDER.map((section, index) => (
+                <button
+                  key={section}
+                  type="button"
+                  disabled={saving}
+                  aria-current={section === selected ? 'page' : undefined}
+                  onClick={() => openSection(section, true)}
+                >
+                  <span className="profile-tabs__number" aria-hidden="true">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  {TITLES[section]}
+                </button>
+              ))}
+            </nav>
+            <div className="profile-resources">
+              <h2>{overview.resources}</h2>
+              <div className="profile-resource">
+                <span className="profile-resource__symbol" aria-hidden="true">
+                  CV
+                </span>
+                <h3>{overview.cvTitle}</h3>
+                <p>{overview.cv}</p>
+                <Button
+                  disabled={saving}
+                  variant="quiet"
+                  to={
+                    returnTo ? `/perfil/cv?returnTo=${encodeURIComponent(returnTo)}` : '/perfil/cv'
+                  }
+                >
+                  {es.redesign.useCv}
+                </Button>
+              </div>
+              <div className="profile-resource">
+                <span className="profile-resource__symbol" aria-hidden="true">
+                  &lt;/&gt;
+                </span>
+                <h3>{overview.githubTitle}</h3>
+                <p>{overview.github}</p>
+                <Button disabled={saving} variant="quiet" to="/perfil/github">
+                  {es.redesign.github}
+                </Button>
+              </div>
+            </div>
+          </aside>
+          <div className="profile__sections" ref={editorRef}>
+            {savedKey && (
+              <p className="profile__notice" role="status">
+                {es.profile.actions.saved}
+              </p>
+            )}
+            {dirty.size > 0 && (
+              <p className="profile__dirty profile__notice" role="status">
+                {es.redesign.unsaved}
+              </p>
+            )}
+            {SECTION_ORDER.map((section) => cards[section])}
+          </div>
         </div>
         {!promptHidden && (pendingSection || blocker.state === 'blocked') && (
           <Dialog

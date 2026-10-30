@@ -63,14 +63,18 @@ describe('Page /perfil: states and progress (006-14, 006-20)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('shows five sections in top navigation and exactly one editor', async () => {
+  it('D-75: shows all five summaries and opens only the selected editor', async () => {
     const { user } = await openProfile()
     const nav = screen.getByRole('navigation', { name: es.profile.title })
     expect(within(nav).getAllByRole('button')).toHaveLength(5)
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(card(t.about.title)).toBeInTheDocument()
     await user.click(within(nav).getByRole('button', { name: t.skills.title }))
-    expect(screen.queryByRole('region', { name: t.about.title })).not.toBeInTheDocument()
+    expect(card(t.about.title)).toBeInTheDocument()
+    expect(card(t.academic.title)).toBeInTheDocument()
+    expect(card(t.availability.title)).toBeInTheDocument()
+    expect(card(t.projects.title)).toBeInTheDocument()
+    expect(screen.queryByLabelText(t.about.firstNames)).not.toBeInTheDocument()
     expect(screen.getByRole('searchbox', { name: t.skills.pickerLabel })).toBeInTheDocument()
   })
   it('CV and GitHub lead to real screens without promising a PDF attachment', async () => {
@@ -103,7 +107,8 @@ describe('?seccion= (006-20)', () => {
       expect(within(skills).getByRole('searchbox', { name: t.skills.pickerLabel })).toHaveFocus(),
     )
     // The other cards stay in read mode.
-    expect(screen.queryByRole('region', { name: t.academic.title })).not.toBeInTheDocument()
+    expect(card(t.academic.title)).toBeInTheDocument()
+    expect(screen.queryByLabelText(t.academic.career)).not.toBeInTheDocument()
   })
 
   it.each([
@@ -174,7 +179,7 @@ describe('Private page (006-14)', () => {
     await user.clear(screen.getByLabelText(t.academic.career))
     await user.type(screen.getByLabelText(t.academic.career), 'Mecatrónica')
     await user.click(screen.getByRole('button', { name: t.actions.save }))
-    await screen.findByText('Mecatrónica')
+    await within(card(t.academic.title)).findByText('Mecatrónica')
 
     expect(localStorage.length).toBe(0)
     expect(sessionStorage.length).toBe(0)
@@ -212,7 +217,7 @@ describe('Datos académicos (006-05, 006-15, 006-19)', () => {
     await user.click(screen.getByRole('button', { name: t.actions.save }))
 
     expect(await screen.findByRole('button', { name: t.actions.saving })).toBeDisabled()
-    await screen.findByText('Desarrollo de Software')
+    await within(card(t.academic.title)).findByText('Desarrollo de Software')
   })
 
   it('006-15: a 422 shows each message under its field, tied with aria-describedby, focuses the first one and keeps what was typed', async () => {
@@ -312,5 +317,5 @@ it('protects inputs and section navigation until the current profile save finish
     'aria-disabled',
     'true',
   )
-  await screen.findByText('Desarrollo de Software')
+  await within(card(t.academic.title)).findByText('Desarrollo de Software')
 })

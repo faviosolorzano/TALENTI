@@ -630,6 +630,21 @@ export const es = {
   // ---- Student profile (spec 006) ----
   profile: {
     title: 'Mi perfil',
+    overview: {
+      eyebrow: 'Tu espacio profesional',
+      lead: 'Lo que sabes, lo que has creado y lo que buscas.',
+      identity: 'Resumen de tu perfil',
+      noName: 'Haz que te conozcan',
+      noCareer: 'Cuenta quién eres y qué te gustaría aportar.',
+      next: 'Un paso a la vez',
+      ready: 'Puedes seguir explorando oportunidades y actualizar tus datos cuando quieras.',
+      review: 'Completar sección',
+      resources: 'Con lo que ya tienes',
+      cvTitle: 'Tu currículum',
+      githubTitle: 'Tu código',
+      cv: 'Trae información de tu CV y revisa qué añadir a tu perfil.',
+      github: 'Conecta tus repositorios para mostrar lo que has construido.',
+    },
     lead: 'Revisa tus datos y guarda los cambios de cada sección.',
     loading: 'Cargando tu perfil…',
     loadError: 'No pudimos cargar tu perfil.',
