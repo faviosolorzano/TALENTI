@@ -8,28 +8,36 @@ export function ProfileSkeleton() {
   return (
     <div className="container profile profile--soft" aria-busy="true">
       <div className="profile__head">
+        <p className="profile__eyebrow">{es.profile.overview.eyebrow}</p>
         <h1 className="profile__title">{es.profile.title}</h1>
         <p className="profile__lead">{es.profile.overview.lead}</p>
       </div>
       <p className="visually-hidden" role="status">
         {es.profile.loading}
       </p>
-      <div className="profile__layout" aria-hidden="true">
-        <div className="profile__aside">
-          <Card className="profile-skeleton__summary">
-            <span className="skeleton skeleton--title" />
-            <span className="skeleton skeleton--heading profile-skeleton__number" />
+      <div className="profile-skeleton__layout" aria-hidden="true">
+        <div className="profile-identity">
+          <span className="skeleton profile-identity__initials" />
+          <div className="profile-skeleton__copy">
+            <span className="skeleton skeleton--heading" />
             <span className="skeleton skeleton--line" />
             <span className="skeleton skeleton--line skeleton--short" />
-          </Card>
+          </div>
         </div>
-        <div className="profile__sections">
-          {[0, 1, 2, 3, 4].map((index) => (
-            <Card key={index} className="profile-skeleton__section">
-              <span className="skeleton skeleton--tick" />
-              <span className="skeleton skeleton--title" />
-            </Card>
-          ))}
+        <div className="profile__workspace">
+          <div className="profile-skeleton__nav">
+            {[0, 1, 2, 3, 4].map((index) => (
+              <span className="skeleton skeleton--line" key={index} />
+            ))}
+          </div>
+          <div className="profile__sections">
+            {[0, 1, 2, 3, 4].map((index) => (
+              <Card key={index} className="profile-skeleton__section">
+                <span className="skeleton skeleton--tick" />
+                <span className="skeleton skeleton--title" />
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     </div>
