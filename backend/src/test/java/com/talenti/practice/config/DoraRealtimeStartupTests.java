@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import com.talenti.practice.adapter.OpenAiRealtimeCalls;
 import com.talenti.practice.adapter.SimulatedRealtimeCalls;
 import com.talenti.practice.domain.RealtimeInstructions;
+import com.talenti.practice.domain.SessionMode;
 import com.talenti.practice.port.RealtimeCallPort;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -41,7 +42,10 @@ class DoraRealtimeStartupTests {
 			assertThat(context).hasNotFailed();
 			assertThat(context).hasSingleBean(SimulatedRealtimeCalls.class).doesNotHaveBean(OpenAiRealtimeCalls.class);
 			assertThat(context.getBean(DoraRealtimeProperties.class).enabled()).isFalse();
-			assertThat(context.getBean(DoraRealtimeProperties.class).model()).isEqualTo("gpt-realtime-2.1");
+			assertThat(context.getBean(DoraRealtimeProperties.class).models().practice()).isEqualTo("gpt-realtime-mini");
+			assertThat(context.getBean(DoraRealtimeProperties.class).models().interview()).isEqualTo("gpt-realtime-2.1");
+			assertThat(context.getBean(DoraRealtimeProperties.class).pricePerMinute().practice()).isEqualByComparingTo("0.10");
+			assertThat(context.getBean(DoraRealtimeProperties.class).pricePerMinute().interview()).isEqualByComparingTo("0.30");
 			assertThat(context.getBean(DoraRealtimeProperties.class).voice()).isEqualTo("marin");
 			assertThat(context.getBean(RealtimeInstructions.class).version()).isEqualTo("realtime-interviewer-v1");
 		});
@@ -58,7 +62,7 @@ class DoraRealtimeStartupTests {
 			assertThat(context).hasFailed();
 			assertThat(context.getStartupFailure()).hasStackTraceContaining("OPENAI_API_KEY");
 		});
-		for (String property : new String[] { "base-url", "model", "voice" }) {
+		for (String property : new String[] { "base-url", "models.practice", "models.interview", "voice" }) {
 			enabled().withPropertyValues("talenti.ai.openai.api-key=" + FAKE_KEY, "talenti.ai.dora.realtime." + property + "=")
 					.run(context -> {
 						assertThat(context).hasFailed();
@@ -73,17 +77,29 @@ class DoraRealtimeStartupTests {
 	@DisplayName("012-56: encendido con clave falsa arranca con OpenAI y no se conecta a nada al arrancar")
 	void t012_56_enabledStartsWithoutNetwork() {
 		enabled().withPropertyValues("talenti.ai.openai.api-key=" + FAKE_KEY,
-				"talenti.ai.dora.realtime.model=modelo-tiempo-real", "talenti.ai.dora.realtime.voice=voz-prueba")
+				"talenti.ai.dora.realtime.models.practice=modelo-practica",
+				"talenti.ai.dora.realtime.models.interview=modelo-entrevista", "talenti.ai.dora.realtime.voice=voz-prueba")
 				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(OpenAiRealtimeCalls.class)
 							.doesNotHaveBean(SimulatedRealtimeCalls.class);
-					RealtimeCallPort.Info info = context.getBean(RealtimeCallPort.class).info();
+					RealtimeCallPort.Info info = context.getBean(RealtimeCallPort.class).info(SessionMode.PRACTICE);
 					assertThat(info.adapter()).isEqualTo("realtime/openai");
-					assertThat(info.model()).isEqualTo("modelo-tiempo-real");
+					assertThat(info.model()).isEqualTo("modelo-practica");
+					assertThat(context.getBean(RealtimeCallPort.class).info(SessionMode.INTERVIEW).model()).isEqualTo("modelo-entrevista");
 					assertThat(info.voice()).isEqualTo("voz-prueba");
 					assertThat(context.getBean(DoraRealtimeProperties.class).toString()).doesNotContain(FAKE_KEY);
 				});
+	}
+
+	@Test
+	void pricesMustBePositiveForBothModes() {
+		for (String mode : new String[] { "practice", "interview" }) {
+			for (String price : new String[] { "0", "-0.1" }) {
+				runner.withPropertyValues("talenti.ai.dora.realtime.price-per-minute." + mode + "=" + price)
+						.run(context -> assertThat(context).hasFailed());
+			}
+		}
 	}
 
 	private static String stackTrace(Throwable failure) {

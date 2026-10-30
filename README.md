@@ -63,6 +63,34 @@ Apagado por defecto: sin configurarlo, `POST /api/v1/github/oauth/start` respond
 
 Talenti no pide permisos extra (sin `scope`: solo lo público) y no guarda la llave que le entrega GitHub. Si falta una variable con la conexión encendida, el backend no arranca y `docker compose logs backend` dice cuál.
 
+## DORA: modelo de voz y gasto según modo
+
+El servidor elige el modelo usando el modo guardado de la sesión. La práctica privada de entrevistas usa `gpt-realtime-mini`; la entrevista evaluada usa `gpt-realtime-2.1`. La pantalla, voz `marin`, controles, transcripción y evaluación por rúbrica se conservan. No se garantiza que los modelos tengan la misma fluidez o comprensión: se comparan con voz real.
+
+| Propiedad bajo `talenti.ai.dora.realtime` | Variable | Predeterminado |
+|---|---|---|
+| `models.practice` | `TALENTI_AI_DORA_REALTIME_MODELS_PRACTICE` | `gpt-realtime-mini` |
+| `models.interview` | `TALENTI_AI_DORA_REALTIME_MODELS_INTERVIEW` | `gpt-realtime-2.1` |
+| `price-per-minute.practice` | `TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE_PRACTICE` | `0.10` USD/min estimado |
+| `price-per-minute.interview` | `TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE_INTERVIEW` | `0.30` USD/min estimado |
+
+Reemplazan `TALENTI_AI_DORA_REALTIME_MODEL` y `TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE`; las variables antiguas ya no configuran el modelo ni el presupuesto. Compose normal y el complemento local pasan las cuatro variables nuevas y permiten sobrescribirlas. Con tiempo real encendido deben estar ambos modelos definidos y los precios deben ser positivos. Los topes mensuales existentes no cambian.
+
+El modelo enviado al abrir con éxito queda en `versions.realtimeModel`; una reconexión conserva ese modelo aunque cambie la configuración. Se registra el alias solicitado al proveedor: la respuesta SDP no entrega un identificador de snapshot para resolverlo. Al colgar, el registro de consumo usa el modelo guardado y el precio del modo. Las reservas de otras llamadas abiertas usan sus propios modos. **Finalizar las llamadas abiertas antes de cambiar modelos/precios o desplegar**: las tarifas son configuración de arranque, no un historial de precios por llamada.
+
+**Estimación, consulta 29-10-2026:** la [tabla oficial de precios](https://developers.openai.com/api/docs/pricing) (tabla completa también en su versión `.md`) indica audio por millón de tokens: mini entrada USD 10/salida 20; 2.1 entrada 32/salida 64. Texto mini 0.60/2.40; 2.1 4/24. La [guía de costos de voz](https://developers.openai.com/api/docs/guides/voice-latency-cost?voice-api=realtime) indica 600 tokens por minuto entrante y 1200 saliente. Un minuto entrante más uno saliente da una base de USD 0.030/0.096; usamos aproximadamente tres veces esa base, redondeada hacia arriba, como reserva inicial: 0.10/0.30. Historia, texto y transcripción aparte pueden aumentar el costo. No es tarifa oficial por minuto ni garantiza un techo de cobro; contrastar con el panel. Revisar el precio al cambiar un modelo.
+
+OpenAI marca [gpt-realtime-mini como obsoleto](https://developers.openai.com/api/docs/models/gpt-realtime-mini), con [retiro anunciado para el 20-01-2027](https://developers.openai.com/api/docs/deprecations). Se mantiene el modelo solicitado y no se sustituye automáticamente.
+
+### Comparación manual: dos prácticas de cinco minutos
+
+La realiza Favio después, en un entorno separado autorizado con su clave configurada privadamente. No modificar `main` ni iniciar conversaciones pagadas como parte de las pruebas automáticas.
+
+1. Antes de arrancar el entorno separado, fijar `TALENTI_AI_DORA_REALTIME_MODELS_PRACTICE=gpt-realtime-mini` y precio de práctica `0.10`. Crear una sesión nueva, mismo tema/voz/micrófono; conversar como máximo cinco minutos y colgar.
+2. Con todas las llamadas cerradas, reiniciar solo ese entorno con modelo de práctica `gpt-realtime-2.1` y precio de práctica `0.30`. Crear otra sesión nueva y repetir el mismo recorrido durante cinco minutos. No usar una postulación evaluada para esta comparación.
+3. Comparar comprensión, pausas, interrupciones y ruido. Revisar el modelo en versiones y consumo en OpenAI; la reserva orientativa es USD 0.50 + 1.50, más las otras funciones de IA, no una promesa de factura. Comprobar que quede cupo antes de cada llamada; no ampliar el tope mensual automáticamente.
+4. Restaurar modelo/precio de práctica mini/0.10 para las sesiones nuevas. Entrevista conserva 2.1/0.30 durante toda la comparación. Las sesiones de comparación quedan privadas.
+
 ## Pruebas
 - Backend (necesita Docker, usa PostgreSQL real en un contenedor): `cd backend && ./mvnw test`
 - Frontend: `cd frontend && npm install && npm run test`

@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.talenti.practice.domain.SessionMode;
 import com.talenti.practice.port.AiCallException;
 import com.talenti.practice.port.RealtimeCallPort;
 
@@ -38,7 +39,7 @@ class SimulatedRealtimeCallContractTests extends RealtimeCallContractTests {
 	void t012_56_simulatedRemembers() {
 		SimulatedRealtimeCalls simulated = new SimulatedRealtimeCalls(EVENTS);
 
-		RealtimeCallPort.CreatedCall call = simulated.createCall(new RealtimeCallPort.CallRequest(OFFER, "Hola."));
+		RealtimeCallPort.CreatedCall call = simulated.createCall(new RealtimeCallPort.CallRequest(OFFER, "Hola.", SessionMode.PRACTICE, null));
 		simulated.hangup(call.providerCallId());
 
 		assertThat(call.sdp()).isEqualTo(SimulatedRealtimeCalls.ANSWER_SDP);

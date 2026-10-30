@@ -176,14 +176,18 @@ talenti:
         base-url: ${TALENTI_AI_DORA_REALTIME_BASE_URL:https://api.openai.com/v1}
         calls-path: /realtime/calls
         hangup-path: /realtime/calls/{callId}/hangup
-        model: ${TALENTI_AI_DORA_REALTIME_MODEL:gpt-realtime-2.1}             # D-63
+        models: # D-73: selección por el modo de la sesión
+          practice: ${TALENTI_AI_DORA_REALTIME_MODELS_PRACTICE:gpt-realtime-mini}
+          interview: ${TALENTI_AI_DORA_REALTIME_MODELS_INTERVIEW:gpt-realtime-2.1}
         voice: ${TALENTI_AI_DORA_REALTIME_VOICE:marin}                        # D-14, duda E2-2
         transcription-model: ${TALENTI_AI_DORA_REALTIME_TRANSCRIPTION_MODEL:gpt-4o-mini-transcribe}   # duda E2-3
         transcription-language: es
         turn-detection: ${TALENTI_AI_DORA_REALTIME_TURN_DETECTION:semantic_vad}   # con interrupción (duda E2-4)
         connect-timeout: 8s         # después, 503 realtime-unavailable y el modo por turnos (012-42)
         max-sdp: 32KB               # 012-43
-        price-per-minute: ${TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE:0.30}   # ESTIMADO en dólares (duda E2-6)
+        price-per-minute: # Estimación local USD/min de llamada, no tarifa plana del proveedor
+          practice: ${TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE_PRACTICE:0.10}
+          interview: ${TALENTI_AI_DORA_REALTIME_PRICE_PER_MINUTE_INTERVIEW:0.30}
         min-minutes: 3              # con menos minutos de gasto restante, no se conecta (012-49)
         max-duration:
           practice: 15m             # duda E2-5

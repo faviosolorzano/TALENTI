@@ -1,5 +1,7 @@
 package com.talenti.practice.port;
 
+import com.talenti.practice.domain.SessionMode;
+
 /**
  * Puerto de la conversación en TIEMPO REAL (spec 012, enmienda 2): el servidor recibe la oferta SDP del navegador, abre
  * la llamada con el proveedor (con la configuración de la sesión y la clave, que NUNCA sale del servidor) y devuelve
@@ -23,8 +25,10 @@ public interface RealtimeCallPort {
 	/**
 	 * @param sdp          oferta SDP del navegador, sin cambios
 	 * @param instructions instrucciones de la entrevistadora (incluyen el primer nombre y el plan)
+	 * @param mode         modo guardado por el servidor
+	 * @param previousModel modelo de una apertura anterior de esta sesión; nulo en la primera, fija reconexiones
 	 */
-	record CallRequest(String sdp, String instructions) {
+	record CallRequest(String sdp, String instructions, SessionMode mode, String previousModel) {
 
 		@Override
 		public String toString() {
@@ -46,7 +50,7 @@ public interface RealtimeCallPort {
 
 	}
 
-	Info info();
+	Info info(SessionMode mode);
 
 	EventNames events();
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import com.talenti.practice.domain.SessionMode;
 import com.talenti.practice.port.AiCallException;
 import com.talenti.practice.port.RealtimeCallPort;
 
@@ -38,7 +39,7 @@ public class SimulatedRealtimeCalls implements RealtimeCallPort {
 	}
 
 	@Override
-	public Info info() {
+	public Info info(SessionMode mode) {
 		return new Info("realtime/simulated", "simulated-realtime", "simulated", "simulated-transcribe");
 	}
 

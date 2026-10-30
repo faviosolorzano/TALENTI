@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.talenti.practice.domain.SessionMode;
 import com.talenti.practice.port.AiCallException;
 import com.talenti.practice.port.RealtimeCallPort;
 
@@ -24,9 +25,9 @@ import tools.jackson.databind.node.ObjectNode;
 public class OpenAiRealtimeCalls implements RealtimeCallPort {
 
 	/** Configuración del adaptador (sale de {@code talenti.ai.dora.realtime.*}). */
-	public record Settings(String baseUrl, String callsPath, String hangupPath, String model, String voice,
-			String transcriptionModel, String transcriptionLanguage, String turnDetection, Duration timeout,
-			EventNames events) {
+	public record Settings(String baseUrl, String callsPath, String hangupPath, String practiceModel,
+			String interviewModel, String voice, String transcriptionModel, String transcriptionLanguage,
+			String turnDetection, Duration timeout, EventNames events) {
 	}
 
 	private final Settings settings;
@@ -42,8 +43,12 @@ public class OpenAiRealtimeCalls implements RealtimeCallPort {
 	}
 
 	@Override
-	public Info info() {
-		return new Info("realtime/openai", settings.model(), settings.voice(), settings.transcriptionModel());
+	public Info info(SessionMode mode) {
+		String model = switch (mode) {
+			case PRACTICE -> settings.practiceModel();
+			case INTERVIEW -> settings.interviewModel();
+		};
+		return new Info("realtime/openai", model, settings.voice(), settings.transcriptionModel());
 	}
 
 	@Override
@@ -55,7 +60,7 @@ public class OpenAiRealtimeCalls implements RealtimeCallPort {
 	public CreatedCall createCall(CallRequest request) {
 		Map<String, String> fields = new LinkedHashMap<>();
 		fields.put("sdp", request.sdp());
-		fields.put("session", session(request.instructions()));
+		fields.put("session", session(request));
 		RealtimeTransport.Response response;
 		try {
 			response = transport.postMultipart(settings.baseUrl() + settings.callsPath(), fields, settings.timeout());
@@ -92,11 +97,11 @@ public class OpenAiRealtimeCalls implements RealtimeCallPort {
 	}
 
 	/** La configuración de la sesión, en JSON (forma a confirmar en 012-69). */
-	String session(String instructions) {
+	String session(CallRequest request) {
 		ObjectNode session = mapper.createObjectNode();
 		session.put("type", "realtime");
-		session.put("model", settings.model());
-		session.put("instructions", instructions);
+		session.put("model", request.previousModel() == null ? info(request.mode()).model() : request.previousModel());
+		session.put("instructions", request.instructions());
 		ObjectNode audio = session.putObject("audio");
 		ObjectNode input = audio.putObject("input");
 		ObjectNode transcription = input.putObject("transcription").put("model", settings.transcriptionModel());

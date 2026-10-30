@@ -7,27 +7,29 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.util.unit.DataSize;
 
+import com.talenti.practice.domain.SessionMode;
+
 /**
  * DORA en tiempo real ({@code talenti.ai.dora.realtime.*}, spec 012 enmienda 2). APAGADA por defecto. URL, rutas,
  * modelo, voz, transcripción, detección de turnos y nombres de eventos son configuración y están A CONFIRMAR en la
  * prueba manual 012-69: si algo difiere, se cambia aquí y no en el código.
  *
  * @param enabled              usar OpenAI en tiempo real; exige {@code talenti.ai.dora.enabled=true}, la clave,
- *                             {@code base-url}, {@code model} y {@code voice} (si falta algo, el arranque falla)
+ *                             {@code base-url}, ambos {@code models} y {@code voice} (si falta algo, el arranque falla)
  * @param simulated            SOLO pruebas y recorridos locales: ofrece el tiempo real con el adaptador SIMULADO (sin
  *                             red). Por defecto falso: con el proveedor simulado el tiempo real no está disponible
  *                             (012-38)
  * @param baseUrl              URL base del proveedor
  * @param callsPath            ruta para crear la llamada (multipart {@code sdp} + {@code session})
  * @param hangupPath           ruta para colgar; {@code {callId}} se reemplaza por el id del proveedor
- * @param model                modelo de voz en tiempo real (D-63)
+ * @param models               modelo de voz por modo (D-73)
  * @param voice                voz femenina y cálida (D-14, duda E2-2)
  * @param transcriptionModel   modelo que transcribe a la persona (duda E2-3)
  * @param transcriptionLanguage idioma de la transcripción
  * @param turnDetection        tipo de detección de turnos (duda E2-4); la interrupción siempre va activada
  * @param connectTimeout       tiempo máximo para abrir la llamada; después 503 {@code realtime-unavailable} (012-42)
  * @param maxSdp               tamaño máximo de la oferta SDP (012-43)
- * @param pricePerMinute       precio ESTIMADO por minuto en dólares (duda E2-6, a confirmar con el panel)
+ * @param pricePerMinute       precio ESTIMADO por minuto y modo en dólares, a contrastar con el panel
  * @param minMinutes           si el gasto restante alcanza menos minutos, no se conecta (012-49)
  * @param maxDuration          duración máxima por modo (duda E2-5)
  * @param warnBefore           aviso antes del fin
@@ -49,14 +51,14 @@ public record DoraRealtimeProperties(
 		@DefaultValue("https://api.openai.com/v1") String baseUrl,
 		@DefaultValue("/realtime/calls") String callsPath,
 		@DefaultValue("/realtime/calls/{callId}/hangup") String hangupPath,
-		@DefaultValue("gpt-realtime-2.1") String model,
+		@DefaultValue Models models,
 		@DefaultValue("marin") String voice,
 		@DefaultValue("gpt-4o-mini-transcribe") String transcriptionModel,
 		@DefaultValue("es") String transcriptionLanguage,
 		@DefaultValue("semantic_vad") String turnDetection,
 		@DefaultValue("8s") Duration connectTimeout,
 		@DefaultValue("32KB") DataSize maxSdp,
-		@DefaultValue("0.30") BigDecimal pricePerMinute,
+		@DefaultValue Prices pricePerMinute,
 		@DefaultValue("3") int minMinutes,
 		@DefaultValue MaxDuration maxDuration,
 		@DefaultValue("2m") Duration warnBefore,
@@ -70,6 +72,27 @@ public record DoraRealtimeProperties(
 		@DefaultValue("8000") int maxAnswer,
 		@DefaultValue("10s") Duration sweepInterval,
 		@DefaultValue Events events) {
+
+	public record Models(@DefaultValue("gpt-realtime-mini") String practice,
+			@DefaultValue("gpt-realtime-2.1") String interview) {
+	}
+
+	/** Estimación local de gasto, no tarifa plana del proveedor. */
+	public record Prices(@DefaultValue("0.10") BigDecimal practice,
+			@DefaultValue("0.30") BigDecimal interview) {
+		public Prices {
+			if (practice == null || practice.signum() <= 0 || interview == null || interview.signum() <= 0) {
+				throw new IllegalArgumentException("talenti.ai.dora.realtime.price-per-minute exige precios positivos por modo");
+			}
+		}
+
+		public BigDecimal forMode(SessionMode mode) {
+			return switch (mode) {
+				case PRACTICE -> practice;
+				case INTERVIEW -> interview;
+			};
+		}
+	}
 
 	/** Duración máxima de la conversación por modo. */
 	public record MaxDuration(
