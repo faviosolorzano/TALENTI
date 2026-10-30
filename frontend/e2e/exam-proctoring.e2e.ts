@@ -137,8 +137,15 @@ test('014-38, 014-40, 014-42, 014-44, 014-53: empezar, foto inicial, bloqueos y 
   await page.route('**/models/**', (route) => route.fulfill({ status: 503, body: '' }))
   const backend = await mockBackend(page)
   await page.goto('/postulaciones/app-e2e/examen')
+  await expect(page.getByRole('button', { name: p.begin })).toBeVisible()
+  const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
+  if (await reject.count()) await reject.click()
   for (const width of [360, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 })
+    await page.evaluate(async () => {
+      await document.fonts.ready
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    })
     await page.screenshot({ path: `${output}/inicio-${width}.png`, fullPage: true })
   }
   await page.bringToFront()
@@ -168,6 +175,7 @@ test('014-38, 014-40, 014-42, 014-44, 014-53: empezar, foto inicial, bloqueos y 
   await expect(page.getByTestId('exam-watermark')).toContainText('Ana Prueba · T-APPE2E')
   for (const width of [1280, 768, 360]) {
     await page.setViewportSize({ width, height: 900 })
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
     await page.screenshot({ path: `${output}/examen-${width}.png`, fullPage: true })
   }
   // La marca de agua es texto decorativo e incidental (WCAG 1.4.3 lo exime): su bajo contraste es a propósito; el

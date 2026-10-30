@@ -141,6 +141,16 @@
   box-shadow: var(--shadow-soft-inset);
 }
 
+/* Empty live regions stay mounted for announcements, without empty grid rows. */
+.layout--soft .workflow > [role='status']:empty {
+  position: absolute;
+  width: var(--border-width);
+  height: var(--border-width);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .layout--soft [data-testid='exam-questions'] {
   min-width: 0;
   padding: var(--space-5);
