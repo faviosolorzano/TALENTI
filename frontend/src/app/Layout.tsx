@@ -9,6 +9,7 @@ import { es } from '../i18n/es'
 import { isRouteHandle } from './routeHandle'
 import { useScrollToHash } from './useScrollToHash'
 import './Layout.css'
+import '../design/softSurfaces.css'
 
 export function Layout() {
   const { pathname } = useLocation()
@@ -35,7 +36,7 @@ export function Layout() {
 
   return (
     <CookieConsentProvider>
-      <div className="layout">
+      <div className="layout layout--soft">
         <a className="layout__skip-link" href="#contenido">
           {es.app.skipToContent}
         </a>

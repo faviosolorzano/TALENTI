@@ -1,0 +1,155 @@
+/* D-77: shared surfaces for existing journeys. The public hero and profile keep
+   their own composition; exam content stays opaque and security states intact. */
+.layout--soft .layout__main:has(.home, .opportunities, .vacancy-detail, .applications, .workflow) {
+  background: linear-gradient(var(--color-brand-white), var(--color-soft-canvas));
+}
+
+.layout--soft :is(.home-block--wide, .home__side > .home-block, .home-practice-link),
+.layout--soft :is(.vacancy-card, .home-vacancy),
+.layout--soft .card:is(.application-item, .applications__empty, .applications__panel),
+.layout--soft :is(.vacancy-detail__header, .filters__panel, .opportunities__empty) {
+  min-width: 0;
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-soft-surface);
+  box-shadow: var(--shadow-soft-raised);
+}
+
+@supports (backdrop-filter: blur(1rem)) {
+  .layout--soft :is(.home-block--wide, .home__side > .home-block, .home-practice-link),
+  .layout--soft .vacancy-detail__header {
+    background: var(--color-glass-surface);
+    backdrop-filter: blur(var(--glass-blur));
+  }
+}
+
+.layout--soft .home__grid {
+  gap: var(--space-8);
+}
+
+.layout--soft .home-block--main {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.layout--soft .home__side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: stretch;
+}
+
+.layout--soft .home__side > :is(.home-block, .home-practice-link) {
+  align-content: start;
+}
+
+.layout--soft .home-practice-link .btn {
+  margin-top: var(--space-2);
+}
+
+.layout--soft :is(.home-vacancy, .vacancy-card) {
+  border-radius: var(--radius-md);
+  background: var(--color-brand-white);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-base),
+    box-shadow var(--duration-base);
+}
+
+.layout--soft :is(.home-vacancy, .vacancy-card):is(:hover, :focus-within) {
+  border-color: var(--color-control);
+  box-shadow: var(--shadow-md);
+}
+
+.layout--soft :is(.opportunities__list, .applications__list) {
+  gap: var(--space-4);
+}
+
+.layout--soft .opportunities__intro {
+  background: none;
+}
+
+.layout--soft .vacancy-detail__header {
+  gap: var(--space-6);
+}
+
+.layout--soft .vacancy-detail__panel {
+  background: none;
+}
+
+/* Forms keep solid fields and existing labels, validation and error colors. */
+.layout--soft .workflow > .workflow__form,
+.layout--soft .workflow > .workflow__setup,
+.layout--soft .workflow > .dora-prepare {
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-soft-surface);
+  box-shadow: var(--shadow-soft-raised);
+}
+
+.layout--soft .workflow__editor {
+  background: var(--color-brand-white);
+  box-shadow: var(--shadow-soft-inset);
+}
+
+.layout--soft [data-testid='exam-questions'] {
+  min-width: 0;
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-brand-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.layout--soft [data-testid='exam-questions'] .workflow__choice {
+  margin-block: var(--space-2);
+  border: var(--border-width) solid var(--color-control);
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-white);
+}
+
+.layout--soft [data-testid='exam-questions'] .workflow__choice:has(input:checked) {
+  border-color: var(--color-action);
+  background: var(--color-bg-tint);
+}
+
+.layout--soft .workflow__timer {
+  padding-inline: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.layout--soft .dora-call__controls {
+  border-color: var(--color-glass-line);
+  box-shadow: var(--shadow-glass);
+}
+
+@media (min-width: 48rem) {
+  .layout--soft .home__side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .layout--soft :is(.home-block--wide, .home__side > .home-block, .home-practice-link),
+  .layout--soft .vacancy-detail__header,
+  .layout--soft .workflow > :is(.workflow__form, .workflow__setup, .dora-prepare),
+  .layout--soft [data-testid='exam-questions'] {
+    padding: var(--space-7);
+  }
+}
+
+@media (forced-colors: active) {
+  .layout--soft .layout__main,
+  .layout--soft :is(.home-block, .home-practice-link, .vacancy-card, .home-vacancy),
+  .layout--soft :is(.vacancy-detail__header, .filters__panel, .opportunities__empty),
+  .layout--soft [data-testid='exam-questions'] {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+}
