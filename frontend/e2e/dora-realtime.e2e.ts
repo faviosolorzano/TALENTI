@@ -230,18 +230,40 @@ interface CameraAudit {
   streams: MediaStream[]
   requests: MediaStreamConstraints[]
   denied: boolean
+  failures: string[]
+  recovery: MediaStream | null
+  recoveryCanvas?: HTMLCanvasElement
 }
 function auditCamera() {
-  const audit: CameraAudit = { streams: [], requests: [], denied: false }
+  const audit: CameraAudit = {
+    streams: [],
+    requests: [],
+    denied: false,
+    failures: [],
+    recovery: null,
+  }
   Object.assign(window, { __camera: audit })
   const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
   navigator.mediaDevices.getUserMedia = async (constraints) => {
     if (!constraints?.video) return original(constraints)
     audit.requests.push(constraints)
     if (audit.denied) throw new DOMException('test', 'NotAllowedError')
-    const stream = await original(constraints)
-    audit.streams.push(stream)
-    return stream
+    if (audit.recovery) {
+      const stream = audit.recovery
+      audit.recovery = null
+      audit.streams.push(stream)
+      return stream
+    }
+    try {
+      const stream = await original(constraints)
+      audit.streams.push(stream)
+      return stream
+    } catch (error) {
+      audit.failures.push(
+        error instanceof Error ? error.name + ': ' + error.message : String(error),
+      )
+      throw error
+    }
   }
 }
 
@@ -265,6 +287,13 @@ for (const interview of [false, true]) {
       await expect(page.getByText(es.interviewCamera.privacy)).toBeVisible()
       await page.getByRole('button', { name: es.interviewCamera.start }).click()
       await expect(page.getByRole('button', { name: es.interviewCamera.stop })).toBeVisible()
+      await expect
+        .poll(() =>
+          page
+            .locator('.interview-camera video')
+            .evaluate((video: HTMLVideoElement) => video.videoWidth),
+        )
+        .toBeGreaterThan(0)
       expect(
         await page.evaluate(() =>
           (window as unknown as { __camera: CameraAudit }).__camera.requests.every(
@@ -280,9 +309,32 @@ for (const interview of [false, true]) {
     const status = page.getByRole('status').filter({ hasText: r.statuses.listening })
     await expect(status).toBeVisible()
     if (interview) {
+      expect(
+        await page.evaluate(
+          () =>
+            (
+              window as unknown as { __camera: CameraAudit }
+            ).__camera.streams[0]!.getVideoTracks()[0]!.readyState,
+        ),
+      ).toBe('live')
       await page.evaluate(() => {
         const audit = (window as unknown as { __camera: CameraAudit }).__camera
         const track = audit.streams[0]!.getVideoTracks()[0]!
+        // Chrome's native fake capture can disappear after stop (NotFoundError).
+        // Use an independent synthetic source for the controlled recovery, not real hotplug.
+        const canvas = document.createElement('canvas')
+        canvas.width = 320
+        canvas.height = 240
+        const drawing = canvas.getContext('2d')!
+        drawing.fillStyle = '#0b132b'
+        drawing.fillRect(0, 0, 320, 240)
+        drawing.fillStyle = '#d6fbff'
+        drawing.font = '20px sans-serif'
+        drawing.translate(320, 0)
+        drawing.scale(-1, 1)
+        drawing.fillText('Cámara de prueba', 65, 125)
+        audit.recoveryCanvas = canvas
+        audit.recovery = canvas.captureStream(10)
         track.stop()
         track.dispatchEvent(new Event('ended'))
       })
@@ -339,9 +391,10 @@ for (const interview of [false, true]) {
     mkdirSync(output, { recursive: true })
     for (const width of [360, 768, 1280]) {
       await page.setViewportSize({ width, height: width === 360 ? 780 : 900 })
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
       await reflows(page)
       for (const name of [r.hangUp, r.mute, c.write, c.transcript])
-        await expect(page.getByRole('button', { name })).toBeVisible()
+        await expect(page.getByRole('button', { name })).toBeInViewport()
       await page.screenshot({
         path: resolve(output, `${interview ? 'entrevista' : 'dora'}-tiempo-real-${width}.png`),
       })
@@ -419,6 +472,10 @@ test('D-78: camera denial does not block preparation; retry and preparation-to-c
   ).toBeEnabled()
   mkdirSync(output, { recursive: true })
   await page.setViewportSize({ width: 360, height: 900 })
+  await page.evaluate(async () => {
+    await document.fonts.ready
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  })
   await page.screenshot({
     path: resolve(output, 'entrevista-camara-denegada-360.png'),
     fullPage: true,
@@ -433,6 +490,7 @@ test('D-78: camera denial does not block preparation; retry and preparation-to-c
   )
   for (const width of [360, 1280]) {
     await page.setViewportSize({ width, height: 900 })
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
     await reflows(page)
     await page.screenshot({
       path: resolve(output, `entrevista-preparacion-${width}.png`),
