@@ -32,7 +32,12 @@ export function DoraTranscriptPanel({
     if (!open) return
     opener.current = document.activeElement as HTMLElement | null
     return () => {
-      if (opener.current?.isConnected) opener.current.focus({ preventScroll: true })
+      const target = opener.current
+      // Native close may restore the focus captured during a responsive re-open.
+      // Restore the original trigger after that synchronous browser operation.
+      queueMicrotask(() => {
+        if (target?.isConnected) target.focus({ preventScroll: true })
+      })
     }
   }, [open])
   useEffect(() => {

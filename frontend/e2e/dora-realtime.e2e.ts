@@ -369,6 +369,22 @@ for (const interview of [false, true]) {
         item_id: 'd1',
         transcript: 'Hola, Ana. Soy DORA, una asistente de inteligencia artificial.',
       })
+      dora.emit({
+        type: 'conversation.item.input_audio_transcription.completed',
+        item_id: 'p1',
+        transcript: 'En mi proyecto desarrollé una API para organizar el inventario.',
+      })
+      dora.emit({
+        type: 'response.output_audio_transcript.done',
+        item_id: 'd2',
+        transcript: 'Cuéntame cómo organizaste el trabajo y qué dificultad resolviste.',
+      })
+      dora.emit({
+        type: 'conversation.item.input_audio_transcription.completed',
+        item_id: 'p2',
+        transcript:
+          'Separé las tareas por prioridad y probé cada cambio antes de compartirlo con el equipo.',
+      })
     })
     await expect(page.getByRole('status').filter({ hasText: r.statuses.speaking })).toBeVisible()
     const outline = await page.locator('.conversation-orb__core').getAttribute('d')
@@ -414,7 +430,12 @@ for (const interview of [false, true]) {
     await page.getByRole('button', { name: c.transcript }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByText(/Soy DORA/)).toBeVisible()
-    await expect(dialog.getByText(es.workflows.ai)).toBeVisible()
+    await expect(dialog.getByText(es.workflows.ai).first()).toBeVisible()
+    expect(
+      await dialog
+        .locator('[data-speaker]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-speaker'))),
+    ).toEqual(['DORA', 'PERSON', 'DORA', 'PERSON'])
     // Desktop is a non-modal side bubble: the call remains usable alongside it.
     for (const width of [1280, 980]) {
       await page.setViewportSize({ width, height: 900 })

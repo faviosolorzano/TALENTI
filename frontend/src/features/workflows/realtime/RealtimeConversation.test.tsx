@@ -51,6 +51,47 @@ function options(dora: unknown) {
 
 const AVAILABLE = { provider: 'OPENAI', realtime: { available: true } }
 
+it('D-79: turn-based transcript labels the real question/answer, keeps correction draft and never shows an empty state with answers', async () => {
+  const state = {
+    session: session({
+      status: 'IN_PROGRESS',
+      nextPosition: null,
+      answered: 1,
+      questions: [
+        {
+          position: 1,
+          text: 'Explica tu proyecto',
+          source: 'BANK',
+          generatedBy: 'BANK',
+          answer: {
+            turnId: 'turn-answer',
+            attempt: 1,
+            inputMode: 'TEXT',
+            transcriptRaw: 'Usé Java',
+            transcriptFinal: 'Usé Java',
+            corrected: false,
+            feedback: null,
+          },
+        },
+      ],
+    }),
+    dora: { provider: 'OPENAI', realtime: { available: false, reason: 'disabled' } },
+  }
+  const app = mount('/practicar/rt', realtimeBackend(state))
+  await app.user.click(await screen.findByRole('button', { name: c.transcript }))
+  const dialog = screen.getByRole('dialog', { name: c.transcriptButton })
+  expect(within(dialog).getByText(c.assistant)).toBeVisible()
+  expect(within(dialog).getByText(c.you)).toBeVisible()
+  expect(within(dialog).getByText(t.bank)).toBeVisible()
+  expect(within(dialog).getByText('Usé Java')).toBeVisible()
+  expect(within(dialog).queryByText(c.transcriptEmpty)).toBeNull()
+  await app.user.click(within(dialog).getByRole('button', { name: t.correct }))
+  await app.user.type(within(dialog).getByRole('textbox'), ' y SQL')
+  await app.user.click(within(dialog).getByRole('button', { name: c.closeTranscript }))
+  await app.user.click(screen.getByRole('button', { name: c.transcript }))
+  expect(screen.getByRole('textbox')).toHaveValue('Usé Java y SQL')
+})
+
 function session(overrides: Record<string, unknown> = {}) {
   return {
     id: 'rt',
