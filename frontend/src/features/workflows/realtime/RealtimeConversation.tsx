@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useBlocker } from 'react-router'
 import { es } from '../../../i18n/es'
 import type { DoraSession } from '../../../api/workflows'
@@ -43,11 +43,15 @@ export function RealtimeConversation({
   interview,
   onEnded,
   onFallback,
+  camera,
+  onMediaEnd,
 }: {
   session: DoraSession
   interview: boolean
   onEnded: () => void
   onFallback: (log: TranscriptEntry[], reason: TurnReason | null) => void
+  camera?: ReactNode
+  onMediaEnd?: () => void
 }) {
   // One call per mounted screen (the parent keys it by session). `attach` and `dispose` follow
   // the mount, so leaving, changing route or unmounting always releases everything (012-65).
@@ -56,7 +60,10 @@ export function RealtimeConversation({
   )
   useEffect(() => {
     call.setHandlers({
-      onEnded,
+      onEnded: () => {
+        onMediaEnd?.()
+        onEnded()
+      },
       onFallback: (_result, problem, transcript) =>
         onFallback(transcript, problem === 'mic-denied' ? 'mic-denied' : null),
     })
@@ -183,6 +190,7 @@ export function RealtimeConversation({
             </Button>
           </div>
         </div>
+        {snap.status !== 'ended' && camera && <aside className="dora-call__camera">{camera}</aside>}
         <div className="dora-call__actors" ref={orbRef}>
           <ConversationOrb mode={ORB_MODE[snap.status]} levelDriven={connected} />
         </div>
@@ -325,6 +333,7 @@ export function RealtimeConversation({
             <Button
               onClick={() => {
                 setConfirmHangUp(false)
+                onMediaEnd?.()
                 void call?.finishConversation()
               }}
             >

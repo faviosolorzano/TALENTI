@@ -10,6 +10,8 @@ import { WorkflowFrame, StudentWorkflow, Loading, ActionError } from './shared'
 import { useWorkflowAction } from './useWorkflowAction'
 import { t } from './workflowLabels'
 import { DoraSessionView } from './PracticePage'
+import { InterviewCamera } from './InterviewCamera'
+import { useInterviewCamera } from './useInterviewCamera'
 interface InterviewView {
   applicationId: string
   sessionId: string
@@ -84,6 +86,12 @@ function Interview({ id }: { id: string }) {
         })),
       }
     : created
+  const activeSession = session && ['CREATED', 'IN_PROGRESS'].includes(session.status)
+  const cameraEnabled =
+    resource.state.status !== 'error' &&
+    (!session || Boolean(activeSession) || Boolean(view?.canRetry))
+  const camera = useInterviewCamera(cameraEnabled)
+  const preview = <InterviewCamera camera={camera} />
   return (
     <WorkflowFrame title={t.interview} back={'/postulaciones/' + id}>
       <ActionError message={action.error} />
@@ -103,6 +111,8 @@ function Interview({ id }: { id: string }) {
               refresh={resource.retry}
               dora={options.state.status === 'success' ? options.state.data.dora : undefined}
               interview
+              camera={activeSession ? preview : undefined}
+              onMediaEnd={camera.stop}
               onTranscript={(position, turnId) =>
                 setTurnIds((current) => ({ ...current, [position]: turnId }))
               }
@@ -114,6 +124,7 @@ function Interview({ id }: { id: string }) {
                 <h2>{es.doraCall.prepare}</h2>
                 <p>{es.doraCall.tips}</p>
                 <small>{es.doraCall.interviewHelp}</small>
+                {preview}
                 <DeviceCheck />
               </section>
               {notice ? (

@@ -6,7 +6,7 @@ import './doraCall.css'
 import { AudioQueue } from './audioQueue'
 import { useWorkflowAction } from './useWorkflowAction'
 import { t } from './workflowLabels'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../../api/client'
 import {
@@ -336,12 +336,16 @@ export function DoraSessionView({
   dora,
   interview = false,
   onTranscript,
+  camera,
+  onMediaEnd,
 }: {
   session: DoraSession
   refresh: () => void
   dora: DoraAvailability | undefined
   interview?: boolean
   onTranscript?: (position: number, turnId: string) => void
+  camera?: ReactNode
+  onMediaEnd?: () => void
 }) {
   const [supported] = useState(realtimeSupported)
   const [fallback, setFallback] = useState<{
@@ -355,6 +359,8 @@ export function DoraSessionView({
         key={session.id}
         session={session}
         interview={interview}
+        camera={camera}
+        onMediaEnd={onMediaEnd}
         onEnded={refresh}
         onFallback={(log, reason) => {
           setFallback({ log, reason })
@@ -372,6 +378,8 @@ export function DoraSessionView({
       notice={reason ? r.reasons[reason] : ''}
       textFirst={reason === 'mic-denied'}
       liveLog={fallback?.log}
+      camera={camera}
+      onMediaEnd={onMediaEnd}
     />
   )
 }
@@ -384,6 +392,8 @@ export function DoraConversation({
   notice = '',
   textFirst = false,
   liveLog,
+  camera,
+  onMediaEnd,
 }: {
   session: DoraSession
   refresh: () => void
@@ -395,6 +405,8 @@ export function DoraConversation({
   textFirst?: boolean
   /** What was said in a real-time call before the fallback (012-63). */
   liveLog?: TranscriptEntry[]
+  camera?: ReactNode
+  onMediaEnd?: () => void
 }) {
   const action = useWorkflowAction()
   const [text, setText] = useState('')
@@ -629,6 +641,7 @@ export function DoraConversation({
           </div>
         </div>
         <ActionError message={action.error} />
+        {!ended && camera && <aside className="dora-call__camera">{camera}</aside>}
         {(degraded || session.degraded?.length > 0) && <p role="status">{t.degraded}</p>}
         <div className="dora-call__actors">
           <ConversationOrb
@@ -824,6 +837,7 @@ export function DoraConversation({
               disabled={action.busy}
               onClick={() =>
                 void action.perform(async () => {
+                  onMediaEnd?.()
                   await api('/dora/sessions/' + session.id + '/finish', { method: 'POST' })
                   setConfirmFinish(false)
                   refresh()

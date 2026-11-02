@@ -1,5 +1,6 @@
-import { useId } from 'react'
+import { useId, useRef } from 'react'
 import type { DoraMode } from '../dora/modes'
+import { useConversationOrbMotion } from './useConversationOrbMotion'
 /** Decorative state visual. Does not measure or classify the person's voice. */
 /**
  * `levelDriven`: the waves and the core follow `--dora-level` (0 to 1), the real volume set by
@@ -12,12 +13,15 @@ export function ConversationOrb({
   mode: DoraMode
   levelDriven?: boolean
 }) {
+  const root = useRef<HTMLDivElement>(null)
+  useConversationOrbMotion(root, mode, levelDriven)
   const id = 'dora-light-' + useId().replace(/:/g, '')
   const shape =
     'M160 38 C205 27 224 66 244 102 C270 135 278 172 253 201 C224 240 211 268 171 266 C133 273 94 257 71 229 C41 204 43 170 51 138 C55 104 69 71 106 59 C128 50 139 40 160 38Z'
   const bars = [8, 16, 28, 48, 78, 104, 72, 44, 24, 12]
   return (
     <div
+      ref={root}
       className="conversation-orb"
       data-mode={mode}
       data-level-driven={levelDriven || undefined}
@@ -79,6 +83,7 @@ export function ConversationOrb({
           strokeLinecap="round"
         />
         <path
+          className="conversation-orb__orbit"
           d="M147 235A174 174 0 0 1 326 46M493 200A174 174 0 0 1 333 394"
           stroke="var(--color-action)"
           strokeOpacity=".45"
@@ -86,6 +91,7 @@ export function ConversationOrb({
         />
         <g transform="translate(160 60)">
           <path
+            className="conversation-orb__glow"
             d={shape}
             fill="var(--color-dora-cyan)"
             opacity=".45"
@@ -108,6 +114,7 @@ export function ConversationOrb({
             strokeWidth="2"
           />
           <path
+            className="conversation-orb__core"
             d={shape}
             fill={'url(#' + id + '-core)'}
             transform="translate(17 17) scale(.9)"
@@ -116,6 +123,7 @@ export function ConversationOrb({
             strokeWidth="1.5"
           />
           <path
+            className="conversation-orb__shine"
             d="M78 125C105 65 180 40 235 93"
             stroke="var(--color-dora-ice)"
             strokeWidth="4"

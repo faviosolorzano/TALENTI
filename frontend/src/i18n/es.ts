@@ -74,6 +74,22 @@ export const es = {
     reviewPending: 'Volver a revisar',
     discardPending: 'Descartar pendientes y guardar',
   },
+  interviewCamera: {
+    title: 'Tu cámara',
+    video: 'Vista previa local de tu cámara',
+    privacy: 'Solo vista previa: no se graba ni se guarda.',
+    off: 'Cámara apagada',
+    waiting: 'Abriendo cámara…',
+    start: 'Activar cámara',
+    stop: 'Apagar cámara',
+    retry: 'Reintentar cámara',
+    errors: {
+      denied: 'Permite la cámara en tu navegador para verte aquí. Puedes continuar sin ella.',
+      missing: 'No encontramos una cámara. Puedes continuar sin ella.',
+      unavailable: 'No pudimos abrir la cámara. Revisa si otra aplicación la está usando.',
+      lost: 'Se perdió la cámara. Puedes volver a activarla.',
+    },
+  },
   doraCall: {
     speakShort: 'Hablar',
     sendVoiceShort: 'Enviar',
