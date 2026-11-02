@@ -107,7 +107,12 @@ interface Backend {
   session: Record<string, unknown>
 }
 
-async function simulatedBackend(page: Page, interview = false): Promise<Backend> {
+async function simulatedBackend(
+  page: Page,
+  interview = false,
+  preparation = false,
+): Promise<Backend> {
+  let interviewCreated = !preparation
   const backend: Backend = {
     requests: [],
     session: {
@@ -165,6 +170,12 @@ async function simulatedBackend(page: Page, interview = false): Promise<Backend>
         dora: { provider: 'OPENAI', realtime: { available: true } },
       })
     if (path === '/practice/sessions/rt') return json(backend.session)
+    if (path === '/applications/app-rt/interview' && method === 'POST') {
+      interviewCreated = true
+      return json(backend.session, 201)
+    }
+    if (path === '/applications/app-rt/interview' && !interviewCreated)
+      return route.fulfill({ status: 204 })
     if (path === '/applications/app-rt/interview')
       return json({
         applicationId: 'app-rt',
@@ -215,11 +226,32 @@ async function reflows(page: Page) {
   )
 }
 
+interface CameraAudit {
+  streams: MediaStream[]
+  requests: MediaStreamConstraints[]
+  denied: boolean
+}
+function auditCamera() {
+  const audit: CameraAudit = { streams: [], requests: [], denied: false }
+  Object.assign(window, { __camera: audit })
+  const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+  navigator.mediaDevices.getUserMedia = async (constraints) => {
+    if (!constraints?.video) return original(constraints)
+    audit.requests.push(constraints)
+    if (audit.denied) throw new DOMException('test', 'NotAllowedError')
+    const stream = await original(constraints)
+    audit.streams.push(stream)
+    return stream
+  }
+}
+
 for (const interview of [false, true]) {
   test(`012-59/60/61/65/66: ${interview ? 'INTERVIEW' : 'PRACTICE'} real-time call in Chrome at 360, 768 and 1280 px, accessible and released on hang up`, async ({
     page,
   }) => {
     await page.addInitScript(fakeWebRtc)
+    await page.addInitScript(auditCamera)
+    if (interview) await page.context().grantPermissions(['camera', 'microphone'])
     // Also intercept the bootstrap request before the session fixtures are installed.
     await page.route('**/api/v1/**', (route) =>
       route.fulfill({ status: 401, json: { code: 'unauthenticated' } }),
@@ -229,11 +261,51 @@ for (const interview of [false, true]) {
     const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
     await page.goto(interview ? '/postulaciones/app-rt/entrevista' : '/practicar/rt')
     if (await reject.count()) await reject.click()
+    if (interview) {
+      await expect(page.getByText(es.interviewCamera.privacy)).toBeVisible()
+      await page.getByRole('button', { name: es.interviewCamera.start }).click()
+      await expect(page.getByRole('button', { name: es.interviewCamera.stop })).toBeVisible()
+      expect(
+        await page.evaluate(() =>
+          (window as unknown as { __camera: CameraAudit }).__camera.requests.every(
+            (item) => item.audio === false,
+          ),
+        ),
+      ).toBe(true)
+      expect(backend.requests).toHaveLength(0)
+    }
     const start = page.getByRole('button', { name: r.startCall })
     await expect(start).toBeVisible()
     await start.click()
     const status = page.getByRole('status').filter({ hasText: r.statuses.listening })
     await expect(status).toBeVisible()
+    if (interview) {
+      await page.evaluate(() => {
+        const audit = (window as unknown as { __camera: CameraAudit }).__camera
+        const track = audit.streams[0]!.getVideoTracks()[0]!
+        track.stop()
+        track.dispatchEvent(new Event('ended'))
+      })
+      await expect(page.getByText(es.interviewCamera.errors.lost)).toBeVisible()
+      await expect(status).toBeVisible()
+      await page.getByRole('button', { name: es.interviewCamera.retry }).click()
+      await expect(page.getByRole('button', { name: es.interviewCamera.stop })).toBeVisible()
+      expect(
+        await page.evaluate(() =>
+          (
+            window as unknown as { __dora: { state: { peers: { tracks: MediaStreamTrack[] }[] } } }
+          ).__dora.state.peers
+            .flatMap((peer) => peer.tracks)
+            .every((track) => track.kind === 'audio'),
+        ),
+      ).toBe(true)
+    } else {
+      expect(
+        await page.evaluate(
+          () => (window as unknown as { __camera: CameraAudit }).__camera.requests.length,
+        ),
+      ).toBe(0)
+    }
     expect(backend.requests.find((q) => q.path === '/dora/sessions/rt/realtime')?.body).toEqual({
       sdp: expect.stringContaining('m=audio'),
     })
@@ -247,6 +319,10 @@ for (const interview of [false, true]) {
       })
     })
     await expect(page.getByRole('status').filter({ hasText: r.statuses.speaking })).toBeVisible()
+    const outline = await page.locator('.conversation-orb__core').getAttribute('d')
+    await expect
+      .poll(() => page.locator('.conversation-orb__core').getAttribute('d'))
+      .not.toBe(outline)
     // The orb follows the real level of DORA's tone (never a looping fake).
     await expect
       .poll(() =>
@@ -296,6 +372,14 @@ for (const interview of [false, true]) {
     await page.getByRole('button', { name: r.hangUp }).click()
     await page.getByRole('dialog').getByRole('button', { name: r.hangUpShort }).click()
     await expect(page.getByText(es.workflows.closedSession)).toBeVisible()
+    if (interview)
+      expect(
+        await page.evaluate(() =>
+          (window as unknown as { __camera: CameraAudit }).__camera.streams.every((stream) =>
+            stream.getTracks().every((track) => track.readyState === 'ended'),
+          ),
+        ),
+      ).toBe(true)
     expect(backend.requests.map((q) => q.path)).toEqual(
       expect.arrayContaining(['/dora/sessions/rt/realtime/hangup', '/dora/sessions/rt/finish']),
     )
@@ -309,6 +393,75 @@ for (const interview of [false, true]) {
     ).toBe(1)
   })
 }
+
+test('D-78: camera denial does not block preparation; retry and preparation-to-call preserve one preview; back releases it', async ({
+  page,
+}) => {
+  await page.context().grantPermissions(['camera', 'microphone'])
+  await page.addInitScript(fakeWebRtc)
+  await page.addInitScript(auditCamera)
+  await page.route('**/api/v1/**', (route) =>
+    route.fulfill({ status: 401, json: { code: 'unauthenticated' } }),
+  )
+  await page.goto('/ingresar')
+  await simulatedBackend(page, true, true)
+  await page.goto('/postulaciones/app-rt/entrevista')
+  const reject = page.getByRole('button', { name: es.cookies.banner.reject, exact: true })
+  if (await reject.count()) await reject.click()
+  await page.evaluate(() => {
+    ;(window as unknown as { __camera: CameraAudit }).__camera.denied = true
+  })
+  await page.getByRole('button', { name: es.interviewCamera.start }).click()
+  await expect(page.getByText(es.interviewCamera.errors.denied)).toBeVisible()
+  await page.getByRole('checkbox', { name: es.workflows.acceptInterview }).check()
+  await expect(
+    page.getByRole('button', { name: es.workflows.startInterview, exact: true }),
+  ).toBeEnabled()
+  mkdirSync(output, { recursive: true })
+  await page.setViewportSize({ width: 360, height: 900 })
+  await page.screenshot({
+    path: resolve(output, 'entrevista-camara-denegada-360.png'),
+    fullPage: true,
+  })
+  await page.evaluate(() => {
+    ;(window as unknown as { __camera: CameraAudit }).__camera.denied = false
+  })
+  await page.getByRole('button', { name: es.interviewCamera.retry }).click()
+  await expect(page.getByRole('button', { name: es.interviewCamera.stop })).toBeVisible()
+  const streamId = await page.evaluate(
+    () => (window as unknown as { __camera: CameraAudit }).__camera.streams[0]!.id,
+  )
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    await reflows(page)
+    await page.screenshot({
+      path: resolve(output, `entrevista-preparacion-${width}.png`),
+      fullPage: true,
+    })
+  }
+  await page.getByRole('button', { name: es.workflows.startInterview, exact: true }).click()
+  await expect(page.locator('.dora-call__camera video')).toBeVisible()
+  expect(
+    await page
+      .locator('.dora-call__camera video')
+      .evaluate((video: HTMLVideoElement) => (video.srcObject as MediaStream).id),
+  ).toBe(streamId)
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { __camera: CameraAudit }).__camera.streams.length,
+    ),
+  ).toBe(1)
+  await page.locator('.workflow__back').click()
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as unknown as { __camera: CameraAudit }).__camera.streams.every((stream) =>
+          stream.getTracks().every((track) => track.readyState === 'ended'),
+        ),
+      ),
+    )
+    .toBe(true)
+})
 
 test('012-46/67: browser events persist in the real isolated backend, including late transcripts', async ({
   page,

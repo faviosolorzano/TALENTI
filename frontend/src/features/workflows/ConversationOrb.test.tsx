@@ -79,13 +79,13 @@ it('uses the actual level provided by the call without opening a microphone', ()
     </>,
   )
   const actors = app.container.querySelectorAll<HTMLElement>('.dora-call__actors')
-  actors[0].style.setProperty('--dora-level', '0')
-  actors[1].style.setProperty('--dora-level', '1')
+  actors[0]!.style.setProperty('--dora-level', '0')
+  actors[1]!.style.setProperty('--dora-level', '1')
   step(40)
   step(80)
   step(120)
-  expect(actors[0].querySelector('.conversation-orb__core')!.getAttribute('d')).not.toBe(
-    actors[1].querySelector('.conversation-orb__core')!.getAttribute('d'),
+  expect(actors[0]!.querySelector('.conversation-orb__core')!.getAttribute('d')).not.toBe(
+    actors[1]!.querySelector('.conversation-orb__core')!.getAttribute('d'),
   )
   expect(capture).not.toHaveBeenCalled()
   if (original) Object.defineProperty(navigator, 'mediaDevices', original)
