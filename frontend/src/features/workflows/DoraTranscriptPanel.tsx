@@ -85,7 +85,14 @@ export function DoraTranscriptPanel({
           <span aria-hidden="true">×</span>
         </Button>
       </header>
-      <div className="dora-transcript__content">{children}</div>
+      <div
+        className="dora-transcript__content"
+        role="region"
+        aria-labelledby={id + '-title'}
+        tabIndex={0}
+      >
+        {children}
+      </div>
     </dialog>
   )
 }

@@ -432,6 +432,10 @@ for (const interview of [false, true]) {
       await page.screenshot({
         path: resolve(output, `${interview ? 'entrevista' : 'dora'}-transcripcion-${width}.png`),
       })
+      const panelAxe = await new AxeBuilder({ page }).include('.dora-transcript[open]').analyze()
+      expect(
+        panelAxe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious'),
+      ).toEqual([])
     }
     await page.getByRole('button', { name: r.unmute }).click()
     await expect(page.getByRole('button', { name: r.mute })).toBeVisible()
