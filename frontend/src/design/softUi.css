@@ -22,22 +22,27 @@ body {
   background: var(--color-surface);
 }
 .btn--primary {
-  background: linear-gradient(155deg, var(--color-action), var(--color-action-hover));
+  background-color: var(--color-action);
+  background-image: linear-gradient(
+    155deg,
+    transparent,
+    color-mix(in srgb, var(--color-action-hover) 70%, transparent)
+  );
   box-shadow: var(--shadow-soft-blue);
 }
-.btn--primary:hover {
-  background: var(--color-action-hover);
+.btn--primary:hover:not(:disabled, [aria-disabled='true']) {
+  background-color: var(--color-action-hover);
   box-shadow: var(--shadow-soft-blue);
 }
 .btn--quiet {
   background: var(--color-soft-surface);
   box-shadow: var(--shadow-soft-raised);
 }
-.btn--quiet:hover {
+.btn--quiet:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--color-surface);
 }
-.btn:active:not(:disabled, [aria-disabled='true']) {
-  box-shadow: var(--shadow-soft-inset);
+.btn--quiet:active:not(:disabled, [aria-disabled='true']) {
+  background-color: var(--color-bg-tint);
 }
 .btn--quiet.btn--on-dark {
   background: transparent;

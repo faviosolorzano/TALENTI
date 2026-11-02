@@ -15,14 +15,9 @@
   text-decoration: none;
   cursor: pointer;
   transition:
-    transform var(--duration-slow) var(--easing-standard),
-    background-color var(--duration-base),
-    box-shadow var(--duration-slow) var(--easing-standard),
-    border-color var(--duration-base);
-}
-
-.btn:active:not(:disabled, [aria-disabled='true']) {
-  transform: scale(0.98);
+    background-color var(--duration-fast) var(--easing-standard),
+    color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard);
 }
 
 .btn--sm {
@@ -33,12 +28,12 @@
 
 /* Primary: the one main action */
 .btn--primary {
-  background: var(--color-action);
+  background-color: var(--color-action);
   color: var(--color-action-text);
 }
 
-.btn--primary:hover {
-  background: var(--color-action-hover);
+.btn--primary:is(:hover, :active):not(:disabled, [aria-disabled='true']) {
+  background-color: var(--color-action-hover);
 }
 
 /* Quiet: outlined */
@@ -48,7 +43,7 @@
   border-color: var(--color-control);
 }
 
-.btn--quiet:hover {
+.btn--quiet:hover:not(:disabled, [aria-disabled='true']) {
   border-color: var(--color-text);
 }
 
@@ -58,7 +53,7 @@
   border-color: var(--color-overlay-inverse-line);
 }
 
-.btn--quiet.btn--on-dark:hover {
+.btn--quiet.btn--on-dark:hover:not(:disabled, [aria-disabled='true']) {
   border-color: var(--color-text-inverse);
 }
 
@@ -72,7 +67,7 @@
   color: var(--color-text-inverse);
 }
 
-.btn--danger:hover {
+.btn--danger:hover:not(:disabled, [aria-disabled='true']) {
   background: color-mix(in srgb, var(--color-danger) 85%, var(--color-brand-navy));
 }
 
@@ -86,7 +81,7 @@
 
 .btn--primary:disabled,
 .btn--primary[aria-disabled='true'] {
-  background: var(--color-action);
+  background-color: var(--color-action);
 }
 
 .btn--danger:disabled,
