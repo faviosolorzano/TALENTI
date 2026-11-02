@@ -3,6 +3,7 @@ import { useBlocker } from 'react-router'
 import { es } from '../../../i18n/es'
 import type { DoraSession } from '../../../api/workflows'
 import { Button } from '../../../components/Button'
+import { DoraTranscriptPanel } from '../DoraTranscriptPanel'
 import { Dialog } from '../../../components/Dialog'
 import { usePrefersReducedMotion } from '../../../hooks/usePrefersReducedMotion'
 import type { DoraMode } from '../../dora/modes'
@@ -173,6 +174,8 @@ export function RealtimeConversation({
             <Button
               variant="quiet"
               aria-label={c.transcript}
+              aria-expanded={transcriptOpen}
+              aria-controls={'dora-transcript-' + session.id}
               onClick={() => setTranscriptOpen(true)}
             >
               <CallIcon kind="transcript" />
@@ -190,7 +193,21 @@ export function RealtimeConversation({
             </Button>
           </div>
         </div>
-        {snap.status !== 'ended' && camera && <aside className="dora-call__camera">{camera}</aside>}
+        <div
+          className="dora-call__side"
+          hidden={!(snap.status !== 'ended' && camera) && !transcriptOpen}
+        >
+          {snap.status !== 'ended' && camera && (
+            <aside className="dora-call__camera">{camera}</aside>
+          )}
+          <DoraTranscriptPanel
+            open={transcriptOpen}
+            id={'dora-transcript-' + session.id}
+            onClose={() => setTranscriptOpen(false)}
+          >
+            <LiveTranscript entries={snap.transcript} />
+          </DoraTranscriptPanel>
+        </div>
         <div className="dora-call__actors" ref={orbRef}>
           <ConversationOrb mode={ORB_MODE[snap.status]} levelDriven={connected} />
         </div>
@@ -307,16 +324,7 @@ export function RealtimeConversation({
           </Button>
         )}
       </section>
-      <Dialog
-        open={transcriptOpen}
-        title={c.transcriptButton}
-        onClose={() => setTranscriptOpen(false)}
-      >
-        <Button variant="quiet" onClick={() => setTranscriptOpen(false)}>
-          {c.closeTranscript}
-        </Button>
-        <LiveTranscript entries={snap.transcript} />
-      </Dialog>
+
       {helpOpen && (
         <Dialog title={c.help} onClose={() => setHelpOpen(false)}>
           <Button variant="quiet" onClick={() => setHelpOpen(false)}>
@@ -355,9 +363,11 @@ export function LiveTranscript({ entries }: { entries: TranscriptEntry[] }) {
   return (
     <ol className="dora-call__live">
       {entries.map((entry) => (
-        <li key={entry.id} className="workflow__row" data-speaker={entry.speaker}>
-          <strong>{entry.speaker === 'DORA' ? c.assistant : c.you}</strong>
-          {entry.speaker === 'DORA' && <Source value="AI" />}
+        <li key={entry.id} className="dora-transcript__message" data-speaker={entry.speaker}>
+          <div className="dora-transcript__speaker">
+            <strong>{entry.speaker === 'DORA' ? c.assistant : c.you}</strong>
+            {entry.speaker === 'DORA' && <Source value="AI" />}
+          </div>
           <p>{entry.text}</p>
         </li>
       ))}

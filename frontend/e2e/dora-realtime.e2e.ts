@@ -415,7 +415,36 @@ for (const interview of [false, true]) {
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByText(/Soy DORA/)).toBeVisible()
     await expect(dialog.getByText(es.workflows.ai)).toBeVisible()
+    // Desktop is a non-modal side bubble: the call remains usable alongside it.
+    for (const width of [1280, 980]) {
+      await page.setViewportSize({ width, height: 900 })
+      await reflows(page)
+      expect(await dialog.evaluate((node) => node.matches(':modal'))).toBe(false)
+      const panel = await dialog.boundingBox()
+      const actors = await page.locator('.dora-call__actors').boundingBox()
+      expect(panel && actors && panel.x >= actors.x + actors.width).toBeTruthy()
+      for (const name of [r.hangUp, r.unmute, c.write, c.transcript])
+        await expect(page.getByRole('button', { name })).toBeInViewport({ ratio: 1 })
+      if (interview) {
+        const camera = await page.locator('.dora-call__camera').boundingBox()
+        expect(camera && panel && camera.y + camera.height <= panel.y).toBeTruthy()
+      }
+      await page.screenshot({
+        path: resolve(output, `${interview ? 'entrevista' : 'dora'}-transcripcion-${width}.png`),
+      })
+    }
+    await page.getByRole('button', { name: r.unmute }).click()
+    await expect(page.getByRole('button', { name: r.mute })).toBeVisible()
+    await page.setViewportSize({ width: 768, height: 900 })
+    await expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(await dialog.evaluate((node) => node.matches(':modal'))).toBe(true)
+    await page.screenshot({
+      path: resolve(output, `${interview ? 'entrevista' : 'dora'}-transcripcion-768.png`),
+    })
     await page.setViewportSize({ width: 360, height: 780 })
+    await expect(dialog.getByRole('button', { name: c.closeTranscript })).toBeInViewport({
+      ratio: 1,
+    })
     await page.screenshot({
       path: resolve(output, `${interview ? 'entrevista' : 'dora'}-transcripcion-360.png`),
     })

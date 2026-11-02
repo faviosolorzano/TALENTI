@@ -56,11 +56,11 @@
   max-width: var(--device-preview-width);
   justify-self: end;
 }
-.dora-call:has(> .dora-call__camera) {
+.dora-call:has(.dora-call__camera) {
   align-content: start;
 }
 @media (max-width: 61.1875rem) {
-  .dora-call:has(> .dora-call__camera) .dora-call__actors {
+  .dora-call:has(.dora-call__camera) .dora-call__actors {
     width: min(var(--interview-camera-scene-width), 100%);
   }
   .dora-call__camera .interview-camera {
@@ -70,25 +70,8 @@
   .dora-call__camera .interview-camera__image {
     align-self: start;
   }
-  .dora-call:has(> .dora-call__camera) {
+  .dora-call:has(.dora-call__camera) {
     min-height: 0;
-  }
-}
-@media (min-width: 61.25rem) {
-  .dora-call:has(> .dora-call__camera) {
-    grid-template-columns: minmax(0, 1fr) var(--interview-camera-panel-width);
-    column-gap: var(--space-6);
-  }
-  .dora-call:has(> .dora-call__camera) > :not(.dora-call__heading, .dora-call__camera) {
-    grid-column: 1;
-  }
-  .dora-call:has(> .dora-call__camera) > .dora-call__heading {
-    grid-column: 1 / -1;
-  }
-  .dora-call__camera {
-    grid-column: 2;
-    grid-row: 2 / span 4;
-    align-self: start;
   }
 }
 @media (forced-colors: active) {

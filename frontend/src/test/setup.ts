@@ -26,3 +26,16 @@ afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
 })
+
+// Native dialog is exercised in real Chrome; jsdom needs its open/close lifecycle.
+if (!HTMLDialogElement.prototype.show) {
+  HTMLDialogElement.prototype.show = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+  }
+}

@@ -1,0 +1,143 @@
+.dora-call__side {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+  justify-items: end;
+}
+.dora-call__side[hidden] {
+  display: none;
+}
+.dora-transcript {
+  position: fixed;
+  inset: var(--space-4);
+  margin: auto;
+  padding: 0;
+  width: calc(100% - var(--space-8));
+  max-width: var(--dialog-max-width);
+  max-height: calc(100svh - var(--space-8));
+  color: var(--color-text);
+  background: var(--color-glass-surface);
+  backdrop-filter: blur(var(--glass-blur));
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft-raised);
+  overflow: hidden;
+}
+.dora-transcript[open] {
+  display: flex;
+  flex-direction: column;
+}
+.dora-transcript:not([open]) {
+  display: none;
+}
+.dora-transcript::backdrop {
+  background: var(--color-scrim);
+}
+.dora-transcript__header {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  align-items: start;
+  padding: var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-glass-line);
+  flex-shrink: 0;
+}
+.dora-transcript__header h2 {
+  font-size: var(--font-size-lg);
+  color: var(--color-brand-navy);
+}
+.dora-transcript__header p {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+.dora-transcript__close {
+  flex-shrink: 0;
+  font-size: var(--font-size-xl);
+}
+.dora-transcript__content {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4);
+  min-height: 0;
+  scrollbar-gutter: stable;
+}
+.dora-transcript__message,
+.dora-transcript .dora-call__transcript > .workflow__row {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-glass-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-soft-surface);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.dora-transcript__message[data-speaker='PERSON'] {
+  background: var(--color-surface);
+  margin-left: var(--space-4);
+}
+.dora-transcript__speaker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+}
+.dora-transcript__message p {
+  white-space: pre-wrap;
+  font-size: var(--font-size-sm);
+}
+.dora-transcript .dora-call__transcript {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+}
+@media (min-width: 61.25rem) {
+  .dora-call:has(> .dora-call__side:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) var(--interview-camera-panel-width);
+    column-gap: var(--space-6);
+    align-content: start;
+  }
+  .dora-call:has(.dora-transcript[open]) {
+    grid-template-columns: minmax(0, 1fr) var(--dora-transcript-width);
+  }
+  .dora-call:has(> .dora-call__side:not([hidden])) > :not(.dora-call__heading, .dora-call__side) {
+    grid-column: 1;
+  }
+  .dora-call:has(> .dora-call__side:not([hidden])) > .dora-call__heading {
+    grid-column: 1 / -1;
+  }
+  .dora-call__side {
+    grid-column: 2;
+    grid-row: 2 / span 12;
+    align-self: start;
+  }
+  .dora-transcript {
+    position: static;
+    inset: auto;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    max-height: min(var(--dora-transcript-height), calc(100svh - var(--dora-transcript-space)));
+  }
+  .dora-call__side:has(.dora-call__camera) .dora-transcript {
+    max-height: min(
+      var(--dora-transcript-height),
+      calc(100svh - var(--dora-transcript-camera-space))
+    );
+  }
+  .dora-call__side:has(.dora-transcript[open]) .dora-call__camera {
+    max-width: none;
+  }
+  .dora-call__side:has(.dora-transcript[open]) .interview-camera {
+    grid-template-columns: var(--interview-camera-thumb-width) minmax(0, 1fr);
+  }
+}
+@media (forced-colors: active) {
+  .dora-transcript,
+  .dora-transcript__message {
+    border-color: CanvasText;
+  }
+}

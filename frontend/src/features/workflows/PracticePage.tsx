@@ -19,6 +19,7 @@ import {
 } from '../../api/workflows'
 import { useWorkflowResource as useApiResource } from './useWorkflowResource'
 import { Button } from '../../components/Button'
+import { DoraTranscriptPanel } from './DoraTranscriptPanel'
 import { Dialog } from '../../components/Dialog'
 import { WorkflowFrame, StudentWorkflow, Loading, ActionError, Source } from './shared'
 import { realtimeApi, type DoraAvailability, type OpenSession } from '../../api/realtime'
@@ -612,6 +613,8 @@ export function DoraConversation({
             <Button
               variant="quiet"
               aria-label={c.transcript}
+              aria-expanded={transcriptOpen}
+              aria-controls={'dora-transcript-' + session.id}
               onClick={() => setTranscriptOpen(true)}
             >
               <CallIcon kind="transcript" />
@@ -641,7 +644,54 @@ export function DoraConversation({
           </div>
         </div>
         <ActionError message={action.error} />
-        {!ended && camera && <aside className="dora-call__camera">{camera}</aside>}
+        <div className="dora-call__side" hidden={!(!ended && camera) && !transcriptOpen}>
+          {!ended && camera && <aside className="dora-call__camera">{camera}</aside>}
+          <DoraTranscriptPanel
+            open={transcriptOpen}
+            id={'dora-transcript-' + session.id}
+            onClose={() => setTranscriptOpen(false)}
+          >
+            {recording && (
+              <Button onClick={() => recorder.current?.stop()}>{t.stopRecording}</Button>
+            )}
+            <div className="dora-call__transcript">
+              {liveLog && liveLog.length > 0 && (
+                <section className="workflow__row">
+                  <h3>{r.realtimeLog}</h3>
+                  <LiveTranscript entries={liveLog} />
+                </section>
+              )}
+              {!liveLog?.length && !reply && !session.questions.some((item) => item.answer) && (
+                <p>{c.transcriptEmpty}</p>
+              )}
+              {session.questions
+                .filter((item) => item.answer)
+                .map((item) => (
+                  <section className="workflow__row" key={item.position}>
+                    <h3>
+                      {t.question} {item.position}
+                    </h3>
+                    <div className="dora-transcript__speaker">
+                      <strong>{c.assistant}</strong>
+                      <Source value={item.generatedBy} />
+                    </div>
+                    <p>{item.text}</p>
+                    <strong>{c.you}</strong>
+                    <Transcript answer={item.answer!} sessionId={session.id} refresh={refresh} />
+                  </section>
+                ))}
+              {reply && (
+                <section className="workflow__row" aria-live="polite">
+                  <div className="dora-transcript__speaker">
+                    <strong>{c.assistant}</strong>
+                    <Source value={replySource} />
+                  </div>
+                  <p>{reply}</p>
+                </section>
+              )}
+            </div>
+          </DoraTranscriptPanel>
+        </div>
         {(degraded || session.degraded?.length > 0) && <p role="status">{t.degraded}</p>}
         <div className="dora-call__actors">
           <ConversationOrb
@@ -783,42 +833,7 @@ export function DoraConversation({
           <p role="status">{t.allAnswered}</p>
         )}
       </section>
-      <Dialog
-        open={transcriptOpen}
-        title={c.transcriptButton}
-        onClose={() => setTranscriptOpen(false)}
-      >
-        <Button variant="quiet" onClick={() => setTranscriptOpen(false)}>
-          {c.closeTranscript}
-        </Button>
-        {recording && <Button onClick={() => recorder.current?.stop()}>{t.stopRecording}</Button>}
-        <div className="dora-call__transcript">
-          {liveLog && liveLog.length > 0 && (
-            <section className="workflow__row">
-              <h3>{r.realtimeLog}</h3>
-              <LiveTranscript entries={liveLog} />
-            </section>
-          )}
-          {reply && (
-            <section className="workflow__row" aria-live="polite">
-              <Source value={replySource} />
-              <p>{reply}</p>
-            </section>
-          )}
-          {!session.questions.some((item) => item.answer) && <p>{c.transcriptEmpty}</p>}
-          {session.questions
-            .filter((item) => item.answer)
-            .map((item) => (
-              <section className="workflow__row" key={item.position}>
-                <h3>
-                  {t.question} {item.position}
-                </h3>
-                <p>{item.text}</p>
-                <Transcript answer={item.answer!} sessionId={session.id} refresh={refresh} />
-              </section>
-            ))}
-        </div>
-      </Dialog>
+
       {helpOpen && (
         <Dialog title={c.help} onClose={() => setHelpOpen(false)}>
           <Button variant="quiet" onClick={() => setHelpOpen(false)}>

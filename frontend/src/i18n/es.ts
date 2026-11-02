@@ -107,6 +107,7 @@ export const es = {
     closeTranscript: 'Cerrar transcripción',
     closeHelp: 'Cerrar ayuda',
     transcriptButton: 'Transcripción',
+    transcriptHint: 'Lee la conversación a tu ritmo.',
     helpButton: 'Ayuda',
     prepare: 'Antes de conversar',
     tips: 'Busca un lugar tranquilo. Usa audífonos si puedes.',

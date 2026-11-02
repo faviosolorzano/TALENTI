@@ -19,6 +19,10 @@
  */
 
 :root {
+  --dora-transcript-width: 22rem;
+  --dora-transcript-height: 30rem;
+  --dora-transcript-space: 12rem;
+  --dora-transcript-camera-space: 24rem;
   --interview-camera-panel-width: 12rem;
   --interview-camera-thumb-width: 6rem;
   --interview-camera-scene-width: 27rem;
