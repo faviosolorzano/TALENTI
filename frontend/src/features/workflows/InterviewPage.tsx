@@ -1,7 +1,7 @@
 import { DeviceCheck } from './DeviceCheck'
 import { es } from '../../i18n/es'
 import { Markdown } from '../../components/Markdown'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { workflowApi as api, type DoraSession, type PracticeOptions } from '../../api/workflows'
 import { useWorkflowResource as useApiResource } from './useWorkflowResource'
@@ -91,6 +91,11 @@ function Interview({ id }: { id: string }) {
     resource.state.status !== 'error' &&
     (!session || Boolean(activeSession) || Boolean(view?.canRetry))
   const camera = useInterviewCamera(cameraEnabled)
+  const closedSessionId = session && !activeSession ? session.id : null
+  const stopCamera = camera.stop
+  useEffect(() => {
+    if (closedSessionId) stopCamera()
+  }, [closedSessionId, stopCamera])
   const preview = <InterviewCamera camera={camera} />
   return (
     <WorkflowFrame title={t.interview} back={'/postulaciones/' + id}>
