@@ -60,6 +60,9 @@
   align-content: start;
 }
 @media (max-width: 61.1875rem) {
+  .dora-call:has(> .dora-call__camera) .dora-call__actors {
+    width: min(var(--interview-camera-scene-width), 100%);
+  }
   .dora-call__camera .interview-camera {
     grid-template-columns: var(--interview-camera-thumb-width) minmax(0, 1fr);
     align-items: start;

@@ -394,7 +394,7 @@ for (const interview of [false, true]) {
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
       await reflows(page)
       for (const name of [r.hangUp, r.mute, c.write, c.transcript])
-        await expect(page.getByRole('button', { name })).toBeInViewport()
+        await expect(page.getByRole('button', { name })).toBeInViewport({ ratio: 1 })
       await page.screenshot({
         path: resolve(output, `${interview ? 'entrevista' : 'dora'}-tiempo-real-${width}.png`),
       })

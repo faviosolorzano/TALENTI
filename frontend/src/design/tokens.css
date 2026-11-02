@@ -21,6 +21,7 @@
 :root {
   --interview-camera-panel-width: 12rem;
   --interview-camera-thumb-width: 6rem;
+  --interview-camera-scene-width: 27rem;
   /* D-59: shared soft surfaces; text and control outlines remain opaque. */
   --color-soft-canvas: #f4f7fc;
   --color-soft-surface: #f9fbff;
